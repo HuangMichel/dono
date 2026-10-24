@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Dono — MVP System Architecture",
+    "output": "docs/architecture/dono-architecture.html",
+    "quality_profile": "showcase",
+    "locale": "en"
+  },
+  "components": [
+    { "id": "assoc", "type": "external", "icon": "person", "label": "Association staff", "sublabel": "admin / staff", "pos": [40, 40], "size": [160, 64] },
+    { "id": "dashboard", "type": "frontend", "label": "Assoc. dashboard", "sublabel": "review · stock · metrics", "pos": [290, 40], "size": [160, 64] },
+    { "id": "jev", "type": "external", "label": "TypeSafe Jev", "sublabel": "optional Noul / Score", "pos": [820, 40], "size": [160, 64], "tag": "images experimental" },
+
+    { "id": "donor", "type": "external", "icon": "person", "label": "Donor", "sublabel": "mobile browser", "pos": [40, 220], "size": [160, 64] },
+    { "id": "donorApp", "type": "frontend", "label": "Donor PWA", "sublabel": "scan · offers · QR", "pos": [290, 220], "size": [160, 64] },
+    { "id": "api", "type": "backend", "label": "Next.js API", "sublabel": "route handlers · roles", "pos": [550, 220], "size": [160, 64], "tag": "matching + expiry in code" },
+    { "id": "analysis", "type": "backend", "label": "Analysis service", "sublabel": "provider switch", "pos": [820, 220], "size": [160, 64], "tag": "indicators only" },
+    { "id": "openai", "type": "external", "label": "OpenAI API", "sublabel": "vision + structured out", "pos": [1090, 220], "size": [160, 64] },
+
+    { "id": "auth", "type": "security", "label": "Supabase Auth", "sublabel": "JWT · roles", "pos": [290, 420], "size": [160, 64] },
+    { "id": "postgres", "type": "database", "label": "Postgres", "sublabel": "RLS · needs · indicators", "pos": [550, 420], "size": [160, 64] },
+    { "id": "storage", "type": "database", "label": "Supabase Storage", "sublabel": "donation photos", "pos": [820, 420], "size": [160, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Supabase project", "wraps": ["auth", "postgres", "storage"] }
+  ],
+  "connections": [
+    { "id": "donor-scans", "from": "donor", "to": "donorApp", "label": "scans item", "variant": "emphasis" },
+    { "id": "donorapp-api", "from": "donorApp", "to": "api", "label": "HTTPS + JWT", "variant": "emphasis" },
+    { "id": "api-analysis", "from": "api", "to": "analysis", "label": "analyze photo", "variant": "emphasis" },
+    { "id": "analysis-openai", "from": "analysis", "to": "openai", "label": "extract facts", "variant": "emphasis" },
+    { "id": "analysis-jev", "from": "analysis", "to": "jev", "label": "probabilities", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "assoc-manages", "from": "assoc", "to": "dashboard", "label": "manages" },
+    { "id": "dashboard-api", "from": "dashboard", "to": "api", "label": "HTTPS + JWT", "fromSide": "right", "toSide": "top" },
+    { "id": "donorapp-auth", "from": "donorApp", "to": "auth", "label": "sign in", "variant": "security", "fromSide": "bottom", "toSide": "top" },
+    { "id": "api-postgres", "from": "api", "to": "postgres", "label": "SQL + RLS", "fromSide": "bottom", "toSide": "top" },
+    { "id": "analysis-storage", "from": "analysis", "to": "storage", "label": "read photo", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Donor flow", "items": ["Scan 1–2 photos, see AI indicators", "Match: need + capacity + season + distance", "Offer → association approves → slot + QR"] },
+    { "dot": "emerald", "title": "Association flow", "items": ["Needs via form or free text (AI)", "Review queue: human approves / refuses", "QR reception, stock, image + expiry metrics"] },
+    { "dot": "violet", "title": "AI rules", "items": ["AI shows indicators, never a decision", "OpenAI extracts dates; code computes days left", "Jev optional, behind ANALYSIS_PROVIDER"] },
+    { "dot": "rose", "title": "Security", "items": ["Roles: donor, assoc admin/staff, platform admin", "Row-level security per association / donor", "API keys server-side only"] },
+    { "dot": "amber", "title": "Other services", "items": ["API Adresse (data.gouv.fr) for geocoding", "Both apps sign in through Supabase Auth"] }
+  ]
+}
