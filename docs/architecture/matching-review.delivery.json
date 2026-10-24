@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "1a2705be-b78d-4ced-9ff6-2984bf30f595",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/matching-review.json",
+  "output": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/matching-review.html",
+  "specification": {
+    "sha256": "e256ef2d43028f86e783d4b12617e61dfc7faef1906c82be3b9ca817db3f4a78",
+    "bytes": 7973
+  },
+  "artifact": {
+    "sha256": "d3fb4bc7bc5f4569153910eff23cb1d4be87b58ee360265809cbbc9f1741003a",
+    "bytes": 836075
+  }
+}

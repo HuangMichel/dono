@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "erd",
+  "quality": "standard",
+  "specification": {
+    "path": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/database-erd.json",
+    "sha256": "a2c46f94f6d84c5fedf9f07505235430d5c73da1d28b565d6cd1d503aec9f7a5",
+    "bytes": 29711
+  },
+  "artifact": {
+    "path": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/database-erd.html",
+    "sha256": "c4193c5cf75886303fb8dd337f9bab8e91eac76db04516733e45f0bdef87520c",
+    "bytes": 935929
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/validation/database-v4/database-erd.finalize.json",
+    "summaryReceipt": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/validation/database-v4/database-erd.finalize-summary.json",
+    "browserCheckReceipt": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/validation/database-v4/database-erd.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-24T16:49:20.276Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 6381,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 8,
+      "routesOverSuggestedStretch": 3
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "profiles-id-to-auth_users",
+            "from": "profiles",
+            "to": "auth_users",
+            "label": "",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "bends": 4,
+          "stretch": 1.219,
+          "directCorridorBlockers": [
+            {
+              "id": "associations",
+              "label": "associations",
+              "box": [
+                32,
+                371,
+                290,
+                356
+              ]
+            },
+            {
+              "id": "association_members",
+              "label": "association_members",
+              "box": [
+                32,
+                797,
+                290,
+                147
+              ]
+            },
+            {
+              "id": "redirect_points",
+              "label": "redirect_points",
+              "box": [
+                32,
+                1261,
+                290,
+                204
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "id": "association_members-profile_id-to-profiles",
+            "from": "association_members",
+            "to": "profiles",
+            "label": "",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 4,
+          "stretch": 1.382,
+          "directCorridorBlockers": [
+            {
+              "id": "associations",
+              "label": "associations",
+              "box": [
+                32,
+                371,
+                290,
+                356
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "id": "expiry_info-edited_by-to-profiles",
+            "from": "expiry_info",
+            "to": "profiles",
+            "label": "",
+            "collectionIndex": 18,
+            "artifactIndex": 19
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "donation_edits-actor_id-to-profiles",
+            "from": "donation_edits",
+            "to": "profiles",
+            "label": "",
+            "collectionIndex": 20,
+            "artifactIndex": 21
+          },
+          "bends": 5,
+          "stretch": 1.715
+        },
+        {
+          "relationship": {
+            "id": "slots-association_id-to-associations",
+            "from": "slots",
+            "to": "associations",
+            "label": "",
+            "collectionIndex": 22,
+            "artifactIndex": 23
+          },
+          "bends": 4,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "inventory_movements-association_id-to-associations",
+            "from": "inventory_movements",
+            "to": "associations",
+            "label": "",
+            "collectionIndex": 27,
+            "artifactIndex": 28
+          },
+          "bends": 4,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "inventory_movements-actor_id-to-profiles",
+            "from": "inventory_movements",
+            "to": "profiles",
+            "label": "",
+            "collectionIndex": 28,
+            "artifactIndex": 29
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "api_requests-actor_id-to-profiles",
+            "from": "api_requests",
+            "to": "profiles",
+            "label": "",
+            "collectionIndex": 29,
+            "artifactIndex": 30
+          },
+          "bends": 7,
+          "stretch": 1.634
+        }
+      ],
+      "truncated": false
+    },
+    "repair": "Advisory only: this mode places or routes these relationships itself. Report them; do not remove relationships or meaning to reduce crossings."
+  }
+}

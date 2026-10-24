@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "90eac2ff-ee04-4b44-a4d3-550c6870b341",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/use-cases.json",
+  "output": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/use-cases.html",
+  "specification": {
+    "sha256": "06894b78c80d57440f300e46387b3df1683be9ddb0cfc4a297992f2f6ebb53d7",
+    "bytes": 14472
+  },
+  "artifact": {
+    "sha256": "230591185880d9ce1a8f805c1fa738781cc25c3719e6af88e2214973fd41bcf2",
+    "bytes": 877467
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "00e3d348-cbf7-4ad6-bc30-08c8dac5f064",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/donation-creation.json",
+  "output": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/donation-creation.html",
+  "specification": {
+    "sha256": "760637b7653112bc586d6766400c24d06c7763b049d15df72d0006784d00c59e",
+    "bytes": 7104
+  },
+  "artifact": {
+    "sha256": "3842e68a081cee06b642a3bb68bb5765650a751858779d62aef9d9b083e9bdc2",
+    "bytes": 831223
+  }
+}

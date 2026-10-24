@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "40605da1-403b-4a76-a7eb-8bd2eee8b1d1",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/booking-reception.json",
+  "output": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/booking-reception.html",
+  "specification": {
+    "sha256": "8c1d4068660e5ff4e788e569b2c05ed6871f5dec3d196aedf164f9d88a858697",
+    "bytes": 7859
+  },
+  "artifact": {
+    "sha256": "8cfc81eb04459a5b3071f9e24a714a0b6badc69f39eee0c04b62a4360ca159ae",
+    "bytes": 832992
+  }
+}

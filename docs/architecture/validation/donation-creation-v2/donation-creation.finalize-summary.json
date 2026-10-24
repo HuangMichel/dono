@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "sequence",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/donation-creation.json",
+    "sha256": "760637b7653112bc586d6766400c24d06c7763b049d15df72d0006784d00c59e",
+    "bytes": 7104
+  },
+  "artifact": {
+    "path": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/donation-creation.html",
+    "sha256": "3842e68a081cee06b642a3bb68bb5765650a751858779d62aef9d9b083e9bdc2",
+    "bytes": 831223
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/validation/donation-creation-v2/donation-creation.finalize.json",
+    "summaryReceipt": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/validation/donation-creation-v2/donation-creation.finalize-summary.json",
+    "browserCheckReceipt": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/validation/donation-creation-v2/donation-creation.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-24T16:49:20.276Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 5124,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

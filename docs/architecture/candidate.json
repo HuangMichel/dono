@@ -8,40 +8,380 @@
     "locale": "en"
   },
   "components": [
-    { "id": "assoc", "type": "external", "icon": "person", "label": "Association staff", "sublabel": "admin / staff", "pos": [40, 40], "size": [160, 64] },
-    { "id": "dashboard", "type": "frontend", "label": "Assoc. dashboard", "sublabel": "review · stock · metrics", "pos": [290, 40], "size": [160, 64] },
-    { "id": "jev", "type": "external", "label": "TypeSafe Jev", "sublabel": "optional Noul / Score", "pos": [820, 40], "size": [160, 64], "tag": "images experimental" },
-
-    { "id": "donor", "type": "external", "icon": "person", "label": "Donor", "sublabel": "mobile browser", "pos": [40, 220], "size": [160, 64] },
-    { "id": "donorApp", "type": "frontend", "label": "Donor PWA", "sublabel": "scan · offers · QR", "pos": [290, 220], "size": [160, 64] },
-    { "id": "api", "type": "backend", "label": "Next.js API", "sublabel": "route handlers · roles", "pos": [550, 220], "size": [160, 64], "tag": "matching + expiry in code" },
-    { "id": "analysis", "type": "backend", "label": "Analysis service", "sublabel": "provider switch", "pos": [820, 220], "size": [160, 64], "tag": "indicators only" },
-    { "id": "openai", "type": "external", "label": "OpenAI API", "sublabel": "vision + structured out", "pos": [1090, 220], "size": [160, 64] },
-
-    { "id": "auth", "type": "security", "label": "Supabase Auth", "sublabel": "JWT · roles", "pos": [290, 420], "size": [160, 64] },
-    { "id": "postgres", "type": "database", "label": "Postgres", "sublabel": "RLS · needs · indicators", "pos": [550, 420], "size": [160, 64] },
-    { "id": "storage", "type": "database", "label": "Supabase Storage", "sublabel": "donation photos", "pos": [820, 420], "size": [160, 64] }
+    {
+      "id": "donor",
+      "type": "external",
+      "label": "Donor",
+      "sublabel": "own donations only",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        160,
+        76
+      ],
+      "icon": "person"
+    },
+    {
+      "id": "donor-ui",
+      "type": "frontend",
+      "label": "Donor browser",
+      "sublabel": "scan · offers · booking · QR",
+      "pos": [
+        330,
+        40
+      ],
+      "size": [
+        180,
+        76
+      ]
+    },
+    {
+      "id": "personnel",
+      "type": "external",
+      "label": "Association staff",
+      "sublabel": "assoc_admin / assoc_staff",
+      "pos": [
+        40,
+        250
+      ],
+      "size": [
+        160,
+        76
+      ],
+      "icon": "person"
+    },
+    {
+      "id": "staff-ui",
+      "type": "frontend",
+      "label": "Association dashboard",
+      "sublabel": "needs · review · stock · expiry",
+      "pos": [
+        330,
+        250
+      ],
+      "size": [
+        180,
+        76
+      ]
+    },
+    {
+      "id": "platform",
+      "type": "external",
+      "label": "Platform admin",
+      "sublabel": "association approval only",
+      "pos": [
+        40,
+        460
+      ],
+      "size": [
+        160,
+        76
+      ],
+      "icon": "person"
+    },
+    {
+      "id": "admin-ui",
+      "type": "frontend",
+      "label": "Approval console",
+      "sublabel": "RNA / SIRET registrations",
+      "pos": [
+        330,
+        460
+      ],
+      "size": [
+        180,
+        76
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Next.js API",
+      "sublabel": "roles · matching · expiry",
+      "pos": [
+        640,
+        250
+      ],
+      "size": [
+        220,
+        90
+      ],
+      "tag": "deterministic code"
+    },
+    {
+      "id": "analysis",
+      "type": "backend",
+      "label": "Analysis service",
+      "sublabel": "validate category schemas",
+      "pos": [
+        1050,
+        250
+      ],
+      "size": [
+        220,
+        90
+      ],
+      "tag": "indicators, no decision"
+    },
+    {
+      "id": "openai",
+      "type": "external",
+      "label": "OpenAI API",
+      "sublabel": "vision + structured extraction",
+      "pos": [
+        1450,
+        250
+      ],
+      "size": [
+        190,
+        76
+      ]
+    },
+    {
+      "id": "jev",
+      "type": "external",
+      "label": "TypeSafe Jev",
+      "sublabel": "optional probabilities only",
+      "pos": [
+        1450,
+        40
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "tag": "S1 · experimental images"
+    },
+    {
+      "id": "geo",
+      "type": "external",
+      "label": "API Adresse",
+      "sublabel": "address → coordinates",
+      "pos": [
+        655,
+        40
+      ],
+      "size": [
+        190,
+        76
+      ]
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Supabase Auth",
+      "sublabel": "identity · JWT",
+      "pos": [
+        330,
+        680
+      ],
+      "size": [
+        180,
+        76
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "Postgres",
+      "sublabel": "RLS · evidence + overrides",
+      "pos": [
+        640,
+        680
+      ],
+      "size": [
+        220,
+        90
+      ],
+      "tag": "staff owns decision"
+    },
+    {
+      "id": "storage",
+      "type": "database",
+      "label": "Supabase Storage",
+      "sublabel": "private donation photos",
+      "pos": [
+        1050,
+        680
+      ],
+      "size": [
+        220,
+        90
+      ]
+    }
   ],
   "boundaries": [
-    { "kind": "region", "label": "Supabase project", "wraps": ["auth", "postgres", "storage"] }
+    {
+      "kind": "security-group",
+      "label": "Server execution — API keys stay here",
+      "wraps": [
+        "api",
+        "analysis"
+      ],
+      "pad": 28
+    },
+    {
+      "kind": "region",
+      "label": "Supabase project — ownership and membership access",
+      "wraps": [
+        "auth",
+        "db",
+        "storage"
+      ],
+      "pad": 26
+    }
   ],
   "connections": [
-    { "id": "donor-scans", "from": "donor", "to": "donorApp", "label": "scans item", "variant": "emphasis" },
-    { "id": "donorapp-api", "from": "donorApp", "to": "api", "label": "HTTPS + JWT", "variant": "emphasis" },
-    { "id": "api-analysis", "from": "api", "to": "analysis", "label": "analyze photo", "variant": "emphasis" },
-    { "id": "analysis-openai", "from": "analysis", "to": "openai", "label": "extract facts", "variant": "emphasis" },
-    { "id": "analysis-jev", "from": "analysis", "to": "jev", "label": "probabilities", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
-    { "id": "assoc-manages", "from": "assoc", "to": "dashboard", "label": "manages" },
-    { "id": "dashboard-api", "from": "dashboard", "to": "api", "label": "HTTPS + JWT", "fromSide": "right", "toSide": "top" },
-    { "id": "donorapp-auth", "from": "donorApp", "to": "auth", "label": "sign in", "variant": "security", "fromSide": "bottom", "toSide": "top" },
-    { "id": "api-postgres", "from": "api", "to": "postgres", "label": "SQL + RLS", "fromSide": "bottom", "toSide": "top" },
-    { "id": "analysis-storage", "from": "analysis", "to": "storage", "label": "read photo", "fromSide": "bottom", "toSide": "top" }
+    {
+      "id": "donor-uses-ui",
+      "from": "donor",
+      "to": "donor-ui",
+      "variant": "emphasis",
+      "label": "uses"
+    },
+    {
+      "id": "staff-uses-ui",
+      "from": "personnel",
+      "to": "staff-ui",
+      "variant": "default",
+      "label": "uses"
+    },
+    {
+      "id": "platform-uses-ui",
+      "from": "platform",
+      "to": "admin-ui",
+      "variant": "default",
+      "label": "uses"
+    },
+    {
+      "id": "donor-api",
+      "from": "donor-ui",
+      "to": "api",
+      "variant": "emphasis",
+      "label": "HTTPS + JWT"
+    },
+    {
+      "id": "staff-api",
+      "from": "staff-ui",
+      "to": "api",
+      "variant": "security",
+      "label": "staff decision"
+    },
+    {
+      "id": "admin-api",
+      "from": "admin-ui",
+      "to": "api",
+      "variant": "security",
+      "label": "approve association"
+    },
+    {
+      "id": "api-analyzes",
+      "from": "api",
+      "to": "analysis",
+      "variant": "emphasis",
+      "label": "validated photos"
+    },
+    {
+      "id": "analysis-extracts",
+      "from": "analysis",
+      "to": "openai",
+      "variant": "emphasis",
+      "label": "facts + indicators"
+    },
+    {
+      "id": "optional-jev",
+      "from": "analysis",
+      "to": "jev",
+      "variant": "dashed",
+      "label": "optional scores"
+    },
+    {
+      "id": "api-geocodes",
+      "from": "api",
+      "to": "geo",
+      "variant": "default",
+      "label": "geocode"
+    },
+    {
+      "id": "api-verifies",
+      "from": "api",
+      "to": "auth",
+      "variant": "security",
+      "label": "verify identity"
+    },
+    {
+      "id": "api-persists",
+      "from": "api",
+      "to": "db",
+      "variant": "security",
+      "label": "authorized reads / writes"
+    },
+    {
+      "id": "api-photo-store",
+      "from": "api",
+      "to": "storage",
+      "variant": "security",
+      "label": "validated uploads"
+    },
+    {
+      "id": "analysis-photo-read",
+      "from": "analysis",
+      "to": "storage",
+      "variant": "default",
+      "label": "scoped photo read"
+    }
   ],
   "cards": [
-    { "dot": "cyan", "title": "Donor flow", "items": ["Scan 1–2 photos, see AI indicators", "Match: need + capacity + season + distance", "Offer → association approves → slot + QR"] },
-    { "dot": "emerald", "title": "Association flow", "items": ["Needs via form or free text (AI)", "Review queue: human approves / refuses", "QR reception, stock, image + expiry metrics"] },
-    { "dot": "violet", "title": "AI rules", "items": ["AI shows indicators, never a decision", "OpenAI extracts dates; code computes days left", "Jev optional, behind ANALYSIS_PROVIDER"] },
-    { "dot": "rose", "title": "Security", "items": ["Roles: donor, assoc admin/staff, platform admin", "Row-level security per association / donor", "API keys server-side only"] },
-    { "dot": "amber", "title": "Other services", "items": ["API Adresse (data.gouv.fr) for geocoding", "Both apps sign in through Supabase Auth"] }
+    {
+      "dot": "cyan",
+      "title": "One Next.js application",
+      "items": [
+        "Three role-specific views share route handlers / server actions.",
+        "Human personnel alone approve or refuse donations; platform approval concerns associations."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Evidence and overrides · FR-010 / FR-011",
+      "items": [
+        "Original provider, model, AI category, extracted facts, indicators and confidence stay unchanged.",
+        "Human working category/attributes are separate; show category mismatch with original evidence."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Matching and expiry · BR-002 / BR-003",
+      "items": [
+        "Need + capacity + season + Haversine distance: code only, no model in matching.",
+        "Expiry days, buckets and FEFO are computed at read time, never stored."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Intake rules · BR-004 / BR-005",
+      "items": [
+        "Medicines cannot be donated: high medicine indicator warns and points to a pharmacy.",
+        "Individual food is non-perishable and room-temperature; chilled/frozen concern warns."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Forty-hour scope",
+      "items": [
+        "Required: auth/RLS, indicators, expiry buckets/FEFO, review, booking and QR reception.",
+        "Jev is optional; image requests need TypeSafe-Danger-Zone-Images: true.",
+        "No transport, route optimization, email or messaging. Status remains in-app."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Design evidence and open policies",
+      "items": [
+        "Target design from AGENTS.md, requirements.md and features.md; no implemented runtime is claimed.",
+        "Capacity timing, post-offer edits, expiry boundaries and auth bootstrap remain AMB decisions."
+      ]
+    }
   ]
 }

@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Dono — Match and Review an Offer",
+    "output": "docs/architecture/matching-review.html",
+    "quality_profile": "showcase",
+    "locale": "en"
+  },
+  "participants": [
+    {
+      "id": "donor",
+      "type": "external",
+      "label": "Donor",
+      "sublabel": "own item"
+    },
+    {
+      "id": "donor-ui",
+      "type": "frontend",
+      "label": "Donor UI",
+      "sublabel": "offers + status"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Next.js API",
+      "sublabel": "deterministic rules"
+    },
+    {
+      "id": "geo",
+      "type": "external",
+      "label": "API Adresse",
+      "sublabel": "geocoding"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "Postgres",
+      "sublabel": "RLS + current data"
+    },
+    {
+      "id": "staff-ui",
+      "type": "frontend",
+      "label": "Assoc. UI",
+      "sublabel": "review queue"
+    },
+    {
+      "id": "staff",
+      "type": "external",
+      "label": "Staff",
+      "sublabel": "target association"
+    }
+  ],
+  "segments": [
+    {
+      "from": 210,
+      "to": 801,
+      "label": "1 · Match — need + capacity + season + Haversine, no AI"
+    },
+    {
+      "from": 841,
+      "to": 1150,
+      "label": "2 · Offer — revalidate current eligibility before committing"
+    },
+    {
+      "from": 1190,
+      "to": 2088,
+      "label": "3 · Human review — original evidence and overrides shown together"
+    }
+  ],
+  "messages": [
+    {
+      "id": "request-match",
+      "from": "donor-ui",
+      "to": "api",
+      "y": 226,
+      "label": "Match current item",
+      "variant": "security"
+    },
+    {
+      "id": "geocode",
+      "from": "api",
+      "to": "geo",
+      "y": 274,
+      "label": "Geocode address",
+      "variant": "default"
+    },
+    {
+      "id": "coordinates",
+      "from": "geo",
+      "to": "api",
+      "y": 322,
+      "label": "Coordinates / error",
+      "variant": "return",
+      "note": "Unknown location stays unknown; no invented distance. Precision/fallback: AMB-016."
+    },
+    {
+      "id": "read-inputs",
+      "from": "api",
+      "to": "db",
+      "y": 432,
+      "label": "Read match inputs",
+      "variant": "security",
+      "note": "Read current working facts, approved associations, confirmed needs, category capacity and season. Expose only a limited listing to donors."
+    },
+    {
+      "id": "current-inputs",
+      "from": "db",
+      "to": "api",
+      "y": 553,
+      "label": "Current inputs",
+      "variant": "return"
+    },
+    {
+      "id": "matches",
+      "from": "api",
+      "to": "donor-ui",
+      "y": 601,
+      "label": "Eligible matches",
+      "variant": "return",
+      "note": "Code computes eligibility, Haversine distances and ordering/reasons. No model is called. Radius/ties/weights: AMB-009; capacity units/timing: AMB-008."
+    },
+    {
+      "id": "show-matches",
+      "from": "donor-ui",
+      "to": "donor",
+      "y": 711,
+      "label": "Matches / options",
+      "variant": "return",
+      "note": "No match: show other options. Medicine concern points to pharmacy; no transport, route planning or outbound messages."
+    },
+    {
+      "id": "choose-target",
+      "from": "donor",
+      "to": "donor-ui",
+      "y": 857,
+      "label": "Choose association",
+      "variant": "default"
+    },
+    {
+      "id": "send-offer",
+      "from": "donor-ui",
+      "to": "api",
+      "y": 905,
+      "label": "Submit offer",
+      "variant": "security"
+    },
+    {
+      "id": "commit-offer",
+      "from": "api",
+      "to": "db",
+      "y": 953,
+      "label": "Recheck + offer",
+      "variant": "security",
+      "note": "Enforce owner, association approval and current eligibility/capacity. Commit once; conflicts return current state. Offer cardinality: AMB-012."
+    },
+    {
+      "id": "offered",
+      "from": "db",
+      "to": "api",
+      "y": 1074,
+      "label": "Offered / conflict",
+      "variant": "return"
+    },
+    {
+      "id": "offer-visible",
+      "from": "api",
+      "to": "donor-ui",
+      "y": 1122,
+      "label": "In-app status",
+      "variant": "return"
+    },
+    {
+      "id": "open-review",
+      "from": "staff",
+      "to": "staff-ui",
+      "y": 1206,
+      "label": "Open review queue",
+      "variant": "default"
+    },
+    {
+      "id": "review-request",
+      "from": "staff-ui",
+      "to": "api",
+      "y": 1254,
+      "label": "Review own offers",
+      "variant": "security"
+    },
+    {
+      "id": "scoped-offer",
+      "from": "api",
+      "to": "db",
+      "y": 1302,
+      "label": "Membership read",
+      "variant": "security"
+    },
+    {
+      "id": "review-evidence",
+      "from": "db",
+      "to": "api",
+      "y": 1350,
+      "label": "Evidence + overrides",
+      "variant": "return"
+    },
+    {
+      "id": "review-result",
+      "from": "api",
+      "to": "staff-ui",
+      "y": 1398,
+      "label": "Review details",
+      "variant": "return",
+      "note": "Compute expiry days/buckets at read time. Show original provider/model/category, fixed indicators/confidence, corrections and potential category mismatch."
+    },
+    {
+      "id": "reviewer-sees",
+      "from": "staff-ui",
+      "to": "staff",
+      "y": 1508,
+      "label": "Photos + indicators",
+      "variant": "return"
+    },
+    {
+      "id": "human-choice",
+      "from": "staff",
+      "to": "staff-ui",
+      "y": 1556,
+      "label": "Approve OR refuse",
+      "variant": "emphasis",
+      "note": "Only association personnel choose the donation decision. High confidence is not approval; a confirmed medicine cannot be approved as an exception."
+    },
+    {
+      "id": "decision-request",
+      "from": "staff-ui",
+      "to": "api",
+      "y": 1666,
+      "label": "Save staff decision",
+      "variant": "security"
+    },
+    {
+      "id": "decision-commit",
+      "from": "api",
+      "to": "db",
+      "y": 1714,
+      "label": "Guard + commit",
+      "variant": "security",
+      "note": "Check target membership, current state and agreed capacity rules. Save human actor/decision; preserve AI evidence. Conflicting reviews cannot silently overwrite."
+    },
+    {
+      "id": "decision-saved",
+      "from": "db",
+      "to": "api",
+      "y": 1846,
+      "label": "Decision / conflict",
+      "variant": "return"
+    },
+    {
+      "id": "staff-confirm",
+      "from": "api",
+      "to": "staff-ui",
+      "y": 1894,
+      "label": "Human decision",
+      "variant": "return"
+    },
+    {
+      "id": "donor-status-request",
+      "from": "donor-ui",
+      "to": "api",
+      "y": 1942,
+      "label": "Read own status",
+      "variant": "security"
+    },
+    {
+      "id": "donor-status",
+      "from": "api",
+      "to": "donor-ui",
+      "y": 1990,
+      "label": "Staff decision",
+      "variant": "return",
+      "note": "Approved enables booking; refused does not. Reads stay in-app. Reversal/re-offering remain AMB-012."
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Deterministic matching · BR-003",
+      "items": [
+        "Need, capacity, season and distance are code inputs. There is deliberately no model participant in this sequence.",
+        "Eligibility and distance ordering use validated working facts, not a rewritten AI record."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Evidence remains attributable",
+      "items": [
+        "Staff see original provider/model/category and unedited indicators next to human changes.",
+        "Category mismatch remains explicit; staff can disagree without overwriting the AI original."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Human decision boundary · BR-001",
+      "items": [
+        "Only authorized target-association staff can approve/refuse. No donor or provider writes decision.",
+        "FR-013–FR-017; UC-006–UC-008. Capacity reservations, expiry policy and reversals remain open."
+      ]
+    }
+  ]
+}

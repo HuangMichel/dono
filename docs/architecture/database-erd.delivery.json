@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "2545aa36-e57a-48a8-a0a1-14d4a9f0887c",
+  "status": "current",
+  "command": "deliver",
+  "type": "erd",
+  "input": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/database-erd.json",
+  "output": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/database-erd.html",
+  "specification": {
+    "sha256": "ab63f1d8d3440093a19372b0378d46d7869fff7cad6849c9a7e3ede9e259af2d",
+    "bytes": 30358
+  },
+  "artifact": {
+    "sha256": "8482cad92e35a8a50d90f00bd2a27ed32650c79a3966d79139a4640d5af4e43a",
+    "bytes": 938675
+  }
+}

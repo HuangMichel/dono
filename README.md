@@ -1,119 +1,95 @@
 # Dono
 
-> **Scan before you donate.** AI shows whether an item looks usable, which association needs it right now, and lets the association decide.
+**Scan before you donate.** Dono helps individuals offer usable goods to associations that need them and have space. AI supplies indicators; association personnel make the donation decision.
 
-Hackathon MVP — OpenAI hackathon, **Impact** track (poverty reduction · affordable essentials, with a climate bonus).
+This repository is a **pre-implementation design baseline** for a hackathon MVP with a total effort budget of **40 hours**. It contains specifications and interactive diagrams. There is no application scaffold, `package.json`, database migration, running API or photo evaluation set yet. Diagram validation does not verify application behavior.
 
-## The problem
+## Product and scope
 
-Associations don't lack donations — they lack the *right* donations, and unusable donations cost them money and volunteer time:
+Associations spend time sorting unsuitable donations and managing limited storage. Dono supports a complete intake flow: donor photos → AI evidence → donor corrections → deterministic matching → offer → staff review → drop-off booking and QR → reception → light stock and distribution.
 
-- **Secours Populaire**: an average local structure receives ~100 kg of clothes per day, **60–70 % not directly usable** ([actu.fr](https://actu.fr/societe/on-nous-prend-pour-une-dechetterie-ces-associations-sont-submergees-de-dons-de-vetements-en-mauvais-etat_62021126.html)).
-- **Emmaüs Saint-Malo**: **€100,000 / year** to dispose of donations that are neither sellable nor recyclable ([actu.fr](https://actu.fr/bretagne/saint-malo_35288/des-dechets-et-un-loyer-qui-coutent-cher-a-saint-malo-emmaus-cherchent-des-solutions_64954779.html)).
-- **Emmaüs Catalogne**: **300 of 1,200 tonnes** unusable, costing **€48,000 / year** ([InfoRadar](https://inforadar.fr/a-proximite-de-perpignan-emmaus-catalogne-submerge-dons-invendables-et-cout-pour-la-communaute)).
-- **Secours Populaire Mayenne** suspended clothing collection in January 2026 because of low-quality fast-fashion donations ([Ouest-France](https://www.ouest-france.fr/economie/industries/industrie-textile/dechets-vestimentaires-le-secours-populaire-et-emmaues-victimes-collaterales-de-la-mode-jetable-4dea2cf6-f602-11f0-95b0-d3ffbc2ef006)).
+The five categories are clothes, shoes, non-perishable room-temperature food, parapharmacy/hygiene and small furniture brought by the donor. Medicines cannot be donated; a high medicine indicator warns and points to a pharmacy. Chilled/frozen individual food is outside eligible scope.
 
-## The solution
+[AGENTS.md](AGENTS.md) is authoritative. Its rules apply to every specification and future implementation:
 
-1. **Donor** photographs an item → AI shows **indicators** (condition, stains, sealed, expiry date…).
-2. Dono matches it to **nearby associations that need it and have room**.
-3. Donor sends an **offer** → the **association reviews the indicators and decides** (approve / refuse).
-4. If approved, the donor books a **drop-off slot** and gets a **QR code** → scanned at reception → stock and needs update.
+- Only authorized association personnel approve or refuse a donation. AI returns extracted facts, indicators and confidence; its cards use indicator language.
+- Donor category/attribute corrections remain separate from immutable original AI extraction and indicators. Display their provenance and any category mismatch.
+- Code computes expiry, counts and distance. Days left, expired flags, buckets and FEFO are computed at read time and never stored.
+- Matching uses need, capacity, season and Haversine distance deterministically, without a model.
+- All status stays in the app. The MVP contains no transport, pickups, route optimization, email or messaging channels.
 
-**The AI never approves or refuses.** It surfaces indicators; humans decide.
-
-## Categories
-
-| Category | Indicators |
+| Actor | Responsibility |
 |---|---|
-| 👕 Clothes | type, size, season, wear level, stains, holes, pilling |
-| 👟 Shoes | pair complete, size, sole wear, upper damage |
-| 🥫 Food (non-perishable, room temperature) | product, expiry date, DLC vs DDM, days left, damaged packaging, swollen can |
-| 💊 Parapharmacy & hygiene | product, sealed, expiry date, days left, PAO, looks like a medicine (warning) |
-| 🛋️ Small furniture (donor brings it) | type, condition, size class, visible damage |
+| Donor | Own photos, working facts/category, matching, offer, status and booking/QR. |
+| Association admin | Own association configuration, review, reception and stock. |
+| Association staff | Review, reception and stock within active membership; configuration rights remain open. |
+| Platform admin | Manual association approval; no general donation access or donation decision rights. |
 
-## MVP features
+Roles can coexist through a protected platform capability and association memberships under the proposed schema. Exact onboarding, assignment and management permissions need decisions before implementation.
 
-**Authentication & roles** — donor, association admin, association staff, platform admin (Supabase Auth + row-level security). Associations register with RNA/SIRET and are approved manually.
+## MVP priorities
 
-**Donor**
-- Scan item (1–2 photos + label close-up for food / para)
-- View AI indicators, correct extracted values (size, date)
-- Matching: need + capacity + season + distance
-- Send offer, track status in **My donations** (offered → approved/refused → booked → received → distributed)
-- Book a drop-off slot, get a QR code
-- "Other options" list (textile bins, pharmacies, repair cafés)
+Required: auth/RLS and manual association approval; needs form and editable free-text parsing; capacity/hours/slots; validated photos and five analysis schemas; indicators and corrections; deterministic matching and offers; human review; booking/QR reception; light inventory/distribution; basic image gallery, expiry buckets/counts and distribute-first list.
 
-**Association**
-- Needs via form **or free text → AI-structured needs**
-- Capacity per category, opening hours, drop-off slots
-- Review queue: photos + indicators → **approve / refuse**
-- Today's drop-offs, QR scan at reception, mark as distributed, light inventory
-- **Image dashboard**: gallery with indicator overlays and filters, **expiry metrics** (expired, < 7 / < 30 / < 90 days, distribute-first list, DLC vs DDM, average shelf life, unreadable dates, timeline), quality metrics (AI vs human agreement)
+Optional work is removed in this exact order: **Jev → OpenAI/Jev comparison → expiry timeline → AI/human agreement metric**. None is included in the base effort allocation. Advanced impact/financial/weight reporting and average shelf-life metrics are proposed for post-MVP in FR-030; any request to restore a measured counter needs the scope decision in AMB-020. Automated registration verification, maps and partnerships are later candidates. External channels and logistics require a separately authorized future scope.
 
-**Impact** — donations matched, approval rate, kg diverted, estimated € disposal costs avoided, expired items stopped before drop-off.
+Bucket boundaries, PAO, timezone, matching policy, capacity units/reservations, post-offer edits and booking exceptions remain explicit open decisions. The [handoff](docs/handoff.md) identifies which work each blocks; example values and DB-P01–DB-P07 are proposals, not agreed product defaults.
 
-## Architecture
+## Planned stack
 
-Open [`docs/architecture/dono-architecture.html`](docs/architecture/dono-architecture.html) in a browser for the interactive diagram.
-
-```
-Donor ──▶ Donor PWA ──┐                         ┌──▶ OpenAI API (vision + structured outputs)
-                      ├──▶ Next.js API ──▶ Analysis service
-Association ──▶ Dashboard ┘      │               └──▶ TypeSafe Jev (optional, probabilities)
-                                 ▼
-                 Supabase: Auth · Postgres (RLS) · Storage (photos)
-```
-
-| Layer | Technology |
+| Layer | Technology / responsibility |
 |---|---|
-| Frontend | Next.js (App Router) · Tailwind CSS · shadcn/ui |
-| Backend | Next.js route handlers / server actions |
-| Data & auth | Supabase (Auth, Postgres with RLS, Storage) |
-| AI | OpenAI API (vision + structured outputs) · TypeSafe Jev optional |
-| Geocoding | [API Adresse](https://adresse.data.gouv.fr/outils/api-doc/adresse) (data.gouv.fr, free, no key) |
+| Web application | Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui; donor, association and approval views in one application. |
+| REST backend | Next.js App Router Route Handlers under planned `/api/v1`; server modules for analysis, matching and expiry. |
+| Identity and data | Supabase Auth, Postgres with RLS, private Storage for photos. |
+| Analysis | OpenAI vision and structured outputs; free-text needs produce a staff-confirmed draft. |
+| Optional indicators | TypeSafe Jev / hybrid behind `ANALYSIS_PROVIDER`; Jev does no OCR/date/number extraction. |
+| Geocoding | API Adresse as named in AGENTS.md; resolve its current Géoplateforme endpoint before integration (AMB-021). No routing service. |
 
-**Who does what**
+No dependency versions are selected. Check `package.json` when it exists, pin compatible versions and commit the lockfile; prefer releases at least seven days old.
 
-| Responsibility | Owner |
+## Documentation
+
+| Document | Contents |
 |---|---|
-| Category, product, size, expiry date + type, PAO, label text | OpenAI vision + structured outputs |
-| Probability indicators (stains, sealed, wear, damage, medicine) | OpenAI by default, Jev optional |
-| Free text → structured needs | OpenAI structured outputs |
-| Days left, expiry buckets, FEFO ordering, matching, distance | Plain code (deterministic) |
-| Approve / refuse | **Association staff** |
+| [AGENTS.md](AGENTS.md) | Binding product/security rules, provider contract and delivery gates. |
+| [Requirements](docs/requirements.md) | Scope, actors, BR/FR/NFR IDs and open AMB decisions. |
+| [Features and use cases](docs/features.md) | Acceptance criteria, traceability and illustrative 40-hour allocation. |
+| [Architecture](docs/architecture.md) | Components, interaction design and current Archify validation evidence. |
+| [Database design](docs/databases.md) | Columns, constraints, RLS, locks, accounting and provisional schema choices. |
+| [REST API](docs/api.md) | Planned Next.js endpoints, DTOs, permissions, errors and examples. |
+| [Setup](docs/setup.md) | Prerequisites, planned Supabase configuration, environment and future checks. |
+| [Handoff and audit](docs/handoff.md) | Decisions, contradictions, assumptions, blockers, milestones and risks. |
+| [Readiness report](docs/readiness.md) | Review outcome, changed files, verified design invariants and implementation order. |
 
-## Getting started
+## Interactive diagrams
 
-> The application is not scaffolded yet. Planned setup:
+Open the standalone HTML files in a browser. Sources and current receipts/captures are linked in [architecture.md](docs/architecture.md#interactive-diagrams).
+
+| Diagram | HTML | Editable source |
+|---|---|---|
+| System | [Architecture](docs/architecture/dono-architecture.html) | [JSON](docs/architecture/candidate.json) |
+| Actors / use cases | [Use cases](docs/architecture/use-cases.html) | [JSON](docs/architecture/use-cases.json) |
+| Donation creation | [Photo, analysis and corrections](docs/architecture/donation-creation.html) | [JSON](docs/architecture/donation-creation.json) |
+| Matching / review | [Matching and human decision](docs/architecture/matching-review.html) | [JSON](docs/architecture/matching-review.json) |
+| Booking / reception | [Booking and QR](docs/architecture/booking-reception.html) | [JSON](docs/architecture/booking-reception.json) |
+| Lifecycle | [States and guards](docs/architecture/donation-lifecycle.html) | [JSON](docs/architecture/donation-lifecycle.json) |
+| Database | [Full ERD](docs/architecture/database-erd.html) | [JSON](docs/architecture/database-erd.json) |
+
+The ERD retains its documented dense-layout warnings. All existing sources, HTML, receipts and captures are preserved by this review.
+
+## Planned quickstart
+
+Today you can read the documents and open the diagrams. Copying [.env.example](.env.example) to an ignored `.env.local` prepares placeholders only; it does not create a runnable application.
+
+After policy decisions, scaffolding, package scripts, reviewed migrations and seed data exist, the intended local sequence is:
 
 ```sh
+# Future workflow only; package.json and these scripts do not exist yet.
 pnpm install
-cp .env.example .env.local   # fill in the variables below
-pnpm dev                     # http://localhost:3000
+cp .env.example .env.local  # only if absent; fill approved settings locally
+# Provision the selected Supabase environment using the future migration runbook.
+pnpm dev
 ```
 
-### Environment variables
-
-| Variable | Purpose |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (client) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only admin key |
-| `OPENAI_API_KEY` | Server-only OpenAI key |
-| `OPENAI_MODEL` | Vision-capable model used for analysis |
-| `ANALYSIS_PROVIDER` | `openai` (default) · `jev` · `hybrid` |
-| `TYPESAFE_API_KEY` | Server-only, only if Jev is enabled |
-
-## Roadmap (out of MVP scope)
-
-- Email notifications, needs posted by email, donor alerts for urgent needs
-- Automatic RNA / SIRET verification
-- Visual map
-- Jev for images once production-ready
-- Transfers between associations, pickup logistics
-- Partnerships: Refashion, Cyclamed, Emmaüs / Secours Populaire networks
-
-## Disclaimer
-
-Indicators are AI estimates and can be wrong. Associations remain responsible for accepting donations and for applying food-safety and hygiene rules. Medicines cannot be donated through Dono — return them to a pharmacy.
+The dev URL will be documented after configuration. Planned checks are `pnpm lint`, `pnpm typecheck` and `pnpm test`; none can run in the current repository. [Setup](docs/setup.md) separates preparation from future commands and lists the required RLS, concurrency, expiry and photo-set verification.

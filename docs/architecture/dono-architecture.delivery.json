@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "78a1c3a5-d5cb-4e6a-bfe4-df42c256cb05",
+  "receiptId": "806d34e4-e944-48f0-995d-0420a4ba9e62",
   "status": "current",
   "command": "deliver",
   "type": "architecture",
-  "input": "/Users/huang/Desktop/Github/experimentation/hackaton/dono/docs/architecture/candidate.json",
-  "output": "/Users/huang/Desktop/Github/experimentation/hackaton/dono/docs/architecture/dono-architecture.html",
+  "input": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/candidate.json",
+  "output": "/home/ahmed/Desktop/hackathon/dono/docs/architecture/dono-architecture.html",
   "specification": {
-    "sha256": "3389cc6c48dafb440c6f759d23dc7310d5e3221b2189dd4833f300ffd4201a27",
-    "bytes": 4224
+    "sha256": "a40be2b390a9d57ef9c21b92757201ba99045c8c6a1b309023d3ecd8a5f4b595",
+    "bytes": 8193
   },
   "artifact": {
-    "sha256": "92913e81bf798f223ef33a95cb6158d237797409cc881cf3cd8e5969f92da66a",
-    "bytes": 766647
+    "sha256": "ff679f2f427e9306f142e0f45b250e557939312aad9951209a2e6d13b58d1a19",
+    "bytes": 841787
   }
 }
