@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — Company offers</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<link rel="stylesheet" href="ui.css" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="bg-sand-1 text-sand-12 font-sans text-body antialiased">
+<section>
+    <header class="border-b-hair border-sand-6 bg-sand-2">
+      <div class="max-w-[1120px] mx-auto px-5 h-14 flex items-center justify-between gap-4">
+        <span class="flex items-center gap-2.5"><span class="w-7 h-7 rounded-[6px] bg-sand-12 text-sand-1 text-meta font-semibold grid place-items-center">CC</span><span class="font-medium">Carrefour City Oberkampf</span></span>
+        <span class="text-meta text-sand-11">Company</span>
+      </div>
+    </header>
+    <div class="max-w-2xl mx-auto px-5 py-10">
+      <h2 class="text-title font-semibold">New offer</h2>
+      <p class="mt-1 text-sand-11">Offer on behalf of a company using your donor account.</p>
+      <label for="company-name" class="block mt-5 text-meta text-sand-11">Company name</label>
+      <input id="company-name" class="field mt-1" value="Carrefour City Oberkampf" />
+      <form class="mt-5 rounded-2xl border-hair border-sand-7 bg-sand-1 focus-within:border-grass-8 transition-colors duration-250 ease-out">
+        <label for="bp" class="sr-only">Describe your donation</label>
+        <textarea id="bp" rows="3" class="block w-full px-4 pt-4 bg-transparent resize-none focus:outline-none">240 sealed packs of pasta 500 g, best before 15 March 2027, stored at room temperature.</textarea>
+        <div class="px-3 pb-3 pt-1 flex items-center gap-2">
+          <button type="button" class="h-9 px-3 rounded-[18px] border-hair border-sand-7 text-meta font-medium">Add photos</button>
+          <button type="submit" class="ml-auto h-9 px-4 rounded-[18px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-medium">Structure</button>
+        </div>
+      </form>
+
+      <div class="mt-6 rounded-2xl bg-grass-3 p-4">
+        <p class="font-medium text-grass-11">Review the structure before sending</p>
+        <dl class="mt-3 divide-y-hair divide-grass-6 bg-sand-1 rounded-xl px-4 num">
+          <div class="py-2.5 flex justify-between gap-4"><dt class="text-sand-11">Product</dt><dd class="font-medium">Pasta, 500 g</dd></div>
+          <div class="py-2.5 flex justify-between gap-4"><dt class="text-sand-11">Quantity</dt><dd class="font-medium">240 packs</dd></div>
+          <div class="py-2.5 flex justify-between gap-4"><dt class="text-sand-11">Best before</dt><dd class="font-medium">15 Mar 2027, <span class="text-grass-11">141 days left</span></dd></div>
+          <div class="py-2.5 flex justify-between gap-4"><dt class="text-sand-11">Kept at</dt><dd class="font-medium">Room temperature, unopened original packaging</dd></div>
+        </dl>
+        <p class="mt-3 text-meta text-grass-12">One product type per donation. All units share the same product details and printed date.</p>
+      </div>
+
+      <div class="mt-6 rounded-2xl border-hair border-sand-6 p-5">
+        <p class="font-medium">Possible need to check after analysis</p>
+        <div class="mt-3 flex items-center gap-4">
+          <div class="flex-1"><p class="font-medium">Secours Populaire Paris 11</p><p class="text-meta text-sand-11 num">0.6 km, capacity for 240 packs, open today until 18:00</p></div>
+          <span class="chip bg-grass-3 text-grass-11">Has capacity</span>
+        </div>
+        <p class="mt-4 text-meta text-sand-11">Add item and label photos, then review the analysis before matching and sending an offer.</p>
+        <a href="04-scan.html" class="mt-4 w-full h-10 rounded-[20px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold flex items-center justify-center">Continue to photos and analysis</a>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

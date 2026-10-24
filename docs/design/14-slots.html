@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — Slots</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<script src="shell.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+</head>
+<body class="bg-sand-1 text-sand-12 font-sans text-body antialiased">
+<div class="flex flex-col md:flex-row min-h-[760px]">
+  <div data-shell="slots" data-dir="a"></div>
+  <main class="flex-1 min-w-0 max-w-[1280px] p-6 grid xl:grid-cols-[minmax(0,1fr)_380px] gap-5 items-start">
+    <section class="rounded-xl border-hair border-sand-6 p-4">
+      <div class="flex items-center justify-between"><h2 class="font-medium num">October 2026</h2><div class="flex gap-1"><button aria-label="Previous month" class="w-8 h-8 rounded-[6px] border-hair border-sand-7">‹</button><button aria-label="Next month" class="w-8 h-8 rounded-[6px] border-hair border-sand-7">›</button></div></div>
+      <div class="mt-3 grid grid-cols-7 gap-1 text-center text-meta text-sand-11"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+      <div class="mt-1 grid grid-cols-7 gap-1">
+        <button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">1</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">2</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">3</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">4</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">5</button>
+        <button class="h-12 rounded-lg border-hair border-sand-6 num flex flex-col items-center justify-center gap-1">6<span class="flex gap-0.5"><span class="w-1 h-1 rounded-full bg-grass-9"></span><span class="w-1 h-1 rounded-full bg-grass-9"></span></span></button>
+        <button class="h-12 rounded-lg border-hair border-sand-6 num flex flex-col items-center justify-center gap-1">7<span class="flex gap-0.5"><span class="w-1 h-1 rounded-full bg-orange-9"></span></span></button>
+        <button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">8</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">9</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">10</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">11</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">12</button>
+        <button class="h-12 rounded-lg border-hair border-sand-6 num flex flex-col items-center justify-center gap-1">13<span class="flex gap-0.5"><span class="w-1 h-1 rounded-full bg-orange-9"></span></span></button>
+        <button class="h-12 rounded-lg border-hair border-sand-6 num flex flex-col items-center justify-center gap-1">14<span class="flex gap-0.5"><span class="w-1 h-1 rounded-full bg-grass-9"></span></span></button>
+        <button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">15</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">16</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">17</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">18</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">19</button>
+        <button class="h-12 rounded-lg border-hair border-sand-6 num flex flex-col items-center justify-center gap-1">20<span class="flex gap-0.5"><span class="w-1 h-1 rounded-full bg-grass-9"></span><span class="w-1 h-1 rounded-full bg-orange-9"></span></span></button>
+        <button class="h-12 rounded-lg border-hair border-sand-6 num flex flex-col items-center justify-center gap-1">21<span class="flex gap-0.5"><span class="w-1 h-1 rounded-full bg-grass-9"></span></span></button>
+        <button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">22</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">23</button>
+        <button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">24 <span class="text-meta font-medium text-grass-11">today</span></button>
+        <button aria-current="true" class="h-12 rounded-lg border-hair border-grass-8 bg-grass-2 num flex flex-col items-center justify-center gap-1">25<span class="flex gap-0.5"><span class="w-1 h-1 rounded-full bg-red-9"></span><span class="w-1 h-1 rounded-full bg-grass-9"></span></span></button>
+        <button class="h-12 rounded-lg border-hair border-sand-6 num flex flex-col items-center justify-center gap-1">26<span class="flex gap-0.5"><span class="w-1 h-1 rounded-full bg-grass-9"></span></span></button>
+        <button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">27</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">28</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">29</button><button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">30</button>
+        <button class="h-12 rounded-lg bg-sand-2 text-sand-11 num">31</button>
+      </div>
+      <p class="mt-3 text-meta text-sand-11">Green open, orange busy, red full. Grey: closed.</p>
+    </section>
+    <section class="rounded-xl border-hair border-sand-6 p-4">
+      <h3 class="font-medium">Sun 25 Oct, 7 booked</h3>
+      <ul class="mt-3 divide-y-hair divide-sand-6">
+        <li class="pb-2.5 flex items-center justify-between"><span><span class="num font-medium">14:00</span>, Coats ×3, MR</span><span class="chip bg-amber-3 text-amber-11">Expected</span></li>
+        <li class="py-2.5 flex items-center justify-between"><span><span class="num font-medium">15:00</span>, Winter coat, KB</span><span class="chip bg-amber-3 text-amber-11">Expected</span></li>
+        <li class="py-2.5 flex items-center justify-between"><span><span class="num font-medium">15:20</span>, Pasta ×6, Karim B.</span><span class="chip bg-amber-3 text-amber-11">Expected</span></li>
+        <li class="pt-2.5 flex items-center justify-between"><span><span class="num font-medium">16:00</span>, Sneakers, 38, Inès</span><span class="chip bg-grass-3 text-grass-11">Received</span></li>
+      </ul>
+      <div class="mt-4 flex gap-2">
+        <button class="flex-1 h-9 rounded-lg bg-sand-3 font-medium">Close morning</button>
+        <button class="flex-1 h-9 rounded-lg bg-grass-9 text-white font-medium">Add evening slots</button>
+      </div>
+          </section>
+  </main>
+</div>
+</body>
+</html>

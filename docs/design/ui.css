@@ -1,0 +1,57 @@
+/* Dono mockup board — shared components.
+   Colors: Radix UI Colors v3 light theme (sand, grass, amber, orange, red), see tokens.js.
+   Step roles follow the Radix usage guide: 1-2 backgrounds, 3-5 components, 6-8 borders,
+   9-10 solid surfaces, 11-12 text. */
+
+/* Photo placeholder and QR illustration */
+.photo { background: repeating-linear-gradient(135deg, #f1f0ef 0 10px, #e9e8e6 10px 20px); }
+.qr { background-image: linear-gradient(90deg, #21201c 50%, transparent 50%), linear-gradient(#21201c 50%, transparent 50%); background-size: 16px 16px; mix-blend-mode: multiply; }
+
+/* Numerals */
+.num { font-variant-numeric: tabular-nums; }
+
+/* Keyboard focus (grass-8 — Radix "strong border / focus" step) */
+:focus-visible { outline: 2px solid #65ba74; outline-offset: 2px; }
+
+/* Variant label bar */
+.vlabel { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 32px; background: #f9f9f8; border-bottom: 0.5px solid #dad9d6; }
+
+/* Donor mobile screen */
+.mscreen { height: 100vh; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+/* Flow states: phone-sized frames on desktop, full-bleed screens on mobile */
+.stategrid { display: grid; gap: 24px; }
+.stategrid .slabel { display: none; }
+@media (min-width: 768px) {
+  .stategrid { grid-template-columns: repeat(auto-fit, 340px); justify-content: center; padding: 8px 32px 40px; }
+  .stategrid .slabel { display: block; margin-bottom: 12px; text-align: center; font-size: 12px; line-height: 16px; color: #63635e; }
+  .stategrid .mscreen { width: 340px; height: 680px; border-radius: 24px; border: 0.5px solid #cfceca; overflow: hidden; }
+}
+@media (max-width: 767px) {
+  .stategrid { gap: 0; }
+  .stategrid .mscreen { height: 100vh; border-bottom: 0.5px solid #dad9d6; }
+}
+
+/* Form field */
+.field { width: 100%; height: 36px; padding: 0 10px; border-radius: 6px; border: 0.5px solid #cfceca; background: #fdfdfc; }
+.field:focus { outline: none; border-color: #65ba74; }
+
+/* Status chip */
+.chip { display: inline-flex; align-items: center; padding: 2px 6px; border-radius: 4px; font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; }
+
+/* Solid and soft buttons behave as one component: flex-centered, 250 ms ease-out */
+button[class*="bg-grass-9"], a[class*="bg-grass-9"],
+button[class*="bg-sand-9"], a[class*="bg-sand-9"],
+button[class*="bg-sand-3"], button[class*="bg-sand-1"],
+button[class*="bg-orange-9"], button[class*="bg-amber-9"], button[class*="bg-red-9"] {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background-color 250ms cubic-bezier(0.16, 1, 0.3, 1), color 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Mockup documentation headers stay out of the phone-width rendering */
+@media (max-width: 767px) {
+  body > h1, body > .intro { display: none; }
+  body:has(.mscreen) .vlabel { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

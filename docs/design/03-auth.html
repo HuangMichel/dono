@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — Sign in & sign up</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+</head>
+<body class="bg-sand-1 text-sand-12 font-sans text-body antialiased">
+<section>
+
+  <div class="grid md:grid-cols-[1fr_1.1fr] min-h-[680px]">
+    <aside class="bg-sand-2 border-r-hair border-sand-6 p-8 md:p-12 flex flex-col">
+      <span class="font-semibold text-body text-grass-11">dono</span>
+      <h2 class="mt-10 text-title font-semibold max-w-[320px]">Give what associations actually need.</h2>
+      <ul class="mt-6 space-y-3 max-w-[360px]">
+        <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-grass-3 text-grass-11 text-meta font-semibold grid place-items-center shrink-0">1</span><span>Photograph an item — AI returns indicators, never a verdict.</span></li>
+        <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-grass-3 text-grass-11 text-meta font-semibold grid place-items-center shrink-0">2</span><span>See associations that need it and have room.</span></li>
+        <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-grass-3 text-grass-11 text-meta font-semibold grid place-items-center shrink-0">3</span><span>Staff approve or refuse; on approval you book a slot and show a QR code.</span></li>
+      </ul>
+      <p class="mt-auto pt-10 text-meta text-sand-11">Medicines cannot be donated through Dono — return them to a pharmacy.</p>
+    </aside>
+
+    <main class="p-8 md:p-12 flex items-center justify-center">
+      <div class="w-full max-w-[400px]">
+        <div class="p-0.5 rounded-lg bg-sand-3 grid grid-cols-2" role="tablist" aria-label="Account type">
+          <button role="tab" aria-selected="true" class="h-10 rounded-[6px] bg-sand-1 border-hair border-sand-7 font-medium">Donor</button>
+          <button role="tab" aria-selected="false" class="h-10 rounded-[6px] text-sand-11">Association</button>
+        </div>
+        <h2 class="mt-6 text-title-sm font-semibold">Sign in</h2>
+        <p class="mt-1 text-sand-11">To photograph items and send offers.</p>
+        <label class="block mt-5 text-meta text-sand-11" for="a-email">Email</label>
+        <input id="a-email" type="email" class="field h-10 mt-1" placeholder="you@example.fr" />
+        <label class="block mt-4 text-meta text-sand-11" for="a-pass">Password</label>
+        <input id="a-pass" type="password" class="field h-10 mt-1" placeholder="••••••••" />
+        <div class="mt-2 text-meta"><a class="text-grass-11" href="#">Forgot password?</a></div>
+        <button class="mt-6 w-full h-12 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Sign in</button>
+        <p class="mt-4 text-sand-11">New to Dono? <a class="text-grass-11 font-medium" href="#">Create a donor account</a></p>
+              </div>
+    </main>
+  </div>
+</section>
+</body>
+</html>
