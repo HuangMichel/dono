@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — Review</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<script src="shell.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+</head>
+<body class="bg-sand-1 text-sand-12 font-sans text-body antialiased">
+<section>
+  <div class="flex flex-col md:flex-row min-h-[760px]">
+    <div data-shell="review" data-dir="a"></div>
+    <main class="flex-1 min-w-0 flex flex-col md:flex-row">
+      <section class="w-full md:w-80 shrink-0 border-b-hair md:border-b-0 md:border-r-hair border-sand-6 flex flex-col bg-sand-1">
+        <div class="px-4 pt-5 pb-3">
+          <h2 class="text-title-sm font-semibold">To review <span class="text-meta text-sand-11 font-normal num">12</span></h2>
+          <div class="mt-3 p-0.5 rounded-lg bg-sand-3 flex text-meta" role="tablist" aria-label="Filter">
+            <button role="tab" aria-selected="true" class="flex-1 h-7 rounded-[6px] bg-sand-1 border-hair border-sand-7 font-medium">All</button>
+            <button role="tab" class="flex-1 h-7 rounded-[6px] text-sand-11">Food</button>
+            <button role="tab" class="flex-1 h-7 rounded-[6px] text-sand-11">Clothes</button>
+            <button role="tab" class="flex-1 h-7 rounded-[6px] text-sand-11">Care</button>
+          </div>
+        </div>
+        <ul class="border-t-hair border-sand-6 divide-y-hair divide-sand-6">
+          <li class="px-4 py-3 flex gap-3 bg-sand-3" aria-current="true">
+            <div class="w-10 h-10 rounded-[6px] photo shrink-0"></div>
+            <div class="flex-1 min-w-0"><p class="font-medium">Pasta 500 g × 6</p><p class="text-meta text-sand-11">Karim B., Food, <span class="num">14 min</span></p></div>
+            <span class="h-fit chip bg-amber-3 text-amber-11">Date changed</span>
+          </li>
+          <li class="px-4 py-3 flex gap-3">
+            <div class="w-10 h-10 rounded-[6px] photo shrink-0"></div>
+            <div class="flex-1 min-w-0"><p class="font-medium">Shower gel 250 ml</p><p class="text-meta text-sand-11">Nour, Care, <span class="num">40 min</span></p></div>
+            <span class="h-fit chip bg-red-3 text-red-11">Medicine 34%</span>
+          </li>
+          <li class="px-4 py-3 flex gap-3">
+            <div class="w-10 h-10 rounded-[6px] photo shrink-0"></div>
+            <div class="flex-1 min-w-0"><p class="font-medium">Winter coat, M</p><p class="text-meta text-sand-11">KB, Clothes, <span class="num">1 h</span></p></div>
+            <span class="h-fit chip bg-orange-3 text-orange-11">Stains 61%</span>
+          </li>
+          <li class="px-4 py-3 flex gap-3">
+            <div class="w-10 h-10 rounded-[6px] photo shrink-0"></div>
+            <div class="flex-1 min-w-0"><p class="font-medium">Canned tuna ×4</p><p class="text-meta text-sand-11">Yann, Food, <span class="num">2 h</span></p></div>
+            <span class="h-fit chip bg-orange-3 text-orange-11 num">5 days left</span>
+          </li>
+          <li class="px-4 py-3 flex gap-3">
+            <div class="w-10 h-10 rounded-[6px] photo shrink-0"></div>
+            <div class="flex-1 min-w-0"><p class="font-medium">Sneakers, 38</p><p class="text-meta text-sand-11">Inès, Shoes, <span class="num">3 h</span></p></div>
+          </li>
+        </ul>
+      </section>
+
+      <section class="flex-1 min-w-0 flex flex-col">
+        <div class="flex-1 overflow-auto px-6 pt-5 pb-6">
+          <div class="flex items-baseline justify-between gap-3">
+            <h2 class="text-title-sm font-semibold">Pasta 500 g × 6</h2>
+            <span class="text-meta text-sand-11 num">AI confidence 64%</span>
+          </div>
+          <p class="text-meta text-sand-11">Food, from Karim B., <span class="num">2.1 km</span></p>
+
+          <div class="mt-4 flex flex-wrap gap-3">
+            <button aria-label="Enlarge item photo" class="w-40 aspect-square rounded-lg photo"></button>
+            <button aria-label="Enlarge label photo" class="w-40 aspect-square rounded-lg photo relative"><span class="absolute left-2 top-2 chip bg-sand-1">Label</span></button>
+          </div>
+
+          <div class="mt-4 rounded-lg bg-amber-3 px-4 py-3">
+            <p class="font-medium text-amber-11">Date corrected by donor</p>
+            <dl class="mt-2 grid grid-cols-[90px_130px_1fr] gap-y-1 num text-body">
+              <dt class="text-sand-11">Detected</dt><dd>15 Mar 2026</dd><dd class="text-red-11">Expired</dd>
+              <dt class="text-sand-11">Donor set</dt><dd>15 Mar 2027</dd><dd class="text-grass-11">142 days left</dd>
+            </dl>
+            <p class="mt-1 text-meta text-amber-11">Verify against the label photo.</p>
+          </div>
+
+          <div class="mt-5 grid md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="font-semibold mb-2">Details</h3>
+              <dl class="divide-y-hair divide-sand-6 border-t-hair border-b-hair border-sand-6">
+                <div class="py-2 flex justify-between"><dt class="text-sand-11">Product</dt><dd>Penne, dry</dd></div>
+                <div class="py-2 flex justify-between"><dt class="text-sand-11">Quantity</dt><dd class="num">6</dd></div>
+                <div class="py-2 flex justify-between"><dt class="text-sand-11">Date type</dt><dd>Best before (DDM)</dd></div>
+                <div class="py-2 flex justify-between"><dt class="text-sand-11">Storage</dt><dd>Room temperature</dd></div>
+              </dl>
+            </div>
+            <div>
+              <h3 class="font-semibold mb-2">Indicators</h3>
+              <dl class="divide-y-hair divide-sand-6 border-t-hair border-b-hair border-sand-6">
+                <div class="py-2 flex justify-between"><dt>Sealed</dt><dd><span class="font-medium text-grass-11">Likely</span> <span class="num text-sand-11">93%</span></dd></div>
+                <div class="py-2 flex justify-between"><dt>Damaged packaging</dt><dd>Unlikely <span class="num text-sand-11">4%</span></dd></div>
+                <div class="py-2 flex justify-between"><dt>Needs refrigeration</dt><dd>Unlikely <span class="num text-sand-11">2%</span></dd></div>
+                <div class="py-2 flex justify-between"><dt>Date readable</dt><dd><span class="font-medium text-amber-11">Partly</span> <span class="num text-sand-11">55%</span></dd></div>
+              </dl>
+                          </div>
+          </div>
+
+          <fieldset class="mt-5">
+            <legend class="font-semibold mb-2">Review checklist</legend>
+            <ul class="rounded-lg border-hair border-sand-6 divide-y-hair divide-sand-6">
+              <li class="px-4 py-2.5 flex items-center gap-3"><input type="checkbox" checked /><span>Photos clear and complete</span></li>
+              <li class="px-4 py-2.5 flex items-center gap-3"><input type="checkbox" checked /><span>Date and quantity plausible</span></li>
+              <li class="px-4 py-2.5">
+                <label class="flex items-center gap-3"><input id="unopened-confirmation" type="checkbox" aria-describedby="unopened-hint" /><span>I confirm the food or hygiene product is unopened in its original packaging.</span></label>
+                <p id="unopened-hint" class="mt-1 text-meta text-sand-11">Staff must verify this. An AI probability does not complete this check.</p>
+              </li>
+              <li class="px-4 py-2.5 flex items-center gap-3"><input type="checkbox" checked /><span>Matches a current need</span></li>
+              <li class="px-4 py-2.5 flex items-center gap-3"><input type="checkbox" /><span class="text-sand-11">Capacity available for this category</span></li>
+            </ul>
+          </fieldset>
+        </div>
+
+        <div class="border-t-hair border-sand-6 px-6 py-4">
+          <p class="text-meta text-sand-11">Staff decision</p>
+          <div class="mt-2 flex flex-wrap items-center gap-3">
+            <label for="a-note" class="sr-only">Note to donor</label>
+            <input id="a-note" class="flex-1 min-w-[180px] h-9 px-3 rounded-[6px] border-hair border-sand-7 bg-sand-1" placeholder="Note to donor (optional, shown in the app)" />
+            <button class="h-9 px-4 rounded-[6px] bg-sand-3 hover:bg-sand-4 transition-colors duration-250 ease-out font-medium">Refuse</button>
+            <button class="h-9 px-4 rounded-[6px] border-hair border-orange-7 text-orange-11 font-medium">Request photo</button>
+            <button disabled aria-describedby="unopened-hint" class="h-9 px-4 rounded-[6px] bg-sand-3 text-sand-9 font-medium">Approve</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</section>
+</body>
+</html>

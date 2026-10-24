@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — Landing</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+</head>
+<body class="bg-sand-1 text-sand-12 font-sans text-body antialiased">
+<section>
+
+  <header>
+    <div class="max-w-[880px] mx-auto px-5 h-14 flex items-center justify-between">
+      <span class="font-semibold text-body text-grass-11">dono</span>
+      <nav class="flex items-center gap-5">
+        <a class="text-sand-11 hover:text-sand-12 transition-colors duration-250 ease-out" href="02-nearby-needs.html">Nearby needs</a>
+        <a class="h-9 px-4 rounded-[24px] border-hair border-sand-7 flex items-center font-medium" href="03-auth.html">Sign in</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="max-w-[880px] mx-auto px-5 py-14 grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
+    <div>
+      <h2 class="text-display font-semibold tracking-tight leading-tight">Give what associations actually need.</h2>
+      <p class="mt-5 text-lead text-sand-11">Associations drown in unusable donations. Dono shows what nearby associations need and gives you item indicators before you send an offer.</p>
+      <a href="02-nearby-needs.html" class="mt-7 inline-flex items-center gap-2 h-12 px-6 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">See what is needed nearby <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg></a>
+      <p class="mt-3 text-meta text-sand-11">Browsing needs is public, an account is only needed to send an offer</p>
+    </div>
+    <ol class="relative space-y-0">
+      <li class="relative pl-10 pb-7"><span class="absolute left-0 top-0 w-7 h-7 rounded-full bg-sand-3 text-meta font-semibold grid place-items-center num">1</span><span class="absolute left-[13.75px] top-7 bottom-0 w-[0.5px] bg-sand-6" aria-hidden="true"></span><p class="font-medium">Scan</p><p class="text-sand-11">Photograph the item; the label too, if it has a date.</p></li>
+      <li class="relative pl-10 pb-7"><span class="absolute left-0 top-0 w-7 h-7 rounded-full bg-sand-3 text-meta font-semibold grid place-items-center num">2</span><span class="absolute left-[13.75px] top-7 bottom-0 w-[0.5px] bg-sand-6" aria-hidden="true"></span><p class="font-medium">Check the indicators</p><p class="text-sand-11">“Stains likely — 61%”, “Best before 15 Mar 2027”. Estimates, never a verdict.</p></li>
+      <li class="relative pl-10 pb-7"><span class="absolute left-0 top-0 w-7 h-7 rounded-full bg-sand-3 text-meta font-semibold grid place-items-center num">3</span><span class="absolute left-[13.75px] top-7 bottom-0 w-[0.5px] bg-sand-6" aria-hidden="true"></span><p class="font-medium">Match and offer</p><p class="text-sand-11">Sorted by need, capacity, season and distance — plain code, not AI.</p></li>
+      <li class="relative pl-10"><span class="absolute left-0 top-0 w-7 h-7 rounded-full bg-grass-9 text-meta font-semibold text-white grid place-items-center num">4</span><p class="font-medium">Staff decide, you drop off</p><p class="text-sand-11">On approval, book a slot and show your QR code at reception.</p></li>
+    </ol>
+  </div>
+
+  <div class="border-t-hair border-sand-6 bg-sand-2">
+    <div class="max-w-[880px] mx-auto px-5 py-7 grid sm:grid-cols-3 gap-6 text-meta">
+      <p><span class="block text-lead font-semibold num">60–70%</span>of clothes received are not directly usable</p>
+      <p><span class="block text-lead font-semibold num">€100,000</span>a year to dispose of unusable items</p>
+      <p><span class="block text-lead font-semibold num">300 t</span>unusable out of 1,200 received in a year</p>
+    </div>
+  </div>
+
+  <div class="max-w-[880px] mx-auto px-5 py-8 flex flex-wrap items-center gap-2">
+    <span class="text-sand-11">Accepted categories:</span>
+    <span class="px-2 py-1 rounded-[4px] bg-sand-3 font-medium">Clothes</span>
+    <span class="px-2 py-1 rounded-[4px] bg-sand-3 font-medium">Shoes</span>
+    <span class="px-2 py-1 rounded-[4px] bg-sand-3 font-medium">Food, non-perishable</span>
+    <span class="px-2 py-1 rounded-[4px] bg-sand-3 font-medium">Parapharmacy & hygiene</span>
+    <span class="px-2 py-1 rounded-[4px] bg-sand-3 font-medium">Small furniture</span>
+    <span class="w-full mt-2 text-meta text-sand-11">No medicines — return them to a pharmacy. Chilled or frozen food from individuals is not accepted.</span>
+  </div>
+</section>
+</body>
+</html>

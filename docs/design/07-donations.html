@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — My donations</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+</head>
+<body class="bg-sand-2 text-sand-12 font-sans text-lead antialiased">
+<section class="border-b-hair border-sand-6">
+    <div class="hidden md:block">
+      <div class="max-w-[1100px] mx-auto px-6 py-8">
+        <h2 class="text-title-sm font-semibold">My donations</h2>
+        <div class="mt-4 overflow-x-auto rounded-xl border-hair border-sand-6">
+          <table class="w-full min-w-[760px]">
+            <thead><tr class="bg-sand-2 text-meta text-sand-11 text-left">
+              <th class="px-4 py-2.5 font-medium">Item</th><th class="px-3 py-2.5 font-medium">Association</th><th class="px-3 py-2.5 font-medium">Sent</th><th class="px-3 py-2.5 font-medium">Status</th><th class="px-3 py-2.5 font-medium">Next step</th>
+            </tr></thead>
+            <tbody class="divide-y-hair divide-sand-6">
+              <tr class="bg-grass-2"><td class="px-4 py-3 font-medium">Winter coat, M</td><td class="px-3 py-3">SP Paris 11</td><td class="px-3 py-3 num">today 11:20</td><td class="px-3 py-3"><span class="chip bg-grass-3 text-grass-11">Approved by staff</span></td><td class="px-3 py-3"><a href="08-booking.html" class="text-grass-11 font-medium">Book a drop-off →</a></td></tr>
+              <tr><td class="px-4 py-3 font-medium">Pasta 500 g × 6</td><td class="px-3 py-3">SP Paris 11</td><td class="px-3 py-3 num">today 14:32</td><td class="px-3 py-3"><span class="chip bg-amber-3 text-amber-11">Waiting for review</span></td><td class="px-3 py-3 text-sand-11">—</td></tr>
+              <tr><td class="px-4 py-3 font-medium">Shower gel 250 ml</td><td class="px-3 py-3">Croix-Rouge Bastille</td><td class="px-3 py-3 num">yesterday</td><td class="px-3 py-3"><span class="chip bg-orange-3 text-orange-11">Photo requested</span></td><td class="px-3 py-3"><a href="#" class="text-grass-11 font-medium">Replace the photo →</a></td></tr>
+              <tr><td class="px-4 py-3 font-medium">Sneakers, 38</td><td class="px-3 py-3">Emmaüs Belleville</td><td class="px-3 py-3 num">22 Oct</td><td class="px-3 py-3"><span class="chip bg-sand-4 text-sand-11">Received</span></td><td class="px-3 py-3 text-sand-11">—</td></tr>
+              <tr><td class="px-4 py-3 font-medium">Bedside table</td><td class="px-3 py-3">Emmaüs Belleville</td><td class="px-3 py-3 num">18 Oct</td><td class="px-3 py-3"><span class="chip bg-red-3 text-red-11">Refused by staff</span></td><td class="px-3 py-3 text-sand-11">“No space this month”</td></tr>
+            </tbody>
+          </table>
+        </div>
+              </div>
+    </div>
+    <section class="mscreen md:hidden bg-sand-1">
+      <div class="pt-11 px-5 h-[88px] flex items-center justify-between">
+        <span class="font-semibold text-body text-grass-11">dono</span>
+        <span class="w-8 h-8 rounded-full bg-sand-3 text-meta font-medium grid place-items-center">KB</span>
+      </div>
+      <h2 class="px-5 text-title font-semibold">My donations</h2>
+      <ul class="mx-5 mt-5 rounded-xl border-hair border-sand-6 divide-y-hair divide-sand-6">
+        <li>
+          <button class="w-full px-4 py-3 flex items-center gap-3 text-left">
+            <div class="w-11 h-11 rounded-[6px] photo shrink-0"></div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium">Winter coat, M</p>
+              <p class="text-meta text-sand-11">SP Paris 11, <span class="num">today 11:20</span></p>
+            </div>
+            <span class="h-fit chip bg-grass-3 text-grass-11">Approved</span>
+          </button>
+        </li>
+        <li>
+          <button class="w-full px-4 py-3 flex items-center gap-3 text-left">
+            <div class="w-11 h-11 rounded-[6px] photo shrink-0"></div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium">Pasta 500 g × 6</p>
+              <p class="text-meta text-sand-11">SP Paris 11, <span class="num">today 14:32</span></p>
+            </div>
+            <span class="h-fit chip bg-amber-3 text-amber-11">Waiting</span>
+          </button>
+        </li>
+        <li>
+          <button class="w-full px-4 py-3 flex items-center gap-3 text-left">
+            <div class="w-11 h-11 rounded-[6px] photo shrink-0"></div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium">Shower gel 250 ml</p>
+              <p class="text-meta text-sand-11">Croix-Rouge, <span class="num">yesterday</span></p>
+            </div>
+            <span class="h-fit chip bg-orange-3 text-orange-11">Photo needed</span>
+          </button>
+        </li>
+        <li>
+          <button class="w-full px-4 py-3 flex items-center gap-3 text-left">
+            <div class="w-11 h-11 rounded-[6px] photo shrink-0"></div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium">Sneakers, 38</p>
+              <p class="text-meta text-sand-11">Emmaüs Belleville, <span class="num">22 Oct</span></p>
+            </div>
+            <span class="h-fit chip bg-sand-4 text-sand-11">Received</span>
+          </button>
+        </li>
+        <li>
+          <button class="w-full px-4 py-3 flex items-center gap-3 text-left">
+            <div class="w-11 h-11 rounded-[6px] photo shrink-0"></div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium">Bedside table</p>
+              <p class="text-meta text-sand-11">Emmaüs Belleville, <span class="num">18 Oct</span></p>
+            </div>
+            <span class="h-fit chip bg-red-3 text-red-11">Refused</span>
+          </button>
+        </li>
+      </ul>
+            <nav class="mt-auto border-t-hair border-sand-6 grid grid-cols-2 text-meta text-center pt-3 pb-6">
+        <a class="font-semibold">Home</a><a class="text-sand-11" href="04-scan.html">Scan</a>
+      </nav>
+    </section>
+  </section>
+<section>
+    <div class="stategrid">
+
+      <figure>
+        <figcaption class="slabel">Not accepted</figcaption>
+        <section class="mscreen bg-sand-1">
+          <div class="pt-11 px-5 h-[88px] flex items-center"><button aria-label="Back" class="-ml-[18px] w-11 h-11 grid place-items-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+          <h2 class="px-5 text-title font-semibold">Not accepted this time</h2>
+          <p class="px-5 text-meta text-sand-11">Winter coat, M</p>
+          <div class="mx-5 mt-6 rounded-xl bg-sand-3 px-4 py-3">
+            <blockquote>We have enough coats for now. Thank you!</blockquote>
+            <p class="mt-1 text-meta text-sand-11">Léa, Secours Populaire Paris 11</p>
+          </div>
+          <h3 class="px-5 mt-6 mb-2 font-semibold">Also needs this</h3>
+          <ul class="mx-5 rounded-xl border-hair border-sand-6 divide-y-hair divide-sand-6" role="radiogroup">
+            <li role="radio" aria-checked="true" class="px-4 py-3 flex items-center gap-3 bg-grass-3"><div class="flex-1"><p class="font-medium">Emmaüs Belleville</p><p class="text-meta text-sand-11 num">1.9 km, Saturday 10:00–13:00</p></div><span class="w-5 h-5 rounded-full bg-grass-9 grid place-items-center"><span class="w-2 h-2 rounded-full bg-white"></span></span></li>
+            <li role="radio" aria-checked="false" class="px-4 py-3 flex items-center gap-3"><div class="flex-1"><p class="font-medium">Croix-Rouge Bastille</p><p class="text-meta text-sand-11 num">2.4 km, Monday 09:00–12:00</p></div><span class="w-5 h-5 rounded-full border-hair border-sand-8"></span></li>
+          </ul>
+          <div class="mt-auto p-5"><button class="w-full h-12 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Send offer</button></div>
+        </section>
+      </figure>
+
+      <figure>
+        <figcaption class="slabel">No donations yet</figcaption>
+        <section class="mscreen bg-sand-1">
+          <div class="pt-11 px-5 h-[88px] flex items-center gap-3">
+            <button aria-label="Account" class="w-8 h-8 rounded-full bg-sand-3 text-meta font-medium grid place-items-center">KB</button>
+            <span class="font-semibold text-body text-grass-11">dono</span>
+          </div>
+          <div class="flex-1 px-5 flex flex-col items-center justify-center text-center">
+            <h2 class="text-title font-semibold">No donations yet</h2>
+            <button class="mt-6 h-12 px-6 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Scan an item</button>
+          </div>
+          <nav class="border-t-hair border-sand-6 grid grid-cols-3 text-meta text-center pt-3 pb-6"><a class="text-sand-11" href="04-scan.html">Home</a><a class="text-sand-11" href="02-nearby-needs.html">Needs</a><a class="font-semibold">Donations</a></nav>
+        </section>
+      </figure>
+
+    </div>
+  </section>
+</body>
+</html>

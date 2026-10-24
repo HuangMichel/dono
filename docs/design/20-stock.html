@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — Stock</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<script src="shell.js"></script>
+<link rel="stylesheet" href="ui.css" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body class="bg-sand-1 text-sand-12 font-sans text-body antialiased">
+<section>
+    <div class="flex flex-col md:flex-row min-h-[680px]">
+      <div data-shell="stock" data-dir="a"></div>
+      <main class="flex-1 min-w-0 p-6 max-w-[1280px]">
+        <h2 class="text-title-sm font-semibold">Stock</h2>
+        <ul class="mt-4 grid grid-cols-2 lg:grid-cols-5 gap-3 num" aria-label="Storage areas">
+          <li><button aria-pressed="true" class="w-full text-left rounded-xl border-hair border-sand-8 bg-sand-3 p-3"><span class="flex items-center justify-between"><span class="font-medium">All areas</span><span class="text-sand-11">329</span></span><span class="block mt-2 text-meta text-sand-11">4 areas</span></button></li>
+          <li><button class="w-full text-left rounded-xl border-hair border-sand-6 p-3 hover:bg-sand-2 transition-colors duration-250 ease-out"><span class="flex items-center justify-between"><span class="font-medium">Store room A</span><span class="text-sand-11">96</span></span><span class="mt-2 block h-1 rounded-full bg-sand-4"><span class="block h-1 rounded-full bg-grass-9" style="width:62%"></span></span><span class="block mt-1.5 text-meta text-sand-11">Clothes, shoes</span></button></li>
+          <li><button class="w-full text-left rounded-xl border-hair border-sand-6 p-3 hover:bg-sand-2 transition-colors duration-250 ease-out"><span class="flex items-center justify-between"><span class="font-medium">Shelf C</span><span class="text-red-11">100</span></span><span class="mt-2 block h-1 rounded-full bg-sand-4"><span class="block h-1 rounded-full bg-red-9" style="width:100%"></span></span><span class="block mt-1.5 text-meta text-red-11">Personal care, full</span></button></li>
+          <li><button class="w-full text-left rounded-xl border-hair border-sand-6 p-3 hover:bg-sand-2 transition-colors duration-250 ease-out"><span class="flex items-center justify-between"><span class="font-medium">Basement</span><span class="text-sand-11">121</span></span><span class="mt-2 block h-1 rounded-full bg-sand-4"><span class="block h-1 rounded-full bg-grass-9" style="width:80%"></span></span><span class="block mt-1.5 text-meta text-sand-11">Dry food</span></button></li>
+          <li><button class="w-full text-left rounded-xl border-hair border-sand-6 p-3 hover:bg-sand-2 transition-colors duration-250 ease-out"><span class="flex items-center justify-between"><span class="font-medium">Ambient store</span><span class="text-sand-11">12</span></span><span class="mt-2 block h-1 rounded-full bg-sand-4"><span class="block h-1 rounded-full bg-grass-9" style="width:38%"></span></span><span class="block mt-1.5 text-meta text-sand-11">Sealed food</span></button></li>
+        </ul>
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <div class="w-full md:w-auto p-0.5 rounded-lg bg-sand-3 flex text-meta num" role="tablist" aria-label="Days left">
+            <button role="tab" class="flex-1 h-7 px-3 rounded-[6px] text-sand-11">All</button>
+            <button role="tab" class="flex-1 h-7 px-3 rounded-[6px] text-sand-11">Expired <span class="text-red-11 font-medium">2</span></button>
+            <button role="tab" aria-selected="true" class="flex-1 h-7 px-3 rounded-[6px] bg-sand-1 border-hair border-sand-7 font-medium">This week 14</button>
+            <button role="tab" class="flex-1 h-7 px-3 rounded-[6px] text-sand-11">This month 31</button>
+            <button role="tab" class="hidden sm:block flex-1 h-7 px-3 rounded-[6px] text-sand-11">Later 182</button>
+            <button role="tab" class="hidden sm:block flex-1 h-7 px-3 rounded-[6px] text-sand-11">No date 4</button>
+          </div>
+          <span class="text-meta text-sand-11">Sorted by days left</span>
+        </div>
+        <div class="mt-3 overflow-x-auto">
+          <table class="w-full min-w-[720px] num">
+            <thead class="text-meta text-sand-11 text-left"><tr class="border-b-hair border-sand-6"><th class="py-2 font-medium">Item</th><th class="font-medium">Location</th><th class="font-medium">Date</th><th class="font-medium text-right">Days left</th><th class="font-medium text-right">Quantity</th><th class="w-28"></th></tr></thead>
+            <tbody class="divide-y-hair divide-sand-6">
+              <tr><td class="py-2.5 font-medium">Canned tuna</td><td><span class="block">Basement</span><span class="block text-meta text-sand-11">Shelf B2</span></td><td><span class="block">29 Oct</span><span class="block text-meta text-sand-11">Use by</span></td><td class="text-right font-medium text-red-11">4</td><td class="text-right">4 cans</td><td class="text-right"><button class="h-7 px-3 rounded-[6px] bg-sand-3 hover:bg-sand-4 transition-colors duration-250 ease-out text-meta font-medium">Given out</button></td></tr>
+              <tr><td class="py-2.5 font-medium">Sealed pasta 500 g</td><td><span class="block">Ambient store</span><span class="block text-meta text-sand-11">Shelf A1</span></td><td><span class="block">30 Oct</span><span class="block text-meta text-sand-11">Best before</span></td><td class="text-right font-medium text-red-11">5</td><td class="text-right">48 packs</td><td class="text-right"><button class="h-7 px-3 rounded-[6px] bg-sand-3 hover:bg-sand-4 transition-colors duration-250 ease-out text-meta font-medium">Given out</button></td></tr>
+              <tr><td class="py-2.5 font-medium">UHT milk 1 L</td><td><span class="block">Basement</span><span class="block text-meta text-sand-11">Shelf B1</span></td><td><span class="block">31 Oct</span><span class="block text-meta text-sand-11">Best before</span></td><td class="text-right font-medium text-orange-11">6</td><td class="text-right">12</td><td class="text-right"><button class="h-7 px-3 rounded-[6px] bg-sand-3 hover:bg-sand-4 transition-colors duration-250 ease-out text-meta font-medium">Given out</button></td></tr>
+              <tr><td class="py-2.5 font-medium">Baby cereal</td><td><span class="block">Basement</span><span class="block text-meta text-sand-11">Shelf B3</span></td><td><span class="block">31 Oct</span><span class="block text-meta text-sand-11">Best before</span></td><td class="text-right font-medium text-orange-11">6</td><td class="text-right">3 boxes</td><td class="text-right"><button class="h-7 px-3 rounded-[6px] bg-sand-3 hover:bg-sand-4 transition-colors duration-250 ease-out text-meta font-medium">Given out</button></td></tr>
+              <tr><td class="py-2.5 font-medium">Unopened shampoo 300 ml</td><td><span class="block">Shelf C</span><span class="block text-meta text-sand-11">Row 2</span></td><td><span class="block">1 Nov</span><span class="block text-meta text-sand-11">Printed expiry</span></td><td class="text-right font-medium text-orange-11">7</td><td class="text-right">5</td><td class="text-right"><button class="h-7 px-3 rounded-[6px] bg-sand-3 hover:bg-sand-4 transition-colors duration-250 ease-out text-meta font-medium">Given out</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </section>
+</body>
+</html>

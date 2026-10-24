@@ -29,6 +29,7 @@ Status: proposed delivery specification for a ≤40-hour hackathon MVP. The [req
 | FEAT-019 | AI/human agreement metric | S4 | Reporting only with an agreed annotation and denominator definition. |
 | FEAT-020 | Advanced metrics, impact and discovery | P | Average shelf life, impact dashboard, automatic registration verification, visual map and partnerships. The reviewed README follows this proposed deferral; AMB-020 still records the product scope decision. |
 | FEAT-021 | External channels and logistics | P | Future scope candidates only: notifications/email, messaging, association transfers, pickups and routing. No MVP integrations, screens or background jobs. |
+| FEAT-022 | Company donations | M | Existing donor workflow with company-name attribution and the same unopened ambient-food rules. No company verification, shared accounts, tax receipts or cold-chain handling. |
 
 ## Lifecycle and evidence boundaries
 
@@ -40,10 +41,10 @@ The source-backed happy path is recorded below. “Draft” is a descriptive pre
 | Ready item → offered | Donor | Target association approved; deterministic matching revalidated. No stock receipt. |
 | Offered → approved OR refused | Target-association personnel | Explicit human action; required eligibility/capacity checks. Refusal does not lead to booking. |
 | Approved → booked | Donor | Available target-association slot; consistent booking and associated QR. |
-| Booked → received | Target-association personnel | Validate QR and booking, then explicitly confirm physical reception; add stock once. |
+| Booked → received | Target-association personnel | Validate QR and booking; enter the actual positive quantity up to the offered quantity; atomically audit any reduction, close reception and add stock once. |
 | Received → distributed | Target-association personnel | Record actual distribution under the agreed quantity model; remove stock without negative balance. |
 
-Cancellation, re-offering, multiple simultaneous offers, approval reversal, partial distribution/reception and post-offer corrections are not settled by this table (AMB-004, AMB-008, AMB-012, AMB-013). Do not add unagreed transitions. AI results never drive an approve/refuse transition. Source corrections do not overwrite AI evidence, and booking does not imply physical receipt.
+Reception closes once at the corrected actual quantity, with no pending remainder or second receipt. The original offered quantity stays in the audit. General post-offer corrections, cancellation, re-offering, multiple simultaneous offers, approval reversal and partial distribution remain open. Approval reservation/release and medicine refinements are on standby. AI results never drive an approve/refuse transition. Booking does not imply physical receipt. All local dates and appointments use `Europe/Paris`.
 
 ## Detailed MVP use cases
 
@@ -83,9 +84,10 @@ Acceptance criteria:
 
 - **UC-002-AC01:** Given free text with a stated item quantity, parsing preserves the stated quantity for staff review; no need becomes active before confirmation and no derived quantity is calculated by AI.
 - **UC-002-AC02:** If parsing fails or an attribute is missing, staff can complete the same need through the form; the system does not fabricate season or quantity.
-- **UC-002-AC03:** A change to confirmed needs, season or capacity affects subsequent matching reads using the same agreed units.
+- **UC-002-AC03:** Before a need has commitments or receipts, valid changes affect subsequent matching. After an approved/booked commitment or receipt, attempts to change its category, unit, matching attributes or seasons fail. Close that need and create a new one for different criteria; old receipts do not fulfill it.
 - **UC-002-AC04:** Given capacity is full under the agreed reservation policy, the association is ineligible for additional matching in that category and competing operations cannot overcommit it.
 - **UC-002-AC05:** Only authorized members of the association can change its needs/capacity/slots; slot availability respects its configured hours and agreed booking limits.
+- **UC-002-AC06:** A criteria edit racing with approval uses the same write locks. Either the edit wins and approval rechecks it, or approval wins and the criteria edit fails. The two commands cannot commit incompatible criteria and commitments.
 
 ### UC-003 — Capture an item and validate its photos
 
@@ -93,7 +95,7 @@ Acceptance criteria:
 
 **Preconditions:** signed-in donor; configured upload formats/limits and photo-count rule (AMB-003).
 
-**Main flow:** capture or select item photos; include a label close-up for food/para; submit files; validate type and size on the server; retain scoped photo references for analysis.
+**Main flow:** enter one product type and its quantity; split groups with different category, matching attributes or expiry facts; capture item photos and a food/para label close-up; validate files on the server; retain scoped photo references for analysis.
 
 **Alternatives:** unsupported/oversized files show an actionable error before any provider call; an unreadable label remains unknown and can be corrected with better evidence. Camera/file selection behavior follows the supported browser decision.
 
@@ -105,6 +107,7 @@ Acceptance criteria:
 - **UC-003-AC02:** The food/para capture flow requests a readable date/product label close-up and follows the photo cap agreed in AMB-003.
 - **UC-003-AC03:** Another donor or unrelated association cannot obtain the photo through a guessed storage path or donation identifier.
 - **UC-003-AC04:** A failed upload shows failure and allows correction/retry without presenting an analysis result or successful offer.
+- **UC-003-AC05:** Six identical sealed pasta packs with one expiry date can share one donation. Packs with two dates require separate donations before offering. Mixed products or garment sizes also require separate donations.
 
 ### UC-004 — Read category-specific analysis and safety indicators
 
@@ -124,8 +127,10 @@ Acceptance criteria:
 - **UC-004-AC02:** Clothes support type/size/season and wear/stains/holes/pilling; shoes support size/pair/sole/upper evidence; food supports product/date/type and packaging; para supports seal/expiry/PAO/medicine concern; furniture supports type/size class/damage. Missing evidence remains unknown.
 - **UC-004-AC03:** Indicator copy such as “Stains likely — 61%” is distinguishable from human decision status. No analysis card/button/response says the AI accepted or refused an item, and no analysis call sets `decision`.
 - **UC-004-AC04:** A high medicine indicator visibly warns and points to a pharmacy. Changing the working category cannot erase the original warning or create an exception allowing a confirmed medicine donation.
-- **UC-004-AC05:** Chilled/frozen-food concern produces a visible warning, and confirmed chilled/frozen individual food is not presented as eligible room-temperature non-perishable food. Exact submission handling follows AMB-007.
+- **UC-004-AC05:** Chilled/frozen-food concern produces a visible warning. Confirmed chilled/frozen food is outside the smaller MVP scope for both individual and company donors. Medicine warning refinements remain on standby under AMB-007.
 - **UC-004-AC06:** Schema-invalid output or provider failure creates no fabricated confidence, date or decision. The required 25–35-photo evaluation includes medicines and para, with expected indicator behavior recorded rather than an AI acceptance verdict.
+- **UC-004-AC07:** The analysis heading asks the donor to check details and shows estimated indicators. It does not say the item is ready or suitable to donate. Only the later staff action creates an approval/refusal.
+- **UC-004-AC08:** Staff cannot approve packaged food/para confirmed opened or with unknown packaging eligibility. Printed PAO can remain in the original analysis, but neither the donor nor staff supplies an opening date to make an opened product eligible.
 
 ### UC-005 — Correct category or facts without changing AI evidence
 
@@ -211,11 +216,11 @@ Acceptance criteria:
 
 **Actor:** association personnel. **Features:** FEAT-011, FEAT-015. **Trigger:** staff inspect the image/expiry dashboard or decide which stock to distribute first.
 
-**Preconditions:** scoped donations/stock; agreed bucket, date normalization, reference timezone, PAO and metric scope (AMB-005/AMB-006/AMB-011/AMB-014).
+**Preconditions:** scoped donations/stock; `Europe/Paris` reference date; agreed bucket, date normalization and metric scope (AMB-005/AMB-006/AMB-014).
 
 **Main flow:** open the gallery; filter category/indicator/expiry; inspect original vs corrected facts; calculate days/expired/buckets from source facts at read time; inspect expired/unknown counts; view received undistributed items in FEFO order.
 
-**Alternatives:** unreadable/ambiguous dates are explicit; PAO without usable opening information cannot produce an invented expiry; offered/refused/unreceived items do not appear as received stock in distribute-first.
+**Alternatives:** unreadable/ambiguous dates are explicit; a printed PAO alone does not create an expiry date for an unopened product; offered/refused/unreceived items do not appear as received stock in distribute-first.
 
 **Postcondition:** staff can prioritize actual stock using current calculations; no derived expiry values have been persisted.
 
@@ -226,12 +231,13 @@ Acceptance criteria:
 - **UC-009-AC03:** Missing/unreadable dates remain visible as unknown, never zero days or an invented long shelf life; date type DLC/DDM/expiry/PAO remains visible where known.
 - **UC-009-AC04:** For usable dates on received undistributed stock, earlier expiry precedes later expiry in distribute-first. Unknown/PAO-only placement follows AMB-006, and fully distributed items leave the list.
 - **UC-009-AC05:** Gallery overlays show original indicators as estimates and corrections separately; filters/counts share an explicit data scope and avoid duplicate counting under the chosen bucket interpretation.
+- **UC-009-AC06:** The reference date changes at midnight in `Europe/Paris`, including daylight-saving changes. Reading from a browser in another timezone does not change the donation's local reference date. An unopened PAO-only product has no computed after-opening date.
 
 ### UC-010 — Book an approved drop-off and retrieve its QR
 
 **Actor:** donor. **Feature:** FEAT-012. **Trigger:** the donor books a staff-approved offer.
 
-**Preconditions:** own approved offer, target-association slots, agreed slot/timezone and QR policy (AMB-010/AMB-011/AMB-013).
+**Preconditions:** own staff-approved offer, target-association slots in `Europe/Paris`, and agreed remaining slot/QR policy (AMB-010/AMB-013).
 
 **Main flow:** choose an available slot; recheck offer state and slot limit; commit booking consistently; generate the booking QR; display association drop-off location, appointment time and QR in My donations.
 
@@ -245,6 +251,8 @@ Acceptance criteria:
 - **UC-010-AC02:** Given two concurrent requests for the last available slot allocation, only the permitted booking succeeds and the other sees refreshed availability.
 - **UC-010-AC03:** After a confirmed booking, the owner can reload appointment and QR in-app; confirmation does not depend on email or messaging.
 - **UC-010-AC04:** The appointment identifies donor drop-off at the association, without pickup, carrier selection, routing or delivery tracking.
+- **UC-010-AC05:** Before staff approval, slot confirmation and QR retrieval are unavailable. After approval, the donor selects a slot and confirms it. Only a successful booking creates a retrievable QR; selecting a slot alone does not.
+- **UC-010-AC06:** If QR retrieval fails after booking succeeds, the appointment remains booked. Retrying QR retrieval does not create another booking or consume another slot place.
 
 ### UC-011 — Receive a booked donation using QR
 
@@ -252,9 +260,9 @@ Acceptance criteria:
 
 **Preconditions:** authenticated target-association staff; a valid current booking; reception exception policy agreed (AMB-013).
 
-**Main flow:** read today's arrivals; scan the QR; resolve and validate the booking server-side; inspect the linked item/offer; explicitly confirm actual reception; update received state and stock consistently; reflect the event in the donor's status.
+**Main flow:** read today's arrivals; validate the QR and booking; inspect the linked offer; keep or reduce its quantity to the actual positive quantity present; confirm once. Commit any quantity correction and its audit with the receipt, stock and received status in one transaction; reflect the result in the donor's status.
 
-**Alternatives:** malformed/foreign/already-received QR shows the appropriate failure/current state without adding stock; camera failure, early/late arrival, partial delivery and item mismatch require AMB-013.
+**Alternatives:** malformed/foreign/already-received QR shows failure/current state without adding stock. An increased or zero quantity cannot create a receipt. A reduced quantity closes the entire reception; no remainder is scheduled. Zero/no-show handling is on standby. Camera failure, early/late arrival and item mismatch remain AMB-013.
 
 **Postcondition:** physical reception is recorded once with staff attribution and the agreed capacity/need effects. A QR scan alone does not approve an offer.
 
@@ -265,6 +273,8 @@ Acceptance criteria:
 - **UC-011-AC03:** A valid scan resolves the intended booking for staff confirmation; receipt commits once and the owner sees received status in-app.
 - **UC-011-AC04:** Repeated/concurrent scans or a retry after successful reception produce no duplicate inventory movement, need decrement or capacity effect.
 - **UC-011-AC05:** Invalid QR/state shows failure/current state and changes no stock; QR validation cannot change original AI indicators or set a new donation approval.
+- **UC-011-AC06:** For an offer of three identical units, staff can enter two and confirm once. The working quantity becomes two, the audit retains three as the original offered quantity, stock gains two and status becomes received in one commit. There is no pending third unit or second receipt.
+- **UC-011-AC07:** For that three-unit offer, entering four, zero or an invalid quantity changes no state. A stale revision changes no state. Replaying the successful two-unit confirmation returns the same event without another correction or stock movement.
 
 ### UC-012 — Record distribution and maintain light stock
 
@@ -284,6 +294,16 @@ Acceptance criteria:
 - **UC-012-AC02:** Reception adds and distribution removes the agreed quantity once; repeated or competing distribution cannot exceed the remaining quantity.
 - **UC-012-AC03:** Needs and available capacity update consistently with the policy resolved in AMB-008, with no double decrement between approval, reception and distribution.
 - **UC-012-AC04:** A fully distributed item leaves the distribute-first stock list and the donor sees the resulting status in-app. Partial-quantity behavior is tested only if included in the agreed policy.
+
+### UC-015 — Offer on behalf of a company
+
+**Actor:** authenticated donor. **Feature:** FEAT-022. **Trigger:** the donor offers a company's goods.
+
+**Main flow:** choose company attribution and enter its name; capture one product type with identical units; follow the same matching, staff review, slot selection, QR and reception flow. The authenticated donor remains the owner.
+
+- **UC-015-AC01:** Company attribution requires a company name. A second account entering the same name gains no access to the first donor's donation, photos or booking.
+- **UC-015-AC02:** Company food must be unopened, non-perishable and stored at room temperature. The flow provides no cold-chain exception, verification badge or tax-receipt action.
+- **UC-015-AC03:** The company flow retains original AI indicators, human-only decisions and one atomic reception. Company attribution adds no shared company account or new privileged role.
 
 ## Optional and post-MVP acceptance boundaries
 
@@ -319,9 +339,9 @@ Each feature maps to all requirements it directly implements or constrains. All 
 |---|---|---|---|---|
 | FEAT-001 | M | FR-001, FR-002 | BR-001, BR-006; NFR-001, NFR-002, NFR-007 | UC-001 |
 | FEAT-002 | M | FR-003, FR-004 | BR-002; NFR-001, NFR-006, NFR-008 | UC-002 |
-| FEAT-003 | M | FR-005, FR-006 | BR-003; NFR-001, NFR-004 | UC-002, UC-010, UC-012 |
+| FEAT-003 | M | FR-005, FR-006 | BR-003, BR-008; NFR-001, NFR-004 | UC-002, UC-010, UC-012 |
 | FEAT-004 | M | FR-007 | NFR-001, NFR-002, NFR-003, NFR-007 | UC-003 |
-| FEAT-005 | M | FR-008, FR-009 | BR-001, BR-002, BR-004, BR-005; NFR-002, NFR-006, NFR-008, NFR-009 | UC-004 |
+| FEAT-005 | M | FR-008, FR-009 | BR-001, BR-002, BR-004, BR-005, BR-007; NFR-002, NFR-006, NFR-008, NFR-009 | UC-004 |
 | FEAT-006 | M | FR-010, FR-011, FR-018 | BR-001, BR-002; NFR-004, NFR-005 | UC-005, UC-008 |
 | FEAT-007 | M | FR-013, FR-014 | BR-003, BR-006; NFR-001, NFR-004, NFR-006, NFR-009 | UC-006, UC-007 |
 | FEAT-008 | M | FR-009, FR-012 | BR-001, BR-004, BR-005, BR-006; NFR-007 | UC-004, UC-006 |
@@ -338,6 +358,7 @@ Each feature maps to all requirements it directly implements or constrains. All 
 | FEAT-019 | S4 | FR-029 | BR-001, BR-002; NFR-010 | UC-014 |
 | FEAT-020 | P | FR-030, FR-031 | BR-001, BR-002; NFR-010 | UC-014 for reporting; later discovery/verification scope TBD |
 | FEAT-021 | P | FR-032 | BR-006; NFR-010 | Excluded from MVP; future scope/criteria TBD |
+| FEAT-022 | M | FR-033, FR-007, FR-023, FR-024 | BR-001, BR-005, BR-007, BR-008; NFR-001, NFR-004 | UC-015, UC-003, UC-010, UC-011 |
 
 ## Delivery priorities and forty-hour budget
 

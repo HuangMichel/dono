@@ -1,10 +1,10 @@
 # Dono local setup plan
 
-Status: **design only**. Next.js is the frontend and Python FastAPI owns every business API operation. Neither frontend/package.json nor backend/pyproject.toml exists; no app entry point, migrations, seed or test/photo fixtures exist. Commands below are planned, unverified project instructions. Read [AGENTS.md](../AGENTS.md) and the [handoff decisions](handoff.md#decisions-needed-before-dependent-work) first.
+Status: **design only**. Next.js is the frontend and Python FastAPI owns every business API operation. Neither frontend/package.json nor backend/pyproject.toml exists; no app entry point, migrations, seed or test/photo fixtures exist. Commands below are planned, unverified project instructions. Read [AGENTS.md](../AGENTS.md) and the [decision register](requirements.md#ambiguities-and-decisions-required) first.
 
 ## Review the design today
 
-Read the [documentation index](../README.md#documentation) and open the seven [standalone HTML diagrams](architecture.md#interactive-diagrams). No application installation/server is needed. Required diagram sources/current evidence remain in docs/architecture; unused historical JSON reports are removed under the user's cleanup choice.
+Read the [documentation index](../README.md#documentation) and open the [standalone diagrams](architecture.md#interactive-diagrams) or [mockup board](design/index.html). No application server is needed. The architecture guide distinguishes restored sources, current checks and historical diagrams/captures.
 
 The root [.env.example](../.env.example) contains blank placeholders only. It is a combined reference for **two separate future application environments**, not a file to copy wholesale into Next.js. All `.env*` files except this root template are ignored. Preserve any existing local configuration when implementing.
 
@@ -56,7 +56,9 @@ Select only the settings belonging to each future application. Frontend public s
 
 Provider/QR/elevated keys must never be passed to Next.js, embedded in NEXT_PUBLIC variables, returned in DTOs or logged. No database password or CLI management token is an application variable in this design. Prefer scoped management access for later provisioning; no management credential is requested now.
 
-Upload limits, expiry boundaries/timezone/PAO, medicine thresholds, units/season eligibility, QR lifetime, retry/lease windows, retention, timeouts and cost controls still require decisions. Do not fill guessed numeric policy defaults into the template. Add and validate their configuration names only when their semantics are agreed.
+Use the fixed `Europe/Paris` timezone for local date and appointment calculations; exchange instants in UTC. Do not add an opening-date setting or calculate PAO expiry: packaged food/hygiene must be unopened. Company donations use existing owner access and company-name attribution, with the same eligible food scope.
+
+Upload limits, expiry bucket boundaries, partial-date/unknown ordering, units/season eligibility, QR lifetime, retry/lease windows, retention, timeouts and cost controls still require decisions. Medicine refinements and approval reservation/release rules are on standby. Do not fill guessed policy defaults into the template.
 
 ## Geocoding integration decision
 
@@ -91,10 +93,10 @@ The command forms follow [uv project execution](https://docs.astral.sh/uv/concep
 | Future verification | Required evidence | Current status |
 |---|---|---|
 | Frontend lint/typecheck/tests | Next.js UI/client checks and absence of backend secrets. | No scripts/runner. |
-| Backend Ruff/mypy/pytest | Python types/style, expiry today/expired/unreadable plus 7/30/90/DST/PAO policy; matching full capacity/need/season/distance. | No Python project/tests. |
+| Backend Ruff/mypy/pytest | Python types/style; expiry boundaries and Europe/Paris midnight/DST; PAO stays evidence only; matching and frozen need criteria. | No Python project/tests. |
 | API contract | All 42 catalog operations, account naming, DTO/enums/decimal strings, static route ordering, error envelope, JWT/CORS/preflight and forbidden fields. | No FastAPI routes. |
 | Database/RLS/Storage | Two donors/two associations, direct API/RPC/Storage attempts, no self-escalation or original evidence mutation. | No implemented objects/harness. |
-| Transactions | Last-capacity approvals/last-slot bookings, lease fencing/retry conflicts, duplicate reception and excessive distribution. | No command implementation. |
+| Transactions | Last-slot bookings, need-edit/approval races, retry fencing, atomic reception quantity correction and duplicate/excess distribution. Approval hold policy remains on standby. | No command implementation. |
 | Analysis photos | 25–35 shared photos including medicines/para; schema validity, uncertainty, warnings and immutable originals/mismatch after edits. | tests/fixtures/photos is absent. |
 | Browser flow | Target mobile camera/QR and complete donor→staff→distribution flow; read-time expiry/FEFO and indicator wording. | No app/device matrix. |
 

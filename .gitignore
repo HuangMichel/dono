@@ -37,5 +37,4 @@ __pycache__/
 *.py[cod]
 .venv/
 
-docs/architecture/*.json
-docs/architecture/*.json
+# Diagram source JSON and current validation evidence are versioned.

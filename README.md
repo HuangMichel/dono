@@ -62,6 +62,7 @@ No dependency versions are selected. Next.js is the frontend; FastAPI is a separ
 | [Handoff and audit](docs/handoff.md) | Decisions, contradictions, assumptions, blockers, milestones and risks. |
 | [Readiness report](docs/readiness.md) | Review outcome, changed files, verified design invariants and implementation order. |
 
+
 ## Interactive diagrams
 
 Open the standalone HTML files in a browser. Sources and current receipts/captures are linked in [architecture.md](docs/architecture.md#interactive-diagrams).

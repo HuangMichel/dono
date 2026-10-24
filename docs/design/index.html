@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — design</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  .num { font-variant-numeric: tabular-nums; }
+  .vp { position: relative; overflow: hidden; background: #fdfdfc; }
+  .vp iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; }
+  :focus-visible { outline: 2px solid #65ba74; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body class="bg-sand-2 text-sand-12 font-sans text-lead antialiased">
+
+<header class="max-w-[1400px] mx-auto px-4 md:px-8 pt-10 pb-2">
+  <h1 class="text-title font-semibold">Dono — selected design</h1>
+  <p class="mt-1 text-sand-11">One chosen direction per page, the design of record. Donor app leans calm and guided, the console is Workhorse throughout, with Booking & QR and Slots as Board layouts. The system spec is <a class="text-grass-11" href="../../DESIGN.md">DESIGN.md</a> at the repo root.</p>
+  <div class="mt-5 p-0.5 rounded-lg bg-sand-3 flex text-meta w-fit" role="radiogroup" aria-label="Viewports">
+    <button role="radio" aria-checked="true" data-show="both" class="h-8 px-3 rounded-[6px]">Both</button>
+    <button role="radio" aria-checked="false" data-show="desktop" class="h-8 px-3 rounded-[6px]">Desktop</button>
+    <button role="radio" aria-checked="false" data-show="mobile" class="h-8 px-3 rounded-[6px]">Mobile</button>
+  </div>
+</header>
+
+<main class="max-w-[1400px] mx-auto px-4 md:px-8 pb-20 space-y-14">
+
+  <section>
+    <h2 class="font-semibold mb-6">Public</h2>
+    <div class="space-y-10" data-pages='[
+      {"n":1,"title":"Landing","dir":"B — Focus","href":"01-landing.html","h":950},
+      {"n":2,"title":"Nearby needs","dir":"A — Workhorse","href":"02-nearby-needs.html","h":960},
+      {"n":3,"title":"Sign in & sign up","dir":"A — Workhorse","href":"03-auth.html","h":950}
+    ]'></div>
+  </section>
+
+  <section>
+    <h2 class="font-semibold mb-6">Donor app</h2>
+    <div class="space-y-10" data-pages='[
+      {"n":4,"title":"Scan an item","dir":"B — Focus","href":"04-scan.html","h":2060},
+      {"n":5,"title":"AI indicators","dir":"B — Focus","href":"05-analysis.html","h":1450},
+      {"n":6,"title":"Match & offer","dir":"A — Workhorse","href":"06-match.html","h":1220},
+      {"n":7,"title":"My donations","dir":"A — Workhorse","href":"07-donations.html","h":1190},
+      {"n":8,"title":"Booking & QR","dir":"C — Board","href":"08-booking.html","h":950},
+      {"n":18,"title":"Company offers","dir":"B — Focus","href":"18-company.html","h":950}
+    ]'></div>
+  </section>
+
+  <section>
+    <h2 class="font-semibold mb-6">Association console</h2>
+    <div class="space-y-10" data-pages='[
+      {"n":9,"title":"Register","dir":"B — Focus","href":"09-assoc-register.html","h":950},
+      {"n":10,"title":"Dashboard","dir":"A — Workhorse","href":"10-dashboard.html","h":950},
+      {"n":11,"title":"Review","dir":"A — Workhorse","href":"11-review.html","h":950},
+      {"n":19,"title":"Offers nearby","dir":"A — Workhorse","href":"19-offers.html","h":950},
+      {"n":12,"title":"Needs","dir":"A — Workhorse","href":"12-needs.html","h":950},
+      {"n":13,"title":"Capacity","dir":"A — Workhorse","href":"13-capacity.html","h":950},
+      {"n":14,"title":"Slots","dir":"C — Board","href":"14-slots.html","h":950},
+      {"n":15,"title":"Reception","dir":"A — Workhorse","href":"15-reception.html","h":950},
+      {"n":20,"title":"Stock","dir":"A — Workhorse","href":"20-stock.html","h":950},
+      {"n":16,"title":"Images","dir":"A — Workhorse","href":"16-images.html","h":950}
+    ]'></div>
+  </section>
+
+  <section>
+    <h2 class="font-semibold mb-6">Platform admin</h2>
+    <div class="space-y-10" data-pages='[
+      {"n":17,"title":"Association approvals","dir":"A — Workhorse","href":"17-admin-approvals.html","h":950}
+    ]'></div>
+  </section>
+
+  <section>
+    <h2 class="font-semibold mb-6">Status language</h2>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="rounded-xl border-hair border-sand-6 bg-sand-1 p-5">
+        <p class="font-medium">Who says what</p>
+        <ul class="mt-3 divide-y-hair divide-sand-6">
+          <li class="py-2 flex items-center justify-between gap-3"><span><span class="w-3 h-3 rounded-[3px] inline-block bg-grass-9 mr-2 align-middle"></span>Approved, Booked, Over 90 days</span><span class="text-meta text-sand-11">staff action / code bucket</span></li>
+          <li class="py-2 flex items-center justify-between gap-3"><span><span class="w-3 h-3 rounded-[3px] inline-block bg-amber-9 mr-2 align-middle"></span>Waiting for review, unreadable date</span><span class="text-meta text-sand-11">pending / manual check</span></li>
+          <li class="py-2 flex items-center justify-between gap-3"><span><span class="w-3 h-3 rounded-[3px] inline-block bg-orange-9 mr-2 align-middle"></span>Stains likely 61%, 5 days left</span><span class="text-meta text-sand-11">AI indicator / code bucket</span></li>
+          <li class="py-2 flex items-center justify-between gap-3"><span><span class="w-3 h-3 rounded-[3px] inline-block bg-red-9 mr-2 align-middle"></span>Refused, Expired, Medicine 34%</span><span class="text-meta text-sand-11">staff action / code / AI warning</span></li>
+          <li class="py-2 flex items-center justify-between gap-3"><span><span class="w-3 h-3 rounded-[3px] inline-block bg-sand-9 mr-2 align-middle"></span>Full, Paused category</span><span class="text-meta text-sand-11">hidden from matching</span></li>
+        </ul>
+      </div>
+      <div class="rounded-xl border-hair border-sand-6 bg-sand-1 p-5">
+        <p class="font-medium">Color</p>
+        <div class="mt-4 space-y-2" id="scales"></div>
+        <div class="mt-3 grid grid-cols-[56px_repeat(12,1fr)] gap-1 text-meta text-sand-11 num" id="steps"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-meta text-sand-11">
+    <p>Static mockups with fictional data. Indicators are AI estimates — associations decide. Donor pages include their flow states below the main screen.</p>
+  </footer>
+</main>
+
+<script>
+  const VIEWPORTS = { desktop: { w: 1440, label: "Desktop 1440" }, mobile: { w: 390, h: 844, label: "Mobile 390" } };
+  const arrow = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg>';
+
+  const viewport = (p, kind) => {
+    const v = VIEWPORTS[kind];
+    const h = kind === "desktop" ? p.h : v.h;
+    const w = kind === "desktop" ? v.w : v.w;
+    return `<div data-kind="${kind}" class="min-w-0">
+      <div class="vp rounded-xl border-hair border-sand-6" data-w="${w}" data-h="${h}">
+        <iframe src="${p.href}" width="${w}" height="${h}" loading="lazy" title="${p.title}, ${v.label}"></iframe>
+      </div>
+      <p class="mt-2 text-meta text-sand-11 num">${v.label}</p>
+    </div>`;
+  };
+
+  document.querySelectorAll("[data-pages]").forEach((lane) => {
+    lane.innerHTML = JSON.parse(lane.dataset.pages).map((p) => `
+      <article>
+        <a href="${p.href}" class="w-fit mb-1 flex items-center gap-2 hover:text-grass-11 transition-colors duration-250 ease-out">
+          <span class="w-6 h-6 rounded-full bg-sand-4 text-meta font-semibold grid place-items-center num">${p.n}</span>
+          <span class="font-medium">${p.title}</span>${arrow}
+        </a>
+        <p class="mb-3 text-meta text-sand-11">${p.dir}</p>
+        <div class="pair grid gap-4 items-start grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,3.2fr)_minmax(0,1fr)]">
+          ${viewport(p, "desktop")}${viewport(p, "mobile")}
+        </div>
+      </article>`).join("");
+  });
+
+  const fit = (el) => {
+    const s = el.clientWidth / +el.dataset.w;
+    el.style.height = `${+el.dataset.h * s}px`;
+    el.querySelector("iframe").style.transform = `scale(${s})`;
+  };
+  const ro = new ResizeObserver((entries) => entries.forEach((e) => fit(e.target)));
+  document.querySelectorAll(".vp").forEach((el) => {
+    ro.observe(el);
+    const iframe = el.querySelector("iframe");
+    iframe.addEventListener("load", () => {
+      try {
+        const h = Math.ceil(iframe.contentDocument.documentElement.scrollHeight);
+        if (h > +el.dataset.h) { el.dataset.h = h; fit(el); }
+      } catch (err) { /* file:// origin — declared height is enough */ }
+    });
+  });
+
+  const pick = (mode) => {
+    document.querySelectorAll("[data-show]").forEach((b) => {
+      const on = b.dataset.show === mode;
+      b.setAttribute("aria-checked", on);
+      b.className = `h-8 px-3 rounded-[6px] ${on ? "bg-sand-1 border-hair border-sand-7 font-medium" : "text-sand-11"}`;
+    });
+    document.querySelectorAll(".pair").forEach((pair) => {
+      pair.querySelectorAll("[data-kind]").forEach((v) => (v.hidden = mode !== "both" && v.dataset.kind !== mode));
+      pair.className = `pair grid gap-4 items-start ${mode === "both" ? "grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,3.2fr)_minmax(0,1fr)]" : mode === "mobile" ? "grid-cols-[minmax(0,390px)]" : "grid-cols-[minmax(0,1fr)]"}`;
+    });
+  };
+  document.querySelectorAll("[data-show]").forEach((b) => b.addEventListener("click", () => pick(b.dataset.show)));
+  pick("both");
+
+  const roles = ["App bg", "Subtle bg", "Component", "Hover", "Active", "Subtle line", "Line", "Strong line", "Solid", "Solid hover", "Text low", "Text high"];
+  Object.entries(radix).forEach(([name, steps]) => {
+    document.getElementById("scales").insertAdjacentHTML("beforeend",
+      `<div class="grid grid-cols-[56px_repeat(12,1fr)] gap-1 items-center"><span class="text-meta text-sand-11 capitalize">${name}</span>${steps.map((c, i) => `<span class="h-8 rounded-[4px]" style="background:${c}" title="${name}-${i + 1} ${roles[i]} ${c}"></span>`).join("")}</div>`);
+  });
+  document.getElementById("steps").innerHTML = "<span></span>" + roles.map((r, i) => `<span title="${r}">${i + 1}</span>`).join("");
+</script>
+</body>
+</html>

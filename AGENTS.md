@@ -22,6 +22,12 @@ Guidance for coding agents working on **Dono** — a hackathon MVP (≤ 40 h) th
 
 Check the future `frontend/package.json` and `backend/pyproject.toml` before adding a dependency; pin versions and lockfiles, preferring releases published at least 7 days ago.
 
+## Frontend design
+
+- Read [DESIGN.md](DESIGN.md) before frontend work. Use its semantic colors, typography, components, accessibility rules and UI wording.
+- Use the chosen mockups listed in [docs/design/README.md](docs/design/README.md) for screen layouts. If a mockup's raw classes conflict with `DESIGN.md`, follow `DESIGN.md`.
+- Check behavior against the confirmed rules in [docs/requirements.md](docs/requirements.md), [docs/features.md](docs/features.md) and the contract in [docs/api.md](docs/api.md). Report contradictions. Mockup examples and provisional actions do not establish product rules or API support.
+
 ## Planned layout
 
 ```text
@@ -90,12 +96,6 @@ uv run uvicorn app.main:app --reload
 uv run ruff check .
 uv run mypy app
 uv run pytest
-```
-
-Regenerate the architecture diagram after editing `docs/architecture/candidate.json`:
-
-```sh
-node .agents/skills/archify/bin/archify.mjs finalize architecture docs/architecture/candidate.json docs/architecture/dono-architecture.html --quality showcase --out-dir docs/architecture/validation/system-next --json
 ```
 
 ## Verification before finishing a task

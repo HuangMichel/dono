@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — Association approvals</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+</head>
+<body class="bg-sand-1 text-sand-12 font-sans text-body antialiased">
+<section>
+  <div class="flex min-h-[620px]">
+    <aside class="hidden md:flex w-56 shrink-0 bg-sand-2 border-r-hair border-sand-6 p-3 flex-col">
+      <div class="px-2 h-10 flex items-center font-semibold text-grass-11">dono admin</div>
+      <nav class="space-y-0.5">
+        <a href="#a" aria-current="page" class="h-8 px-2 rounded-[6px] flex items-center justify-between bg-sand-4 font-medium">Approvals<span class="num text-sand-11 font-normal">3</span></a>
+        <a href="#a" class="h-8 px-2 rounded-[6px] flex items-center justify-between hover:bg-sand-3 transition-colors duration-250 ease-out">Associations<span class="num text-sand-11 font-normal">15</span></a>
+        <a href="#a" class="h-8 px-2 rounded-[6px] flex items-center hover:bg-sand-3 transition-colors duration-250 ease-out">Overview</a>
+      </nav>
+      <div class="mt-auto px-2"><p class="font-medium">N. Farhi</p><p class="text-meta text-sand-11">Platform admin</p></div>
+    </aside>
+    <main class="flex-1 min-w-0 p-6 max-w-[1280px]">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-title-sm font-semibold">Association approvals</h2>
+        <div class="p-0.5 rounded-lg bg-sand-3 flex text-meta" role="tablist">
+          <button role="tab" aria-selected="true" class="h-8 px-3 rounded-[6px] bg-sand-1 border-hair border-sand-7 font-medium num">Pending 3</button>
+          <button role="tab" class="h-8 px-3 rounded-[6px] text-sand-11 num">Approved 12</button>
+          <button role="tab" class="h-8 px-3 rounded-[6px] text-sand-11 num">Rejected 2</button>
+        </div>
+      </div>
+      <div class="mt-4 grid xl:grid-cols-[1fr_360px] gap-5 items-start">
+        <div class="rounded-xl border-hair border-sand-6 overflow-hidden">
+          <table class="w-full">
+            <thead><tr class="bg-sand-2 text-meta text-sand-11 text-left">
+              <th class="px-4 py-2.5 font-medium">Association</th><th class="px-3 py-2.5 font-medium">RNA</th><th class="px-3 py-2.5 font-medium">Submitted</th><th class="px-3 py-2.5 font-medium">Categories</th><th class="px-3 py-2.5 font-medium">Status</th>
+            </tr></thead>
+            <tbody class="divide-y-hair divide-sand-6">
+              <tr class="bg-sand-3" aria-current="true"><td class="px-4 py-3 font-medium">Église Saint-Jean</td><td class="px-3 py-3 num">W751234567</td><td class="px-3 py-3 num">22 Oct</td><td class="px-3 py-3 text-meta">Clothes, Food</td><td class="px-3 py-3"><span class="chip bg-amber-3 text-amber-11">Pending</span></td></tr>
+              <tr><td class="px-4 py-3 font-medium">Les Amis du 12e</td><td class="px-3 py-3 num">W751999888</td><td class="px-3 py-3 num">24 Oct</td><td class="px-3 py-3 text-meta">Clothes, Food, Care</td><td class="px-3 py-3"><span class="chip bg-amber-3 text-amber-11">Pending</span></td></tr>
+              <tr><td class="px-4 py-3 font-medium">Aurore Solidaire</td><td class="px-3 py-3 num">W943000111</td><td class="px-3 py-3 num">20 Oct</td><td class="px-3 py-3 text-meta">Shoes, Furniture</td><td class="px-3 py-3"><span class="chip bg-amber-3 text-amber-11">Pending</span></td></tr>
+              <tr class="opacity-70"><td class="px-4 py-3">Emmaüs Belleville</td><td class="px-3 py-3 num">W751222333</td><td class="px-3 py-3 num">12 Oct</td><td class="px-3 py-3 text-meta">Clothes, Shoes, Furniture</td><td class="px-3 py-3"><span class="chip bg-grass-3 text-grass-11">Approved</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <aside class="rounded-xl border-hair border-sand-6 p-4">
+          <h3 class="font-medium">Église Saint-Jean</h3>
+          <dl class="mt-3 divide-y-hair divide-sand-6 border-t-hair border-b-hair border-sand-6">
+            <div class="py-2 flex justify-between"><dt class="text-sand-11">RNA</dt><dd class="num">W751234567</dd></div>
+            <div class="py-2 flex justify-between"><dt class="text-sand-11">SIRET</dt><dd class="text-sand-11">—</dd></div>
+            <div class="py-2 flex justify-between"><dt class="text-sand-11">Address</dt><dd>8 rue Saint-Jean, 75011 Paris</dd></div>
+            <div class="py-2 flex justify-between"><dt class="text-sand-11">Contact</dt><dd>Marc Dufour</dd></div>
+            <div class="py-2 flex justify-between"><dt class="text-sand-11">Categories</dt><dd class="text-meta">Clothes, Food</dd></div>
+          </dl>
+          <p class="mt-3 rounded-lg bg-sand-2 px-3 py-2.5 text-meta text-sand-11">Check the RNA in the public register.</p>
+          <div class="mt-4 space-y-2">
+            <button class="w-full h-9 rounded-lg bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-medium">Approve</button>
+            <button class="w-full h-9 rounded-lg border-hair border-red-7 text-red-11 font-medium">Reject with reason</button>
+          </div>
+                  </aside>
+      </div>
+    </main>
+  </div>
+</section>
+</body>
+</html>
