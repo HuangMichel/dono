@@ -36,3 +36,6 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 .venv/
+
+docs/architecture/*.json
+docs/architecture/*.json

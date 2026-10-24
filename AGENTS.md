@@ -13,33 +13,34 @@ Guidance for coding agents working on **Dono** — a hackathon MVP (≤ 40 h) th
 
 ## Stack
 
-- Next.js (App Router, TypeScript) · Tailwind CSS · shadcn/ui
+- Frontend: Next.js (App Router, TypeScript) · Tailwind CSS · shadcn/ui
+- Backend: FastAPI (Python), Pydantic request/response schemas; all business REST endpoints live here
 - Supabase: Auth, Postgres with row-level security, Storage (donation photos)
 - OpenAI API: vision + structured outputs (JSON schema per category)
 - TypeSafe Jev: optional, behind `ANALYSIS_PROVIDER` (image support is experimental and requires the `TypeSafe-Danger-Zone-Images: true` header)
-- API Adresse (data.gouv.fr) for geocoding
+- Government BAN address geocoding via IGN Géoplateforme (`https://data.geopf.fr/geocodage/`); no routing service
 
-Check `package.json` before adding a dependency; prefer versions published at least 7 days ago.
+Check the future `frontend/package.json` and `backend/pyproject.toml` before adding a dependency; pin versions and lockfiles, preferring releases published at least 7 days ago.
 
 ## Planned layout
 
-```
-app/
-  (donor)/            scan, offers, my-donations, booking
-  (association)/      dashboard, review, needs, capacity, slots, reception, images
-  (admin)/            association approval
-  api/                route handlers (analysis, needs parsing, matching, qr)
-lib/
-  analysis/           provider interface + openai.ts, jev.ts, hybrid.ts
-  analysis/schemas/   one JSON schema + prompt per category
-  expiry.ts           days left, buckets, FEFO
-  matching.ts         need + capacity + season + distance
-  geo.ts              API Adresse client + Haversine
-  supabase/           server and browser clients
+```text
+frontend/              Next.js UI only
+  app/                 donor, association and platform approval views
+  lib/supabase/        public Auth/browser integration; no privileged keys
+backend/               FastAPI application (planned, not scaffolded)
+  app/main.py          application/router composition
+  app/api/             /api/v1 routers, authentication dependencies, error mapping
+  app/services/        analysis, matching, review, booking and inventory orchestration
+  app/domain/          pure expiry.py, matching.py and validated domain rules
+  app/adapters/        Supabase persistence/storage, providers and BAN geocoding
+  app/analysis/schemas/ category extraction/indicator schemas and prompts
+  tests/               Python unit, API and concurrency checks
 supabase/
-  migrations/         schema + RLS policies
-  seed.sql            demo associations, needs, redirect points
-docs/architecture/    archify candidate.json + rendered HTML
+  migrations/          schema, named enum types, grants and RLS policies
+  seed.sql             demo associations, needs and redirect points
+tests/fixtures/photos/ shared analysis evaluation set (not created)
+docs/architecture/     editable Archify sources, standalone HTML and current evidence
 ```
 
 ## Analysis provider contract
@@ -70,31 +71,37 @@ Roles: `donor`, `assoc_admin`, `assoc_staff`, `platform_admin`. Every table touc
 
 ## Security
 
-- `OPENAI_API_KEY`, `TYPESAFE_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` are server-only. Never import them in client components or prefix them with `NEXT_PUBLIC_`.
+- `OPENAI_API_KEY`, `TYPESAFE_API_KEY`, `SUPABASE_SECRET_KEY`, any legacy `SUPABASE_SERVICE_ROLE_KEY`, and `QR_SIGNING_KEY` belong only to FastAPI server configuration. Never import them into the Next.js frontend or prefix them with `NEXT_PUBLIC_`.
 - Never commit `.env*` files other than `.env.example`.
 - Validate uploaded files (type, size) before sending them to a model.
 
 ## Commands
 
-> Not scaffolded yet — update this section once `package.json` exists.
+> Neither frontend/package.json nor backend/pyproject.toml exists. Every command below is planned and unverified; update once the respective tool configuration and scripts exist.
 
 ```sh
-pnpm dev            # local dev server
-pnpm lint           # lint
-pnpm typecheck      # tsc --noEmit
-pnpm test           # unit tests (expiry, matching, schema parsing)
+# From the future frontend/ directory:
+pnpm dev
+pnpm lint
+pnpm typecheck
+pnpm test
+# From the future backend/ directory, after uv/pyproject setup:
+uv run uvicorn app.main:app --reload
+uv run ruff check .
+uv run mypy app
+uv run pytest
 ```
 
 Regenerate the architecture diagram after editing `docs/architecture/candidate.json`:
 
 ```sh
-node ~/.agents/skills/archify/bin/archify.mjs finalize architecture docs/architecture/candidate.json docs/architecture/dono-architecture.html --quality showcase --json
+node .agents/skills/archify/bin/archify.mjs finalize architecture docs/architecture/candidate.json docs/architecture/dono-architecture.html --quality showcase --out-dir docs/architecture/validation/system-next --json
 ```
 
 ## Verification before finishing a task
 
-1. `pnpm lint && pnpm typecheck && pnpm test` pass.
-2. Unit tests cover `lib/expiry.ts` (boundaries: today, expired, unreadable date) and `lib/matching.ts` (capacity full, season, distance ordering).
+1. Once scaffolded, frontend lint/typecheck/tests and backend Ruff/mypy/pytest pass; neither toolchain currently exists.
+2. Unit tests cover `backend/app/domain/expiry.py` (boundaries: today, expired, unreadable date) and `backend/app/domain/matching.py` (capacity full, season, distance ordering).
 3. Analysis changes are checked against the photo test set (`tests/fixtures/photos/`, 25–35 images including medicines and para products).
 4. No UI path shows an AI-made approve/refuse decision.
 

@@ -2,7 +2,7 @@
 
 **Scan before you donate.** Dono helps individuals offer usable goods to associations that need them and have space. AI supplies indicators; association personnel make the donation decision.
 
-This repository is a **pre-implementation design baseline** for a hackathon MVP with a total effort budget of **40 hours**. It contains specifications and interactive diagrams. There is no application scaffold, `package.json`, database migration, running API or photo evaluation set yet. Diagram validation does not verify application behavior.
+This repository is a **pre-implementation design baseline** for a hackathon MVP with a total effort budget of **40 hours**. It contains specifications and interactive diagrams. There is no application scaffold, frontend/package.json, backend/pyproject.toml, database migration, running API or photo evaluation set yet. Diagram validation does not verify application behavior.
 
 ## Product and scope
 
@@ -40,13 +40,13 @@ Bucket boundaries, PAO, timezone, matching policy, capacity units/reservations, 
 | Layer | Technology / responsibility |
 |---|---|
 | Web application | Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui; donor, association and approval views in one application. |
-| REST backend | Next.js App Router Route Handlers under planned `/api/v1`; server modules for analysis, matching and expiry. |
+| REST backend | FastAPI (Python), Pydantic schemas and routers under `/api/v1`; Python services for analysis, matching, expiry and transactions. |
 | Identity and data | Supabase Auth, Postgres with RLS, private Storage for photos. |
 | Analysis | OpenAI vision and structured outputs; free-text needs produce a staff-confirmed draft. |
 | Optional indicators | TypeSafe Jev / hybrid behind `ANALYSIS_PROVIDER`; Jev does no OCR/date/number extraction. |
-| Geocoding | API Adresse as named in AGENTS.md; resolve its current Géoplateforme endpoint before integration (AMB-021). No routing service. |
+| Geocoding | Government BAN address data through IGN Géoplateforme, `https://data.geopf.fr/geocodage/`. Backend geocoding only; no routing service. |
 
-No dependency versions are selected. Check `package.json` when it exists, pin compatible versions and commit the lockfile; prefer releases at least seven days old.
+No dependency versions are selected. Next.js is the frontend; FastAPI is a separate Python backend. Check the future frontend/package.json and backend/pyproject.toml, pin compatible versions and commit both lockfiles; prefer releases at least seven days old.
 
 ## Documentation
 
@@ -57,7 +57,7 @@ No dependency versions are selected. Check `package.json` when it exists, pin co
 | [Features and use cases](docs/features.md) | Acceptance criteria, traceability and illustrative 40-hour allocation. |
 | [Architecture](docs/architecture.md) | Components, interaction design and current Archify validation evidence. |
 | [Database design](docs/databases.md) | Columns, constraints, RLS, locks, accounting and provisional schema choices. |
-| [REST API](docs/api.md) | Planned Next.js endpoints, DTOs, permissions, errors and examples. |
+| [REST API](docs/api.md) | Planned FastAPI endpoints, DTOs, permissions, errors and examples. |
 | [Setup](docs/setup.md) | Prerequisites, planned Supabase configuration, environment and future checks. |
 | [Handoff and audit](docs/handoff.md) | Decisions, contradictions, assumptions, blockers, milestones and risks. |
 | [Readiness report](docs/readiness.md) | Review outcome, changed files, verified design invariants and implementation order. |
@@ -76,20 +76,30 @@ Open the standalone HTML files in a browser. Sources and current receipts/captur
 | Lifecycle | [States and guards](docs/architecture/donation-lifecycle.html) | [JSON](docs/architecture/donation-lifecycle.json) |
 | Database | [Full ERD](docs/architecture/database-erd.html) | [JSON](docs/architecture/database-erd.json) |
 
-The ERD retains its documented dense-layout warnings. All existing sources, HTML, receipts and captures are preserved by this review.
+The ERD retains its documented dense-layout warnings. Required sources/current validation evidence remain; unused historical JSON reports are removed following the requested cleanup. Historical captures are not proof for revised artifacts.
+
+## Design choices clarified
+
+Closed vocabularies such as roles, unit, category and state use named PostgreSQL enums, with allowed values shown at each table column. Unit/season vocabularies remain explicit proposals until their business rules are agreed. `attributes` holds validated item facts and need criteria, so it retains that name; technical provenance is separate. Private Storage holds photo bytes and Postgres holds their references/digests. Persisting base64 text is not required or recommended. See the [database explanations](docs/databases.md).
+
+The API uses `/api/v1/account/profile` and `/api/v1/account/memberships` for the signed-in user. All business routes belong to FastAPI; Next.js renders the frontend.
 
 ## Planned quickstart
 
-Today you can read the documents and open the diagrams. Copying [.env.example](.env.example) to an ignored `.env.local` prepares placeholders only; it does not create a runnable application.
+Today you can read the documents and open the diagrams. Neither toolchain nor migrations exists. The root [.env.example](.env.example) separates public frontend settings from FastAPI-only secrets; populate the two future app environments selectively, never copy backend secrets into the frontend.
 
-After policy decisions, scaffolding, package scripts, reviewed migrations and seed data exist, the intended local sequence is:
+After scaffolding, package configuration, policy decisions and reviewed Supabase provisioning, the intended commands are:
 
 ```sh
-# Future workflow only; package.json and these scripts do not exist yet.
+# Future frontend/ directory only; not runnable in this repository today.
 pnpm install
-cp .env.example .env.local  # only if absent; fill approved settings locally
-# Provision the selected Supabase environment using the future migration runbook.
 pnpm dev
 ```
 
-The dev URL will be documented after configuration. Planned checks are `pnpm lint`, `pnpm typecheck` and `pnpm test`; none can run in the current repository. [Setup](docs/setup.md) separates preparation from future commands and lists the required RLS, concurrency, expiry and photo-set verification.
+```sh
+# Future backend/ directory only; pyproject/app entry point do not exist yet.
+uv sync
+uv run uvicorn app.main:app --reload
+```
+
+The actual origins/ports and migration procedure will be documented after configuration. Planned frontend checks are pnpm lint/typecheck/test; planned backend checks are Ruff, mypy and pytest. None ran here. [Setup](docs/setup.md) lists prerequisites, environment boundaries and future RLS, concurrency, expiry and photo-set verification.

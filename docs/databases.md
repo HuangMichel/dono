@@ -1,6 +1,6 @@
 # Dono database design
 
-Status: **proposed design for review; no database objects, migrations or backend code have been created**. [AGENTS.md](../AGENTS.md) remains authoritative. Read this with [requirements.md](requirements.md), [features.md](features.md), [architecture.md](architecture.md) and the [Next.js REST contract](api.md).
+Status: **proposed design for review; no database objects, migrations or backend code have been created**. [AGENTS.md](../AGENTS.md) remains authoritative. Read this with [requirements.md](requirements.md), [features.md](features.md), [architecture.md](architecture.md) and the [FastAPI REST contract](api.md).
 
 Open the [interactive database ERD](architecture/database-erd.html); its editable source is [database-erd.json](architecture/database-erd.json). Every proposed application column is included. `auth.users` is shown as an external managed reference containing only its referenced `id`, not as a complete definition of Supabase's Auth schema. Each FK role has its own relationship line, including separate applicant/approver and donor/reviewer roles; column references and composite constraints below provide the precise keys.
 
@@ -28,7 +28,36 @@ IDs are UUIDs to align with Supabase identities and exposed resource references.
 
 `created_at`/`updated_at`, IDs, actors, status and revisions are server/command-owned. No client can select a donor ID, assign membership, change target association through a generic patch, or edit original evidence. FK actions are **ON DELETE RESTRICT / ON UPDATE RESTRICT** until retention/deletion policy AMB-015 is resolved. There are no product hard-delete endpoints. This protects provenance without asserting perpetual retention; a later authorized retention process needs its own reviewed deletion order.
 
-Categories are `clothes`, `shoes`, `food`, `para`, `furniture`. Text enum CHECKs are proposed rather than database enum migrations at this stage. Required strings reject empty values; all numeric inputs reject NaN/infinity in addition to range checks. Defaults listed as actor/config/output are trusted sources, not SQL default expressions. A nullable column is intentionally different from an empty or guessed value.
+Categories are `clothes`, `shoes`, `food`, `para`, `furniture`. Finite vocabularies use named PostgreSQL ENUM types, defined below and repeated with allowed values at each table column. Types are schema-level objects referenced by columns; PostgreSQL does not declare MySQL-style inline ENUM lists in CREATE TABLE. No types or migrations have been created. Required strings reject empty values; all numeric inputs reject NaN/infinity in addition to range checks. Defaults listed as actor/config/output are trusted sources, not SQL default expressions. A nullable column is intentionally different from an empty or guessed value.
+
+## Enumerated types
+
+The enum catalog is a design definition, not executable SQL. Shared types (especially category and unit) are reused across tables so constraints and API validation agree. Each future PostgreSQL `CREATE TYPE … AS ENUM` precedes dependent tables. Python string enums/Pydantic schemas and frontend wire unions must use the same labels. New labels require a reviewed schema/API change; enum ordering never determines donation lifecycle or matching rank. [PostgreSQL enum types](https://www.postgresql.org/docs/current/datatype-enum.html)
+
+| SQL enum type | Allowed labels | Decision status |
+|---|---|---|
+| `platform_role` | `donor`, `platform_admin` | Established role labels; provisioning remains AMB-001/002. |
+| `assoc_role` | `assoc_admin`, `assoc_staff` | Established membership labels; management permissions remain AMB-001. |
+| `association_status` | `pending`, `approved` | Proposed onboarding profile; rejection/reversal remains AMB-002. |
+| `redirect_kind` | `pharmacy`, `textile_bin`, `repair_cafe` | Existing MVP redirection kinds. |
+| `donation_category` | `clothes`, `shoes`, `food`, `para`, `furniture` | The five required categories. |
+| `quantity_unit` | `item` | Initial DB-P03 proposal only; other units/capacity interpretation require AMB-008. |
+| `need_season` | `spring`, `summer`, `autumn`, `winter` | Proposed vocabulary pending AMB-009; NULL remains unknown, not all seasons. |
+| `donation_status` | `draft`, `offered`, `approved`, `refused`, `booked`, `received`, `distributed` | DB-P02 proposal; conceptual error stages are not enum labels. |
+| `donation_decision` | `approved`, `refused` | Human decision only. |
+| `photo_kind` | `item`, `label` | Existing capture roles. |
+| `analysis_provider` | `openai`, `jev`, `hybrid` | Provider contract; optional modes remain disabled pending AMB-018. |
+| `indicator_provider` | `openai`, `jev` | Actual indicator component attribution. |
+| `indicator_level` | `low`, `medium`, `high` | Optional provider level; never an acceptance verdict. |
+| `expiry_date_type` | `DLC`, `DDM`, `expiry`, `PAO` | Source label type from AGENTS.md. |
+| `date_precision` | `day`, `month`, `year`, `unknown` | Proposed source precision; normalization remains AMB-006. |
+| `date_readability` | `readable`, `unreadable`, `unknown` | Proposed source readability. |
+| `movement_kind` | `receipt`, `distribution` | Actual physical stock events; reversals not included. |
+| `request_state` | `in_progress`, `completed` | Internal durable retry protocol. |
+
+`quantity_unit` initially proposes only `item`; this does not silently approve kg, volume, pack conversion or capacity semantics. The four season labels are also provisional. Finalizing these two vocabularies remains AMB-008/009. Existing quantities/season examples now have explicit proposed types instead of unbounded text.
+
+Free-form names, addresses, model identifiers, storage paths, IANA timezones, MIME strings and schema-versioned indicator keys remain text with their appropriate validators. They are not interchangeable with the closed enum fields. Category-specific JSON attributes are validated by schema/context, not converted into a universal enum.
 
 ## Data dictionary
 
@@ -42,7 +71,7 @@ Application identity; association roles live in memberships. **Ownership:** Acco
 |---|---|---|---|---|---|
 | `id` | `uuid` | no | PK + FK → auth.users.id | Auth subject | Same identifier as managed auth.users.id; never caller-selected. |
 | `display_name` | `text` | yes | — | NULL | Optional own display name; no automatic donor identity disclosure to staff. |
-| `platform_role` | `text` | no | — | donor | donor or platform_admin; protected from self-update. |
+| `platform_role` | `platform_role` | no | — | donor | donor or platform_admin; protected from self-update. Allowed values: `donor`, `platform_admin`. |
 | `revision` | `bigint` | no | — | 1 | Positive write version, incremented by commands. |
 | `created_at` | `timestamptz` | no | — | now() | Creation instant. |
 | `updated_at` | `timestamptz` | no | — | now() | Last profile edit. |
@@ -62,7 +91,7 @@ Registration, intake location, hours and platform approval. **Ownership:** Appli
 | `registered_by` | `uuid` | no | FK → profiles.id | verified actor | Applicant identity; bootstrap policy remains AMB-002. |
 | `rna` | `text` | yes | — | NULL | RNA identifier as text; validation/requiredness awaits AMB-002. |
 | `siret` | `text` | yes | — | NULL | SIRET as text, preserving leading zeros; validation awaits AMB-002. |
-| `approval_status` | `text` | no | — | pending | pending or approved; association approval is not a donation decision. |
+| `approval_status` | `association_status` | no | — | pending | pending or approved; association approval is not a donation decision. Allowed values: `pending`, `approved`. |
 | `approved_by` | `uuid` | yes | FK → profiles.id | NULL | Platform actor only. |
 | `approved_at` | `timestamptz` | yes | — | NULL | Approval instant, paired with approved_by. |
 | `display_address` | `text` | yes | — | NULL | Intake address, donor disclosure controlled by projection. |
@@ -86,7 +115,7 @@ Association-scoped roles; no editable JWT user_metadata authorization. **Ownersh
 |---|---|---|---|---|---|
 | `association_id` | `uuid` | no | PK + FK → associations.id | none | Association in composite PK. |
 | `profile_id` | `uuid` | no | PK + FK → profiles.id | none | Member in composite PK. |
-| `role` | `text` | no | — | none | assoc_admin or assoc_staff. |
+| `role` | `assoc_role` | no | — | none | assoc_admin or assoc_staff. Allowed values: `assoc_admin`, `assoc_staff`. |
 | `active` | `boolean` | no | — | true | Current authorization flag; historical actor references remain intact. |
 | `created_at` | `timestamptz` | no | — | now() | Membership provisioned at. |
 
@@ -101,7 +130,7 @@ Shared pharmacy, textile-bin and repair-café references. **Ownership:** Seed/pr
 | Column | SQL type | Null? | Key / reference | Default / source | Meaning |
 |---|---|---|---|---|---|
 | `id` | `uuid` | no | PK | generated UUID | Reference identifier. |
-| `kind` | `text` | no | — | none | pharmacy, textile_bin or repair_cafe. |
+| `kind` | `redirect_kind` | no | — | none | pharmacy, textile_bin or repair_cafe. Allowed values: `pharmacy`, `textile_bin`, `repair_cafe`. |
 | `name` | `text` | no | — | none | Destination name. |
 | `address` | `text` | no | — | none | Human-readable location. |
 | `latitude` | `double precision` | yes | — | NULL | Optional known coordinate. |
@@ -120,8 +149,8 @@ Configured category intake ceiling; no stored occupancy counters. **Ownership:**
 | Column | SQL type | Null? | Key / reference | Default / source | Meaning |
 |---|---|---|---|---|---|
 | `association_id` | `uuid` | no | PK + FK → associations.id | none | Stable parent row locked by capacity-changing commands. |
-| `category` | `text` | no | PK | none | One of the five product categories. |
-| `unit` | `text` | no | — | none | Explicit agreed unit; no model conversion or inferred kg. |
+| `category` | `donation_category` | no | PK | none | One of the five product categories. Allowed values: `clothes`, `shoes`, `food`, `para`, `furniture`. |
+| `unit` | `quantity_unit` | no | — | none | Explicit agreed unit; no model conversion or inferred kg. Allowed values: `item`. |
 | `limit_quantity` | `numeric(12,3)` | no | — | none | Configured nonnegative ceiling, not computed free capacity. |
 | `revision` | `bigint` | no | — | 1 | Positive write version. |
 | `updated_at` | `timestamptz` | no | — | now() | Last limit/configuration change. |
@@ -138,11 +167,11 @@ Staff-confirmed deterministic matching demand. **Ownership:** Association; free-
 |---|---|---|---|---|---|
 | `id` | `uuid` | no | PK + UK | generated UUID | Need identifier. |
 | `association_id` | `uuid` | no | FK + UK → associations.id | none | Owner association. |
-| `category` | `text` | no | — | none | Supported category. |
+| `category` | `donation_category` | no | — | none | Supported category. Allowed values: `clothes`, `shoes`, `food`, `para`, `furniture`. |
 | `attributes` | `jsonb` | no | — | {} | Validated matching attributes, e.g. size/product/size class. |
-| `seasons` | `text[]` | yes | — | NULL | Explicit season policy vocabulary; NULL is unknown, never silently all seasons. |
+| `seasons` | `need_season[]` | yes | — | NULL | Explicit season policy vocabulary; NULL is unknown, never silently all seasons. Allowed values: `spring`, `summer`, `autumn`, `winter` (array elements). |
 | `target_quantity` | `numeric(12,3)` | no | — | none | Positive human-confirmed target. |
-| `unit` | `text` | no | — | none | Must match the capacity and donation unit before approval. |
+| `unit` | `quantity_unit` | no | — | none | Must match the capacity and donation unit before approval. Allowed values: `item`. |
 | `active` | `boolean` | no | — | true | Whether new matches can use this need. |
 | `source_text` | `text` | yes | — | NULL | Optional original free-text need; staff-only scope. |
 | `created_by` | `uuid` | no | FK → profiles.id | verified actor | Authorized confirming staff member. |
@@ -164,13 +193,13 @@ Donor-owned working facts, current offer and human-controlled decision. **Owners
 | `donor_id` | `uuid` | no | FK → profiles.id | verified actor | Immutable donor ownership. |
 | `association_id` | `uuid` | yes | FK + UK → associations.id | NULL | Current target only; one-target proposal DB-P02. |
 | `need_id` | `uuid` | yes | FK → needs.id | NULL | Target need, same association; set with offer. |
-| `category` | `text` | yes | — | NULL | Current working category; NULL allowed before extraction/correction. |
+| `category` | `donation_category` | yes | — | NULL | Current working category; NULL allowed before extraction/correction. Allowed values: `clothes`, `shoes`, `food`, `para`, `furniture`. |
 | `attributes` | `jsonb` | no | — | {} | Current validated attributes, separate from immutable extracted JSON. |
 | `quantity` | `numeric(12,3)` | yes | — | NULL | Positive explicit offer quantity; required before offering. |
-| `unit` | `text` | yes | — | NULL | Required before offering; no implicit conversion. |
+| `unit` | `quantity_unit` | yes | — | NULL | Required before offering; no implicit conversion. Allowed values: `item`. |
 | `basis_analysis_id` | `uuid` | yes | FK → donation_analysis.id | NULL | Original run that seeded current facts; same donation enforced. |
-| `status` | `text` | no | — | draft | draft, offered, approved, refused, booked, received, distributed. |
-| `decision` | `text` | yes | — | NULL | approved/refused only from authorized staff action. |
+| `status` | `donation_status` | no | — | draft | draft, offered, approved, refused, booked, received, distributed. Allowed values: `draft`, `offered`, `approved`, `refused`, `booked`, `received`, `distributed`. |
+| `decision` | `donation_decision` | yes | — | NULL | approved/refused only from authorized staff action. Allowed values: `approved`, `refused`. |
 | `decided_by` | `uuid` | yes | FK → profiles.id | NULL | Human review actor; never a provider identity. |
 | `decided_at` | `timestamptz` | yes | — | NULL | Human decision instant. |
 | `intake_checks` | `jsonb` | yes | — | NULL | Staff assertions not_medicine and food_nonperishable_room_temperature; exact review policy remains AMB-007. |
@@ -195,7 +224,7 @@ Supplement: validated photo metadata and immutable object references. **Ownershi
 | `mime_type` | `text` | no | — | validated type | Validated content type, not blindly copied from header. |
 | `size_bytes` | `bigint` | no | — | validated size | Positive validated byte count. |
 | `sha256` | `text` | no | — | computed digest | 64 lowercase hex characters; binds evidence to bytes. |
-| `kind` | `text` | no | — | none | item or label. |
+| `kind` | `photo_kind` | no | — | none | item or label. Allowed values: `item`, `label`. |
 | `uploaded_by` | `uuid` | no | FK → profiles.id | verified donor | Uploader must own the donation. |
 | `created_at` | `timestamptz` | no | — | now() | Validated asset metadata created at. |
 
@@ -211,9 +240,9 @@ Immutable original AI extraction and run provenance. **Ownership:** Donation-sco
 |---|---|---|---|---|---|
 | `id` | `uuid` | no | PK + UK | generated UUID | Analysis run identifier. |
 | `donation_id` | `uuid` | no | FK + UK → donations.id | none | Item analyzed. |
-| `provider` | `text` | no | — | server config | openai, jev or hybrid; never selected by an untrusted result. |
+| `provider` | `analysis_provider` | no | — | server config | openai, jev or hybrid; never selected by an untrusted result. Allowed values: `openai`, `jev`, `hybrid`. |
 | `model` | `text` | no | — | server config | Actual model identifier from the selected provider configuration. |
-| `category` | `text` | no | — | validated output | Original AI category, never relabeled after a human override. |
+| `category` | `donation_category` | no | — | validated output | Original AI category, never relabeled after a human override. Allowed values: `clothes`, `shoes`, `food`, `para`, `furniture`. |
 | `extracted` | `jsonb` | no | — | validated output | Immutable original extracted facts, including printed date/type/PAO where present. |
 | `confidence` | `numeric` | no | — | validated output | Finite estimate in [0,1]; proposed normalization DB-P06. |
 | `input_photos` | `jsonb` | no | — | server snapshot | Array of photo_id + sha256 pairs, validated as belonging to this item; historical snapshot, not SQL FKs inside JSON. |
@@ -235,8 +264,8 @@ Immutable original indicators with component attribution. **Ownership:** Inherit
 | `key` | `text` | no | PK | validated output | Schema-defined indicator key; duplicate keys rejected. |
 | `value` | `text` | yes | — | NULL | Optional extracted/observed indicator value. |
 | `probability` | `numeric` | yes | — | NULL | Optional finite estimate in [0,1], not a decision. |
-| `level` | `text` | yes | — | NULL | low, medium or high when present. |
-| `source_provider` | `text` | no | — | server attribution | openai or jev component that supplied this indicator. |
+| `level` | `indicator_level` | yes | — | NULL | low, medium or high when present. Allowed values: `low`, `medium`, `high`. |
+| `source_provider` | `indicator_provider` | no | — | server attribution | openai or jev component that supplied this indicator. Allowed values: `openai`, `jev`. |
 | `source_model` | `text` | no | — | server attribution | Actual component model identifier. |
 
 **Constraints and guards:** PK(analysis_id,key); probability NULL or finite in [0,1]; level NULL or low/medium/high. Optional value/probability/level may all be absent when schema permits unknown evidence; key vocabulary remains AMB-017. No product UPDATE/DELETE. Original indicator values survive corrections and decisions.
@@ -251,11 +280,11 @@ Current typed source date facts; original extraction stays in analysis.extracted
 |---|---|---|---|---|---|
 | `donation_id` | `uuid` | no | PK + FK → donations.id | none | Zero or one current date-fact row per item. |
 | `expiry_date` | `date` | yes | — | NULL | Exact printed/confirmed calendar date only; not a derived PAO date. |
-| `date_type` | `text` | yes | — | NULL | DLC, DDM, expiry or PAO. |
+| `date_type` | `expiry_date_type` | yes | — | NULL | DLC, DDM, expiry or PAO. Allowed values: `DLC`, `DDM`, `expiry`, `PAO`. |
 | `pao_months` | `smallint` | yes | — | NULL | Positive printed/confirmed PAO months. |
-| `date_precision` | `text` | no | — | unknown | day, month, year or unknown; partial dates are not fabricated as exact dates. |
+| `date_precision` | `date_precision` | no | — | unknown | day, month, year or unknown; partial dates are not fabricated as exact dates. Allowed values: `day`, `month`, `year`, `unknown`. |
 | `raw_label` | `text` | yes | — | NULL | Source label text when readable, including a partial date. |
-| `readability` | `text` | no | — | unknown | readable, unreadable or unknown; NULL date does not imply expired. |
+| `readability` | `date_readability` | no | — | unknown | readable, unreadable or unknown; NULL date does not imply expired. Allowed values: `readable`, `unreadable`, `unknown`. |
 | `opened_on` | `date` | yes | — | NULL | Optional human source fact for PAO; collection/applicability remains AMB-006. |
 | `edited_by` | `uuid` | yes | FK → profiles.id | NULL | Human who last corrected date facts; NULL for original seeding. |
 | `updated_at` | `timestamptz` | no | — | now() | Last source-fact update. |
@@ -330,9 +359,9 @@ Actual receipt/distribution ledger, not pending-offer stock. **Ownership:** Targ
 | `id` | `uuid` | no | PK | generated UUID | Movement identifier. |
 | `donation_id` | `uuid` | no | FK → donations.id | none | Source donation. |
 | `association_id` | `uuid` | no | FK → associations.id | none | Same target association as the donation. |
-| `movement_type` | `text` | no | — | none | receipt or distribution. |
+| `movement_type` | `movement_kind` | no | — | none | receipt or distribution. Allowed values: `receipt`, `distribution`. |
 | `quantity` | `numeric(12,3)` | no | — | none | Positive explicit quantity; sign determined by movement_type in code. |
-| `unit` | `text` | no | — | none | Same agreed unit as donation/need/capacity. |
+| `unit` | `quantity_unit` | no | — | none | Same agreed unit as donation/need/capacity. Allowed values: `item`. |
 | `actor_id` | `uuid` | no | FK → profiles.id | verified staff | Human recording the physical event. |
 | `created_at` | `timestamptz` | no | — | now() | Physical event recorded at. |
 
@@ -351,7 +380,7 @@ Supplement: private durable idempotency and external-call lease record. **Owners
 | `operation` | `text` | no | UK | server route identity | Method + canonical resource path; prevents cross-endpoint key collisions. |
 | `idempotency_key` | `uuid` | no | UK | request header | Caller retry key scoped to actor and operation. |
 | `request_hash` | `text` | no | — | server digest | SHA-256 of canonical validated payload including expected_revision / relevant file digest. |
-| `state` | `text` | no | — | in_progress | in_progress or completed. |
+| `state` | `request_state` | no | — | in_progress | in_progress or completed. Allowed values: `in_progress`, `completed`. |
 | `attempt_id` | `uuid` | no | — | generated UUID | Lease owner/fencing token for external-call completion. |
 | `lease_until` | `timestamptz` | yes | — | configured timeout | Required for in-progress external operations; no transaction held during provider calls. |
 | `resource_id` | `uuid` | yes | — | NULL | Result reference; polymorphic metadata, deliberately not a SQL FK. |
@@ -362,6 +391,12 @@ Supplement: private durable idempotency and external-call lease record. **Owners
 **Constraints and guards:** UNIQUE(actor_id,operation,idempotency_key); valid 64-hex hash. Completed records have successful http_status and a command-allowlisted result_refs object; resource_id may be NULL for composite-key results such as capacity. result_refs stores resource/event identifiers (or association/category key) and historical action outcomes, never a literal HTTP response snapshot. Only the current attempt_id can finalize; same-key different body is conflict. Replay must reauthorize current access first. Retention/lease duration require AMB-015/019.
 
 **Indexes:** Unique retry-scope index covers actor FK prefix. (lease_until) WHERE state = 'in_progress' for bounded recovery inspection; no cron/queue is required in the MVP.
+
+## What attributes means
+
+`donations.attributes` is the current validated set of category-specific **item facts**: for example, clothes may have `type=jacket`, `size=M`, `season=winter`; shoes may have `type=sneakers` and `size=40`. `needs.attributes` contains the corresponding staff-confirmed matching criteria. The exact permitted keys/types are category- and context-specific under AMB-017; unknown facts remain unknown. Neither field is an arbitrary JSON dumping ground.
+
+Keep the name `attributes`: these values directly affect matching and review. `metadata` would blur them with technical provenance such as provider/model/photo digests. Original AI facts remain in `donation_analysis.extracted`; donor edits change only working facts and append `donation_edits`. Typed current date facts belong in `expiry_info`, quantities/units in dedicated columns; do not add competing copies inside attributes. Indicators/confidence/status/ownership cannot be written through this JSON object.
 
 ## Relationship cardinality and scope constraints
 
@@ -412,7 +447,7 @@ The SELECT predicates below are policy specifications, not executable policy def
 
 All client INSERT/UPDATE/DELETE grants and policies are denied. Row visibility is insufficient to protect different columns of one donation: use explicit command signatures, protected-column checks and immutable evidence/ledger guards. The proposed transaction entry points are small invoker wrappers delegating to audited functions in a **non-exposed private schema** when privileged writes are necessary. Authenticated user commands derive their actor from `auth.uid()`; reject NULL, then check role, ownership, allowed stage, expected revision and field allowlists. Public wrappers themselves use SECURITY INVOKER. Revoke default function EXECUTE and grant only the intended entry points. There is no arbitrary SQL or arbitrary table-update command.
 
-Private SECURITY DEFINER command bodies intentionally perform privileged writes and therefore must repeat the authorization predicates and protected-column guards; RLS alone does not validate those writes. Pin `search_path`, schema-qualify objects, and use the smallest audited owner privileges. The analysis/upload persistence and QR-confirmed reception commands are server-only capabilities: no authenticated caller may fabricate a provider result, file-validation assertion or server-validated QR proof by invoking an RPC directly. Their server credential is never passed to a browser; the Route Handler verifies the caller and the restricted command checks the supplied verified actor against ownership/membership again. Ordinary reads preserve the user JWT and RLS. Privileged matching/listing/QR reads return explicit DTO allowlists, never `SELECT *` results to a donor.
+Private SECURITY DEFINER command bodies intentionally perform privileged writes and therefore must repeat the authorization predicates and protected-column guards; RLS alone does not validate those writes. Pin `search_path`, schema-qualify objects, and use the smallest audited owner privileges. The analysis/upload persistence and QR-confirmed reception commands are server-only capabilities: no authenticated caller may fabricate a provider result, file-validation assertion or server-validated QR proof by invoking an RPC directly. Their server credential is never passed to a browser; the FastAPI handler verifies the caller and the restricted command checks the supplied verified actor against ownership/membership again. Ordinary reads preserve the user JWT and RLS. Privileged matching/listing/QR reads return explicit DTO allowlists, never `SELECT *` results to a donor.
 
 An immutable-row guard must also protect original analysis/indicators, accepted photo objects, edits and stock events from accidental application UPDATE/DELETE with a privileged credential. A future retention operation is separate from ordinary product mutation. If a later design allows direct UPDATE, it needs column grants, a compatible SELECT policy, and both old-row USING and new-row WITH CHECK predicates so ownership/association cannot be reassigned. Supabase separates object grants from row policies and cautions about privileged functions/views; exposed read views must preserve invoker security. [Supabase API security](https://supabase.com/docs/guides/api/securing-your-api), [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
 
@@ -420,7 +455,13 @@ An immutable-row guard must also protect original analysis/indicators, accepted 
 
 Use a private donation-photo bucket with server-generated paths bound to donor/donation/photo IDs. Type/byte limits and actual content validation precede provider calls and trusted metadata insertion. No public bucket, arbitrary URL ingestion or normal upsert over evidence objects. Storage and Postgres are not one transaction: stage valid bytes, commit metadata only after a successful upload, and leave failed/unreferenced objects outside analysis until the retention cleanup policy is defined. Retry keys and immutable paths prevent replacing analyzed bytes.
 
-Photo content reads are authorized through the item's current owner/target membership and streamed by the Route Handler. Storage policies, when direct object access is enabled, must mirror that scope and cannot rely on an unverified path prefix. This proposal grants no client Storage writes. Short-lived signed URL delivery could be added later only with an agreed lifetime; examples do not persist such URLs in the database or retry cache. [Supabase Storage access control](https://supabase.com/docs/guides/storage/security/access-control)
+Photo content reads are authorized through the item's current owner/target membership and streamed by the FastAPI handler. Storage policies, when direct object access is enabled, must mirror that scope and cannot rely on an unverified path prefix. This proposal grants no client Storage writes. Short-lived signed URL delivery could be added later only with an agreed lifetime; examples do not persist such URLs in the database or retry cache. [Supabase Storage access control](https://supabase.com/docs/guides/storage/security/access-control)
+
+### Why photos use Storage instead of base64 database text
+
+The retained design stores validated **image bytes in a private Supabase Storage bucket**, and stores object references, MIME type, byte count, SHA-256 and ownership-linked metadata in `donation_photos`. The FastAPI content endpoint authorizes and streams the bytes. This is already the product's planned file-storage service; base64 is an encoding, not a persistence requirement. [Supabase file storage](https://supabase.com/docs/guides/storage)
+
+Base64 uses four encoded characters per three input bytes (approximately 33% extra before envelope overhead), so persisting base64 text enlarges image payloads and pushes them into database reads/backups. That ratio follows the encoding specification; it is not a measured Dono benchmark. If database-only storage is later explicitly selected, prefer a separate `bytea` blob table over base64 text, then revise the ERD, authorization, size limits and backup/serving plan. Temporary base64 in a provider request, when its contract needs it, does not imply saving base64 in Postgres. No database-only switch is made on the basis of this design question. [Base64 specification](https://datatracker.ietf.org/doc/html/rfc4648#section-4), [PostgreSQL binary values](https://www.postgresql.org/docs/current/datatype-binary.html)
 
 ## Atomic transactions and concurrency
 
@@ -441,7 +482,7 @@ For a need, `pending_hold` is approved/booked quantity and `fulfilled` is actual
 | Correct working facts | Owner; allowed pre-offer stage; expected revision; schema/quantity/date validation | Update working donation + expiry facts; append server-built before/after edit; increment donation revision. Original run/indicators remain unchanged. |
 | Persist analysis | Server capability; immutable validated photo snapshot; owner/item linkage; captured revision | Append original run + indicators together. Seed working facts only for the first basis when its captured revision is still current and no human correction is overwritten; otherwise return evidence without replacing current facts. Competing first analyses seed at most once. |
 | Offer | Owner; expected revision; approved association; successful original analysis/photo evidence; current need/category/unit/season eligibility; positive available capacity/demand | Bind the one proposed target and mark offered. Offered items do not reserve capacity in DB-P04; they may later face a staff-review conflict. |
-| Staff decision | Target active membership; offered state/revision; current intake assertions; capacity/demand availability if approving | Save explicit human decision/actor/time/checks. Approval adds one logical hold through status transition; refusal adds none. Two competing approvals serialize on the parent row. |
+| Staff decision | Target active membership; offered state/revision; current intake assertions. Approval additionally requires approved association, active matching need, current category/unit/season eligibility and quantity fitting available capacity/demand under locks | Save explicit human decision/actor/time/checks. Approval adds one logical hold through status transition; refusal adds none and does not require a successful match. Two competing approvals serialize on the parent row. |
 | Capacity/need configuration | Own admin; expected revision; units; current commitments | Limit/target can never shrink below commitments. No unit/category change while commitments reference it. |
 | Book | Owner; staff-approved current donation/revision; correct association; active future slot and hours policy | Lock slot; count **all committed bookings in that slot**, including received ones, against max_bookings. Insert booking + change donation to booked in one commit. Last place can be claimed once; UK(donation_id) prevents a second booking. Capacity hold is unchanged. |
 | Resolve QR | Authenticated target member; signature/nonce/deadline/association | Read-only resolution. Produces no decision, receipt or stock. QR signing/verification is deterministic code using a separate server-only signing key. |
@@ -456,9 +497,11 @@ Invalid/foreign QR attempts do not write state. An already-received replay prese
 
 For photo/analysis calls, claim a configured lease and attempt ID in a short transaction, release the connection, then perform the external operation. Only the current attempt ID can commit results; expired-lease recovery uses compare-and-swap fencing. A timeout may repeat an external provider call, but cannot create duplicate logical effects or overwrite evidence. Do not promise exactly-once provider billing. The retry ledger stores outcome references rather than HTTP response snapshots; it excludes every derived expiry/mismatch/balance/count field, credentials, QR payloads and signed URLs; GET QR reconstructs a signed reference from the current booking instead. No queue/cron service is required by this design.
 
+The [pre-implementation audit](handoff.md#consistency-audit) leaves basis adoption after a first-analysis/edit race open under AMB-004: a successful immutable result can exist without seeded working facts, while offers require a retained basis. Resolve a recovery/adoption rule that preserves human facts before implementing that command; do not silently populate the basis from arbitrary historical evidence. The same audit records that request-scoped donor locations cannot support later origin/radius revalidation unless the agreed policy changes the protected source schema (AMB-009/016).
+
 ## Read-time expiry and deterministic matching
 
-Original AI date facts stay in `donation_analysis.extracted`; current validated source facts stay in `expiry_info` and edit snapshots. On reads, TypeScript expiry code resolves the agreed calendar/timezone, date precision and PAO applicability, then computes days left, expired flag, buckets and FEFO. Compute all totals/counts/distances in deterministic code/queries. Never ask a model to calculate a shelf-life statistic or persist a bucket, flag, rank, days-left value, average shelf life or effective PAO-derived expiry.
+Original AI date facts stay in `donation_analysis.extracted`; current validated source facts stay in `expiry_info` and edit snapshots. On reads, Python expiry code resolves the agreed calendar/timezone, date precision and PAO applicability, then computes days left, expired flag, buckets and FEFO. Compute all totals/counts/distances in deterministic code/queries. Never ask a model to calculate a shelf-life statistic or persist a bucket, flag, rank, days-left value, average shelf life or effective PAO-derived expiry.
 
 Until AMB-005/006/011 is resolved, source facts remain readable and uncertain derivatives remain NULL with a policy/unknown reason. Required MVP bucket/FEFO behavior is not considered complete until the missing rules are agreed and tested. Exactly 90 days is not silently assigned; unreadable is not “expired”; PAO without an applicable source opening date is not an inferred date. FEFO includes received undistributed stock only, with agreed unknown-date ordering and stable donation-ID ties. Cursors for derived lists carry the reference-date/policy context and expire when that context changes.
 
@@ -470,4 +513,4 @@ Before implementation, resolve the provisional choices above, finalize SQL const
 
 The Supabase changelog was consulted on 2026-10-24. The relevant table-exposure change makes explicit grants part of provisioning; neither old implicit defaults nor RLS alone should be assumed to expose/protect a new table. No dependencies, extensions, schemas or remote project settings were changed. [Supabase table-exposure change](https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically)
 
-The [current ERD summary](architecture/validation/database-v6/database-erd.finalize-summary.json) records passing validation, delivery, strict artifact/provenance and Chrome gates. The [full receipt](architecture/validation/database-v6/database-erd.finalize.json) records zero structural errors and 42 dense-layout warnings (41 relationship crossings, one static legacy-width readability warning). The browser preserves readable field text through page scrolling. This is a full-field `standard` ERD, not a warning-free showcase claim; all 153 application columns and 30 FK roles remain visible. [Architecture.md](architecture.md#validation-evidence) links the current captures and limitations. Regenerate with the installed Archify finalizer, keeping evidence for changed candidates in a fresh directory. No live database/RLS tests were run because no database objects were implemented.
+The [current ERD summary](architecture/validation/fastapi-v1/database-erd.finalize-summary.json) records passing validation, delivery, strict artifact/provenance and Chrome gates. The [full receipt](architecture/validation/fastapi-v1/database-erd.finalize.json) records zero structural errors and 25 dense-layout warnings (24 relationship crossings, one static legacy-width readability warning). The browser preserves readable field text through page scrolling. This is a full-field `standard` ERD, not a warning-free showcase claim; all 153 application columns and 30 FK roles remain visible. [Architecture.md](architecture.md#validation-evidence) links the current captures and limitations. Regenerate with the installed Archify finalizer, keeping evidence for changed candidates in a fresh directory. No live database/RLS tests were run because no database objects were implemented.

@@ -27,7 +27,7 @@ Status: proposed delivery specification for a ≤40-hour hackathon MVP. The [req
 | FEAT-017 | Provider comparison | S2 | Attributable OpenAI/Jev indicator comparison; no automatic quality verdict. Depends on FEAT-016. |
 | FEAT-018 | Expiry timeline | S3 | Chart of code-computed date information under the same resolved bucket/date policy. |
 | FEAT-019 | AI/human agreement metric | S4 | Reporting only with an agreed annotation and denominator definition. |
-| FEAT-020 | Advanced metrics, impact and discovery | P | Average shelf life, impact dashboard, automatic registration verification, visual map and partnerships. Deferral of README advanced metrics is proposed explicitly in AMB-020. |
+| FEAT-020 | Advanced metrics, impact and discovery | P | Average shelf life, impact dashboard, automatic registration verification, visual map and partnerships. The reviewed README follows this proposed deferral; AMB-020 still records the product scope decision. |
 | FEAT-021 | External channels and logistics | P | Future scope candidates only: notifications/email, messaging, association transfers, pickups and routing. No MVP integrations, screens or background jobs. |
 
 ## Lifecycle and evidence boundaries
@@ -347,7 +347,7 @@ The following is an **illustrative planning allocation**, not evidence that the 
 
 | Work package | Features | Proposed hours |
 |---|---|---:|
-| Scaffold, auth, roles, RLS and manual association approval | FEAT-001 and shared foundation | 5 |
+| Frontend/backend scaffold, auth, roles, RLS and manual association approval | FEAT-001 and shared foundation | 5 |
 | Needs form/free-text draft, capacity and hours/slots | FEAT-002, FEAT-003 | 4 |
 | Uploads, five analysis schemas, indicators and corrections | FEAT-004, FEAT-005, FEAT-006, FEAT-008 | 6 |
 | Geocoding, matching and offer/status flow | FEAT-007, FEAT-009 | 4 |
@@ -374,6 +374,6 @@ Post-MVP contains advanced reporting/impact and discovery/verification/partnersh
 | Lifecycle and concurrency | Staff-only decision, last-slot contention, duplicate/foreign QR and duplicate/excess distribution produce correct single effects | NFR-004; UC-007/UC-008/UC-010–UC-012 |
 | Full flow | Own item → corrected facts → match → offer → staff review → booking/QR → staff reception → distribution, with in-app donor status and FEFO/gallery | All M features |
 | Product language and exclusions | Every AI view uses indicator wording; human decision identified; no transport, routing, email or messaging paths | BR-001, BR-006 |
-| Repository checks | `pnpm lint`, `pnpm typecheck`, `pnpm test` pass once scaffolded; photo fixtures are present and exercised | NFR-009 |
+| Repository checks | Frontend pnpm lint/typecheck/test and backend Ruff/mypy/pytest pass once scaffolded; photo fixtures are present and exercised | NFR-009 |
 
-No application code, database schema, dependency or architecture change is part of this documentation task. The current repository has no `package.json` or photo fixture set, so application commands and photo evaluation are future delivery gates. Documentation review checks that IDs are unique, all requirements are traceable, links resolve, priorities respect AGENTS.md and ambiguities remain explicit.
+These are acceptance specifications; the revised FastAPI architecture and enum schema remain documented designs, with no application, migration or dependency implementation. The current repository has no `package.json` or photo fixture set, so application commands and photo evaluation are future delivery gates. Documentation review checks that IDs are unique, all requirements are traceable, links resolve, priorities respect AGENTS.md and ambiguities remain explicit.
