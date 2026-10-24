@@ -37,5 +37,5 @@ __pycache__/
 *.py[cod]
 .venv/
 
-docs/architecture/*.json
-docs/architecture/*.json
+
+# Keep Archify sources/current validation evidence eligible for version control.

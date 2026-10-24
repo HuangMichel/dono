@@ -1,31 +1,44 @@
-# Dono readiness report
+# Dono domain correction readiness report
 
-**Design revision: Next.js frontend + Python FastAPI backend.** No application, migrations or dependencies were implemented. Remaining product-policy decisions still block an unconditional schema/API freeze.
+**The six review findings were valid and are now corrected in the design.** This is a coherent proposed MVP profile, with remaining product-policy choices explicitly open. No application code, migrations, dependencies or remote configuration were implemented.
 
-## Changes in this revision
+## Created and updated files
 
-- Updated [AGENTS.md](../AGENTS.md), [README](../README.md), [setup](setup.md), [requirements](requirements.md), [features](features.md), [architecture](architecture.md), [database design](databases.md), [API](api.md), [handoff](handoff.md) and [.env.example](../.env.example) to the requested frontend/backend split. The six binding product rules are preserved.
-- Replaced generic text on closed database vocabularies with 18 named PostgreSQL enum types; allowed labels appear at each affected table column and in the [catalog](databases.md#enumerated-types). Unit/season labels remain provisional under AMB-008/009.
-- Kept `attributes` for validated item facts and need criteria, with [examples and boundaries](databases.md#what-attributes-means). Original AI extraction, human edits and technical provenance remain separate.
-- Kept private Storage for image bytes and database references/digests. [The photo rationale](databases.md#why-photos-use-storage-instead-of-base64-database-text) explains base64 overhead and the bytea alternative if database-only persistence is later chosen explicitly.
-- Selected the government BAN address service through IGN Géoplateforme. AMB-021 service selection is resolved; adapter verification and AMB-009/016 privacy/radius questions remain.
-- Replaced /me with GET/PATCH `/account/profile` and GET `/account/memberships`, bringing the catalog to 42 business operations. FastAPI bearer verification, CORS, error normalization, static-path ordering and authenticated private-image fetches are documented.
-- Regenerated six affected [interactive diagrams](architecture.md#interactive-diagrams); retained the lifecycle source/semantics. Retained editable sources and current evidence; removed only unused historical JSON reports under the user's cleanup choice. Standalone HTML and image captures remain.
+Created [domain-model.md](domain-model.md) as the shared entity/state/accounting profile and added native sources/HTML for [offer](architecture/offer-lifecycle.html), [booking](architecture/booking-lifecycle.html) and [inventory](architecture/inventory-lifecycle.html) lifecycles.
 
-## Verification
+Updated [requirements](requirements.md), [features/use cases](features.md), [architecture](architecture.md), [database dictionary/RLS](databases.md), [FastAPI API](api.md), [handoff](handoff.md), [setup](setup.md), [README](../README.md), [AGENTS.md](../AGENTS.md), [.env.example](../.env.example) comments and [.gitignore](../.gitignore). Regenerated all seven original diagrams and their sources; retained existing history and current validation/capture evidence. Removed duplicate broad architecture JSON ignore rules so editable sources and current evidence can be committed with the HTML.
 
-The database dictionary and ERD cover 16 application tables, 153 columns and 30 FK roles, plus the separate managed Auth key stub. The six revised diagrams pass Archify validation, delivery, strict artifact and Chrome browser checks; the unchanged lifecycle retains matching passing evidence. Current system/ERD captures were inspected for readable labels, frontend/backend separation and enum types. The dense ERD has 25 documented composition warnings; no fields or relationships were removed to conceal them.
+## Verified design invariants
 
-Documentation checks cover links/anchors, requirement/use-case/acceptance IDs and traceability, JSON examples, route uniqueness, enum/dictionary/ERD consistency, blank environment assignments, ignore behavior, current receipt hashes and cleanup dependencies. Final counts and exact evidence paths are recorded in [architecture.md](architecture.md#validation-evidence) and [handoff](handoff.md#consistency-audit).
+| Review issue | Corrected model |
+|---|---|
+| Donation versus offer | Stable reusable item ID; many historical offers; one active attempt; refusal permits re-offering; booking unique by offer, not item. |
+| Demand versus capacity | Separate requested items, storage places/rate, dated intake quantity and appointment places; matching checks all independently. |
+| Permanent reservations | 72h review, 24h approval-to-book, seven-day slot horizon, end+30m receipt cutoff; cancellation/no-show/timeouts release unreceived holds. Deadline-aware reads work without a scheduler. |
+| Lifecycle | Separate item/offer/booking states and movement-derived inventory; withdrawal/restore/re-offer/cancel/recovery retain snapshots, decisions and history. Full lots only. |
+| Permissions | Verified donor-profile bootstrap; inactive applicant admin + atomic platform activation; admin-only configuration/member changes; last-admin transfer/revocation/recovery; fresh database permissions/RLS and guarded commands. |
+| AI versus corrections | Immutable originals/provenance; separate human facts; safe late basis attachment without overwriting; complete manual facts can proceed during AI failure; recipient-specific frozen evidence/privacy. |
 
-Verified design invariants remain: staff-only donation decisions; donor/active-membership isolation; immutable original AI evidence despite category edits; deterministic need/capacity/season/Haversine matching; read-time expiry/FEFO without stored derivatives; medicine exclusion; eligible individual-food scope; atomic booking/reception/stock intent; no transport, routing, email or messaging. These are design checks, not working runtime controls.
+AGENTS' six product rules were preserved byte-for-byte. Staff alone decide, matching/arithmetic are deterministic, item expiry is calculated at read time, medicines remain excluded, individual food remains nonperishable/room-temperature, and no transport/routing/email/messaging is included. Next.js remains the frontend and FastAPI the backend.
 
-Cleanup result: **62 unused historical JSON reports removed; 38 JSON files retained**, including all seven editable sources, seven current HTML delivery receipts, current finalize/browser evidence and the three linked capture receipts. No standalone HTML or PNG file was deleted.
+The [current static audit receipt](architecture/validation/rules-consistency.json) records the checked artifacts and limitations. Static checks confirm **54 requirement IDs** (6 BR, 38 FR, 10 NFR), **23 features**, **16 use cases**, **80 acceptance criteria** and complete requirement traceability. The API lists **64 unique method/path operations** with account/profile naming and no donation-level decision route. The schema/ERD agree on **21 application tables, 225 columns, 45 FK roles and 25 named enum types**, plus a separate managed Auth key stub. Links, JSON examples, closed vocabularies, key/nullability roles, blank environment values, ignore behavior and current artifact provenance were checked. These are specification checks, not executed business tests.
 
-## Remaining decisions and implementation order
+All **ten interactive diagrams** pass Archify artifact/provenance and Chrome browser gates; selected current captures were inspected. [Architecture validation evidence](architecture.md#validation-evidence) records exact receipts, captures and limitations. The dense ERD has 61 documented composition warnings (60 crossings, one static readability warning), while browser containment/readability passes and no field/relation was omitted. Other diagrams have zero composition warnings; routing advisories remain documented. Generated HTML is retained exactly as delivered, including renderer whitespace, to preserve provenance.
 
-The [24-finding audit](handoff.md#consistency-audit) records resolved wording/technical choices and open questions. Main blockers remain auth without email and trusted membership bootstrap; upload/category schemas and analysis-basis recovery; expiry edges/timezone/PAO/intake policy; units/reservations/matching/privacy; booking exceptions and changes to booked address/hours/timezone; QR lifetime/no-shows/partials; retention and operational/model budgets.
+## Remaining decisions and recommended order
 
-Resolve dependent policies → pin/scaffold frontend and FastAPI tooling → auth/RLS/private Storage → needs/capacity/slots → validated analysis/evidence/corrections → Python expiry and deterministic matching/offers → human review/holds → booking/QR → reception/stock/distribution → basic gallery/expiry views → complete isolation, race, photo and browser verification.
+[Working DEC defaults](domain-model.md#working-defaults) resolve the six mechanisms; duration/unit/provider choices are proposed product defaults, not previous user facts. Analysis-v1/expiry-v1 now define all five category/indicator schemas, confidence/safety clarification and shelf-life/bucket/PAO/FEFO rules. Still decide upload limits, retention/retry leases and deployment/device/model/cost limits. Configure OAuth redirects/credentials and trusted manual association verification before use. No generic TBD remains in core offer, reservation or member-management behavior.
 
-Retain the [40-hour allocation](handoff.md#recommended-milestones-and-implementation-order), accounting for two toolchains within the existing budget; re-estimate at scaffolding rather than assuming the stack change is free. Optional cuts remain Jev → comparison → timeline → agreement. Frontend pnpm checks, backend Ruff/mypy/pytest, database/API concurrency tests and the 25–35-photo evaluation were not run: neither application nor its fixtures exists.
+Implement in this order: dependent policy choices → auth/bootstrap/membership and schema constraints/RLS → independent intake budgets/slots → photos/original evidence/human facts/late-response safety → deterministic matching/offers/deadlines → human review/holds → booking/cancellation/QR reception → full stock/distribution and read-time expiry/FEFO/gallery → complete tenant/race/photo/device verification.
+
+The [40-hour allocation](handoff.md#recommended-milestones-and-implementation-order) reserves verification and contingency. Reuse simple forms/evidence views; no partial lots, rescheduling engine, worker fleet or broad platform administration. Cut optional Jev → comparison → timeline → agreement; preserve the protected MVP capabilities. Frontend pnpm checks, backend Ruff/mypy/pytest, RLS/API/concurrency tests and the 25–35-photo evaluation remain future gates because their application/tooling/fixtures do not exist.
+
+## Base64 photo revision
+
+The user-selected design now stores image_base64 text in private.photo_contents, with donation_photos metadata/digest and an atomic photo write. Supabase Storage, object paths and DONATION_PHOTOS_BUCKET configuration are removed. The content API still serves authenticated decoded bytes; ordinary DTOs never return payload text. System, use-case, creation-sequence and ERD sources/HTML are regenerated and validated for this revision; unchanged state/matching/booking diagrams retain their matching evidence. Updated current receipt links are in architecture.md. No code, migration or existing data conversion was performed.
+
+## Analysis and expiry blockers resolved on paper
+
+Created [analysis-rules.md](analysis-rules.md), [expiry-rules.md](expiry-rules.md) and [rules-test-cases.md](rules-test-cases.md). Updated requirement/use-case, API, database, architecture and handoff contracts for these two issues only. There are 49 future fixture scenarios, including all bucket boundaries, partial/ambiguous dates, PAO/opening uncertainty, immutable originals and failed/late analysis. The [scoped audit receipt](architecture/validation/rules-consistency.json) verifies IDs/links/examples/contracts and unchanged diagram source/HTML bytes; it does not claim runtime test success.
+
+No new tables, columns, routes, services, lifecycle states, app code or migrations; no native diagrams regenerated because workflows/physical schema did not change. Existing base64 photos, RLS, deterministic matching, human decisions and all six AGENTS rules are preserved. Thresholds and calendar defaults are proposed product choices, not measured model accuracy or general safety guarantees.

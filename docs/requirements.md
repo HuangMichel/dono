@@ -13,21 +13,24 @@ Read this document with the [feature specification and traceability matrix](feat
 | [Architecture candidate](architecture/candidate.json) | Planned components, trust boundaries and responsibilities. |
 | [Rendered architecture](architecture/dono-architecture.html) | Planned donor/dashboard/platform → FastAPI → analysis, geocoding and Supabase flows. |
 | Architecture receipts in `docs/architecture/` | Existing generation/browser-check evidence for the diagram only; not evidence that the application exists or meets requirements. |
-| Current documentation request | Explicitly requires editable categorization and immutable original AI indicators, use cases and traceability. |
+| Current domain review | Six structural corrections: reusable offers, independent budgets, finite reservations, separate lifecycles, secure memberships and delayed evidence/corrections. |
+| [Domain model](domain-model.md) | Working DEC defaults, under AGENTS authority; no application behavior claimed. |
 
-The updated architecture includes platform administration and geocoding as explicit components. [Database](databases.md) and [API](api.md) specifications refine that planned design; their labeled proposals do not resolve the product ambiguities below. Installed Supabase skill guidance informs the access-control and storage safeguards; it does not determine unresolved product permissions.
+The updated architecture includes platform administration and geocoding as explicit components. [Database](databases.md) and [API](api.md) specifications refine that planned design; the [domain working defaults](domain-model.md#working-defaults) now resolve the six reviewed structural gaps on paper. Unrelated product ambiguities remain explicit below. Installed Supabase skill guidance informs the access-control and storage safeguards; it does not determine unresolved product permissions.
 
-Requirement IDs are stable: `BR` = binding business rule, `FR` = functional requirement, `NFR` = non-functional requirement. `UC` and its acceptance criteria are defined in [features.md](features.md). `AMB` identifies an unresolved decision. Referenced IDs are not new definitions.
+Requirement IDs are stable: `BR` = binding business rule, `FR` = functional requirement, `NFR` = non-functional requirement. `UC` and its acceptance criteria are defined in [features.md](features.md). `AMB` identifies a decision-register entry; each states whether it remains open or now has a working/resolved profile. Referenced IDs are not new definitions.
 
 Priority: **M** = required MVP baseline; **S1–S4** = optional MVP stretch, cut in that order; **P** = post-MVP. **Derived** means a necessary safeguard or explicit documentation recommendation, rather than a behavior already specified in the sources. An open decision remains open even when its surrounding capability is M.
 
 ## Product scope
 
+The six-issue domain correction uses [explicit working defaults](domain-model.md#working-defaults), not indefinite deferral of offer/reservation/permission mechanisms. Numeric durations are proposals for this MVP, changeable through a consistent design revision. Original BR IDs and optional cut order are preserved.
+
 Dono helps individuals offer usable in-kind items to associations that need them and have capacity. It gives staff photos, AI indicators and date information to support their own decision. An approved offer leads to a donor-arranged drop-off booking, QR reception and a light stock record.
 
 The MVP supports clothes, shoes, non-perishable room-temperature food, parapharmacy/hygiene and small furniture brought by the donor. Medicines are excluded. A para category is not proof that an item is not a medicine.
 
-The required vertical slice is: authentication and association approval → needs/capacity/slots → photo analysis and corrections → matching and offer → staff review → booking/QR → reception, stock and distribution → expiry buckets and distribute-first list. All donation status is visible inside the application.
+The required vertical slice is: authentication and association approval → needs/storage/dated intake quotas/slots → photo analysis and corrections → matching and offer → staff review → booking/QR → reception, stock and distribution → expiry buckets and distribute-first list. All donation status is visible inside the application.
 
 Transport, pickups, vehicle routing, delivery assignment, email and messaging channels are outside the MVP. A straight-line distance used for matching is not a travel route. A drop-off appointment is not a transport service. Recipients of redistributed goods are beneficiaries, not MVP application users.
 
@@ -39,31 +42,29 @@ Success is demonstrated by completing this flow with isolated donor and associat
 |---|---|
 | Individual donor (`donor`) | Photograph an item, understand indicators, correct facts/category, find a suitable association, offer, follow status and book their own drop-off. |
 | Association coordinator (`assoc_admin`) | Prepare the association's needs, capacity and slots; review donations and oversee reception and stock. |
-| Association volunteer (`assoc_staff`) | Review offers, receive booked donations and record distribution for an association to which they belong. Fine-grained management permissions remain AMB-001. |
-| Platform operator (`platform_admin`) | Manually approve associations registered with RNA/SIRET. Broader administration rights are not established. |
+| Association volunteer (`assoc_staff`) | Review offers, receive booked donations and record distribution for an association to which they belong. Configuration and membership management are reserved to assoc_admin (DEC-010). |
+| Platform operator (`platform_admin`) | Manually approve associations registered with RNA/SIRET. Limited orphan-admin recovery may reactivate only the original applicant under DEC-010; no donation visibility. |
 | Analysis service / OpenAI | Extract label facts and return category-specific indicators and confidence. It has no decision authority. |
 | Optional TypeSafe Jev | Supply probability indicators only, when enabled. It cannot provide OCR, dates or numeric extraction. |
 | Deterministic application services | Compute expiry, matching, distance and operational totals; enforce authorization and transitions. They do not decide item usability on staff's behalf. |
-| Supabase Auth, Postgres and Storage | Authenticate users and persist scoped records and donation photos. These are supporting systems, not staff roles. |
-| API Adresse | Geocode addresses for deterministic distance calculations. |
+| Supabase Auth and Postgres | Authenticate users and persist scoped records, photo metadata and private base64 payloads. These are supporting systems, not staff roles. |
+| Government BAN via IGN | Geocode addresses for deterministic distance calculations; no routing. |
 | Pharmacy / textile bin / repair café | External redirection destinations. No account, reservation or message is sent to them. |
 
-The matrix below distinguishes established permissions from **TBD**. TBD is not an authorization grant; use no broader access until resolved. An association admin is also association personnel for human review. Every association permission applies only to the relevant membership.
+The working permission profile resolves the earlier TBD entries. Every association action also requires enabled profile, active membership and approved association; original evidence is never writable.
 
 | Action / data | Donor | Assoc. admin | Assoc. staff | Platform admin |
 |---|---|---|---|---|
-| Read/edit own donor facts and category | Own item; edit timing TBD | Review visibility for addressed offers; editing rights TBD | Same as admin | No general access established |
-| Read original AI result/photos | Own item | Offers addressed to own association and its stock | Same as admin | No general access established |
-| Overwrite original AI result | Never | Never | Never | Never through product workflows |
-| View matching results | Own item; limited association listing | Own association configuration | Own association configuration as authorized | No general access established |
-| Send an offer / book / view donor QR | Own donation | No donor impersonation | No donor impersonation | No donor impersonation |
-| Approve/refuse a donation | Never | Addressed offers in own association | Addressed offers in own association | No donation decision permission established |
-| Manage needs/capacity/hours/slots | No | Own association | TBD: AMB-001 | No general access established |
-| Scan reception QR / record stock/distribution | No | Own association | Own association | No general access established |
-| View review queue/gallery/expiry list | Own donation status only | Own association | Own association | No global dashboard established |
-| Register association with RNA/SIRET | Applicant flow TBD | Applicant flow TBD | Applicant flow TBD | Reviews registration |
-| Approve association | No | No | No | Yes |
-| Assign roles / invite members / revoke membership | No self-escalation | TBD | No self-escalation | TBD |
+| Current item facts / source dates | Own; edit without effective active offer, before transfer | Offered snapshot only | Offered snapshot only | No general read |
+| Original evidence | Own history | Explicit evidence scope on own association offers | Same | No general read |
+| Create/withdraw/re-offer / cancel own booking | Own; preserve history | No owner impersonation | No owner impersonation | No |
+| Human offer decision / approved-attempt cancellation | No | Target association | Target association | Only with a separate valid personnel membership |
+| Configure needs/storage/quotas/hours/slots | No | Own association only | No | No |
+| Receive QR / distribute full stock | No | Target association | Target association | No platform-derived permission |
+| Register association | Authenticated applicant; atomic inactive initial admin | Same account capability | Same | Manual approval |
+| Activate initial applicant admin | No | No | No | Atomic platform approval only |
+| Read member roster; grant/change/revoke/transfer | Own membership/status only | Own association; last-admin invariant | Own membership only | No general management |
+| Orphan-admin recovery | No | No active admin exists | No | Original registered applicant only, manual verification/reason/audit |
 
 ## Binding business rules
 
@@ -72,8 +73,8 @@ The matrix below distinguishes established permissions from **TBD**. TBD is not 
 | BR-001 | M | AI returns indicators, extracted facts and confidence only. Only authorized association personnel set donation `decision`. AI cards never claim “Accepted” or “Refused”; human decision status is explicitly attributed to staff. | AGENTS §1 |
 | BR-002 | M | Code computes all derived dates and numbers, including days left, expired flag, buckets, FEFO, counts and distances. Compute expiry derivatives at read time; do not store them. OpenAI may extract visible dates, numeric facts and PAO months; model-supplied probabilities/confidence are estimates, not operational arithmetic. | AGENTS §2 and provider contract |
 | BR-003 | M | Match with deterministic need + capacity + season + Haversine distance. No model call, LLM ranking or model-authored explanation is part of the matching path. | AGENTS §3 |
-| BR-004 | M | Medicines cannot be donated. A high medicine indicator produces a warning and pharmacy redirection, never a model-issued refusal. Confirmed medicines cannot proceed through a staff approval override. Uncertain-item handling is AMB-007. | AGENTS §4 |
-| BR-005 | M | Individual food donations are limited to non-perishable products stored at room temperature. Chilled/frozen items show a warning indicator and are outside eligible food scope; precise workflow handling is AMB-007. | AGENTS §5 |
+| BR-004 | M | Medicines cannot be donated. A high medicine indicator produces a warning and pharmacy redirection, never a model-issued refusal. Confirmed medicines cannot proceed through a staff approval override. Uncertain-item handling follows analysis-v1 (AMB-007 working default). | AGENTS §4 |
+| BR-005 | M | Individual food donations are limited to non-perishable products stored at room temperature. Chilled/frozen items show a warning indicator and are outside eligible food scope; precise clarification/acknowledgement handling follows analysis-v1. | AGENTS §5 |
 | BR-006 | M | No transport, pickups, vehicle routing, email, chat, Telegram or other messaging channel is part of the MVP. Donation status and appointment information stay in the app. | AGENTS §6; current request |
 
 ## Functional requirements
@@ -82,51 +83,62 @@ The matrix below distinguishes established permissions from **TBD**. TBD is not 
 
 | ID | Priority | Requirement | Basis |
 |---|---|---|---|
-| FR-001 | M | Authenticate users and enforce the four product roles on reads and writes; donors access only their own donations and staff access only association data allowed by membership. Role assignment cannot come from a user's editable profile fields. | AGENTS; derived security safeguard |
-| FR-002 | M | Register an association with RNA/SIRET and expose a manual approval action to platform admins. Unapproved associations must not receive new matched offers; applicant bootstrap and verification details remain AMB-002. | README; derived approval gate |
-| FR-003 | M | Maintain association needs using a structured form: category and relevant item attributes, demand quantity and season where applicable. Exact units and season vocabulary remain AMB-008/AMB-009. | README; AGENTS matching rule |
+| FR-001 | M | Authenticate verified Supabase subjects and enforce donor ownership, active enabled membership and protected platform capability. No self-editable role claims. Raw current donation facts are owner-only; association reads are scoped to their offer snapshots/evidence. Enforce the same boundaries in RLS and privileged command guards. | AGENTS; derived security safeguard |
+| FR-002 | M | Register a pending association with the verified applicant and an inactive initial-admin membership atomically. Manual platform approval activates that exact applicant admin in the same transaction. Validate/normalize RNA/SIRET syntax and uniqueness under the one-site MVP profile; pending associations receive no offers. | README; derived approval gate |
+| FR-003 | M | Maintain confirmed item demand, category/attribute criteria, explicit season rules and a staff-declared storage cost per item. Requested item quantities are distinct from storage places and dated intake quotas (DEC-004/009). | README; AGENTS matching rule |
 | FR-004 | M | Accept free-text needs and return an editable AI-structured draft for staff confirmation before saving. Parse stated quantities; do not invent or calculate them with AI. The form remains available if parsing fails. | README; derived confirmation safeguard |
-| FR-005 | M | Maintain capacity per category and use it consistently in matching, review and reception. Reject operations that would overcommit the agreed capacity unit; reservation/release timing remains AMB-008. | README; derived consistency safeguard |
-| FR-006 | M | Maintain opening hours and drop-off slots and show available appointments to approved donors. Slot limits, timezone and update rules remain AMB-010/AMB-011. | README |
+| FR-005 | M | Maintain physical category storage ceilings in item_slot units. Count approved live storage holds plus actual undistributed stock; reject overcommitment. Dated intake quotas and requested demand are independently configured/evaluated (FR-034). | README; derived consistency safeguard |
+| FR-006 | M | Maintain association-local hours, non-overlapping same-day slots and appointment-place limits. Require usable intake address/timezone; freeze existing booking context and reject destructive edits per DEC-012. | README |
 
 ### Capture, analysis and correction
 
 | ID | Priority | Requirement | Basis |
 |---|---|---|---|
-| FR-007 | M | Capture/upload item photos and a readable label close-up for food/para; validate file type and size before sending any file to a provider. README specifies 1–2 photos plus a close-up; total attachment cap remains AMB-003. | AGENTS security; README |
-| FR-008 | M | Analyze the five supported categories using category-specific structured schemas and return the AGENTS provider contract: provider, model, category, extracted facts, indicators and confidence. Default to OpenAI. Invalid responses and provider errors are visible failures, never successful empty analyses. | AGENTS; derived failure behavior |
-| FR-009 | M | Display available indicator values, probabilities/levels, overall confidence and analysis provenance with photos. Missing facts remain unknown; probabilities are visibly estimates. Warn for medicine and chilled/frozen-food indicators. | AGENTS; README |
-| FR-010 | M | Let the donor edit the working category and extracted facts such as size/date separately from the original AI output. Validate corrections; matching and expiry use the current validated facts. Do not let donor edits change indicators, confidence, provider or model. Editing after an offer remains AMB-004. | Current request; README |
-| FR-011 | M | Preserve the original AI result and indicators immutably. Store human corrections separately, visibly distinguish original vs corrected values, and retain earlier results if reanalysis is offered. A category change cannot silently relabel old category-specific indicators as a new analysis. | Current request; derived provenance safeguard |
+| FR-007 | M | Capture/upload item photos and a readable label close-up for food/para; validate file type and size before sending any file to a provider. README specifies 1–2 photos plus a close-up; total attachment cap remains AMB-003. Persist validated images as base64 text in private.photo_contents with metadata in donation_photos, atomically; no Supabase Storage. | AGENTS security; README |
+| FR-008 | M | Provide five closed category extraction/indicator contracts under analysis-v1, finite category confidence/probabilities, explicit nulls and Python validation. Preserve valid uncertain originals; invalid/failed/refused provider output is unavailable, never a donation decision. Complete human facts remain a manual fallback. | AGENTS; derived failure behavior |
+| FR-009 | M | Display attributable original indicators with Python-defined low (<0.50), medium (0.50–<0.80) and high (≥0.80) bands. Null is unassessable, not low/zero. confidence is the selected category estimate, not suitability/OCR certainty. Retain medicine/pharmacy and cold-food warnings across category edits. | AGENTS; README |
+| FR-010 | M | Allow owner category/attribute/source-date edits when no active offer exists and the item is not transferred. Track facts_revision and human origin separately from original evidence. Withdrawal/cancellation permits correction and a new offer. Active offers freeze their own facts/photos; no silent review invalidation. | Current request; README |
+| FR-011 | M | Preserve original category/extraction/indicators/probabilities/confidence/provider/model/photo context immutably. New analyses append history; category changes show mismatch and never erase known medicine concerns. A missing comparison basis attaches independently from seeding and never becomes a permanent submission gate. | Current request; derived provenance safeguard |
 | FR-012 | M | Make “Other options” available using redirect points such as pharmacies, textile bins and repair cafés, including when no suitable association is found. No booking or communication with these destinations is required. | README; AGENTS medicine rule |
 
 ### Matching, offers and human review
 
 | ID | Priority | Requirement | Basis |
 |---|---|---|---|
-| FR-013 | M | Geocode supplied locations through API Adresse and compute Haversine distance in code. Never invent coordinates or a distance if geocoding fails. Address precision, fallback and radius remain AMB-009/AMB-016; the selected government BAN endpoint is recorded in AMB-021; adapter behavior still needs integration verification. | AGENTS; README; derived failure behavior |
-| FR-014 | M | Return eligible associations using current working facts, needs, capacity and season, with deterministic distance ordering and understandable code-generated match reasons. Revalidate relevant constraints before committing an offer or approval. Scoring, ties and radius remain AMB-009. | AGENTS; README; derived stale-data safeguard |
-| FR-015 | M | Allow the donor to send an offer to a matched, approved association and track its in-app status: offered → staff approved/refused → booked → received → distributed. A refusal is a branch, not a prerequisite for booking. Multi-offer, cancellation and re-offering rules remain AMB-012. | README |
-| FR-016 | M | Show the target association a review queue containing photos, original indicators/confidence, working category/facts, correction differences and code-computed expiry information. Other associations must not see the offer. | README; current request |
-| FR-017 | M | Let authorized association personnel explicitly approve or refuse an offer and persist the human actor and decision. No AI/provider or donor can set that decision. Reversal, reasons and expiry/food restriction handling remain AMB-007/AMB-012. | AGENTS; derived actor attribution |
+| FR-013 | M | Geocode request-scoped donor location through the selected government BAN/Géoplateforme service; compute Haversine distance in code. Do not invent coordinates on failure. Distance ranks eligible candidates; there is no MVP radius gate or retained donor-origin field (DEC-009; AMB-021 service selected). | AGENTS; README; derived failure behavior |
+| FR-014 | M | Deterministically evaluate demand/category/attributes/current season, independent physical storage, and at least one future slot with sufficient dated intake quota and appointment space. Order by Haversine distance, association ID, need ID. Recheck current constraints on offer/approval/booking; no model in this path. | AGENTS; README; derived stale-data safeguard |
+| FR-015 | M | Create a donation_offers attempt distinct from the reusable donation. Keep all attempts and decisions. At most one pending_review/approved attempt exists; refusal/withdrawal/cancellation/expiry permits a new attempt on the same unreceived item. My donations composes item, offer, booking and inventory status instead of persisting one combined enum. | README |
+| FR-016 | M | Show target personnel the frozen offer facts, scoped original evidence/indicators or explicit unavailability, corrections/mismatch and read-time expiry. Keep previous associations out of future edits/attempts; retain their own historical snapshot and allowed evidence only. | README; current request |
+| FR-017 | M | Only current target personnel approve/refuse with actor/time/reason. Apply analysis-v1 manual-review and safety-clarification assertions plus expiry-v1 date guards/acknowledgements, independently of capacity checks. No model decision, strict-date override or later decision rewrite. | AGENTS; derived actor attribution |
 
 ### Expiry and inventory
 
 | ID | Priority | Requirement | Basis |
 |---|---|---|---|
-| FR-018 | M | Retain source `expiry_date`, `date_type` (DLC/DDM/expiry/PAO) and `pao_months` where applicable, plus validated human corrections separately. Distinguish missing/unreadable/ambiguous values from a known date. Never manufacture a date from an unreadable label. | AGENTS; README |
-| FR-019 | M | Calculate days left, expired flag and bucket at read time using source facts and an agreed reference date. Support expired, <7, <30, <90 and >90-day views plus unknown dates. Overlap, exactly 90, today, partial dates and timezone require AMB-005/AMB-006/AMB-011. No derived expiry column or model arithmetic. | AGENTS |
-| FR-020 | M | Provide a distribute-first list of received, undistributed items ordered FEFO by usable expiry information. Make unknown dates visible rather than treating them as long shelf life; their ordering and PAO applicability remain AMB-006. | AGENTS; README; derived inventory boundary |
+| FR-018 | M | Retain source date/type/printed PAO/raw label/precision/readability and human opened_on separately from immutable originals. Apply expiry-v1 exact/partial/ambiguous-date and opening-state validation without inferring missing source facts. | AGENTS; README |
+| FR-019 | M | Python computes effective expiry, calendar days/expired and one exclusive expiry-v1 bucket at read time: expired, today, lt_7, lt_30, lt_90, at_90, gt_90, unknown or not_applicable. Today is valid (0 days); exact 7/30/90 map to lt_30/lt_90/at_90. No stored derivatives/model arithmetic. | AGENTS |
+| FR-020 | M | Use expiry-v1 deterministic FEFO on actual received-undistributed lots: dated/date/receipt-time/UUID, then unknown FIFO, not-applicable FIFO, and separate blocked lots. Distinguish DLC/para strict restrictions from DDM quality warnings; counts use one bucket per lot. | AGENTS; README; derived inventory boundary |
 | FR-021 | M | Provide an association image gallery with indicator overlays and basic category/indicator/expiry filters, expiry counts and a distribute-first list. Counts respect the selected scope and avoid double counting; detailed metric definitions remain AMB-014. | README; AGENTS protected expiry scope |
-| FR-022 | M | Record reception and distribution as light inventory movements. Reception adds received stock; distribution removes recorded quantities from that stock without negative inventory or duplicate effects. Needs and capacity update according to the agreed units and lifecycle policy in AMB-008. | README; derived consistency safeguards |
+| FR-022 | M | Record exactly one actual full receipt and at most one full distribution per donation across all offers. Receipt atomically fulfils the offer, receives the booking and transfers the item. Distribution frees storage without reopening fulfilled demand/consumed daily intake. No partial lots or reversals in the MVP working profile. | README; derived consistency safeguards |
 
 ### Booking and reception
 
 | ID | Priority | Requirement | Basis |
 |---|---|---|---|
-| FR-023 | M | Permit booking only for a staff-approved offer and an available slot at the target association. Confirm the booking consistently under competing requests and issue a QR tied to it. Donors can retrieve appointment and QR in-app. | README; derived concurrency safeguard |
-| FR-024 | M | Allow authenticated target-association personnel to scan/validate a booking QR and explicitly confirm reception. Validate association, booking and state on the server. Invalid, foreign or previously received bookings cannot create stock. QR payload/lifetime and exception handling remain AMB-013. | README; derived authorization/idempotency safeguards |
-| FR-025 | M | Show today's booked drop-offs to association personnel, link each to its offer and reception state, and reflect reception/distribution changes in the donor's own status view. No outbound notification is sent. | README; AGENTS no-channel rule |
+| FR-023 | M | Book the owner’s live staff-approved offer before its 24-hour booking deadline, into a future slot within seven days with both quota and appointment space. One booking per attempt, many historical bookings per item across attempts. Retrieve signed QR in-app; cancellation ends that attempt and requires new review before rebooking. | README; derived concurrency safeguard |
+| FR-024 | M | Authenticated target personnel resolve the signed QR read-only, then explicitly receive once within [slot start, slot end + 30 minutes). Verify current nonce, scope, live offer/booking/item and full lot. Cancelled/expired/no-show/foreign/repeated QR cannot create stock; typed signed payload is the camera-failure fallback. | README; derived authorization/idempotency safeguards |
+| FR-025 | M | Show association-local arrivals and effective appointment state; reflect all donor-owned attempt/booking/reception outcomes in-app. Include elapsed deadlines even before reconciliation persists their terminal states. No outbound notification. | README; AGENTS no-channel rule |
+
+### Corrected domain safeguards
+
+| ID | Priority | Requirement | Basis |
+|---|---|---|---|
+| FR-033 | M | Persist reusable donations separately from historical donation_offers, with at most one pending_review/approved row per item. Materialize due active attempts under locks before replacement. Same item ID survives refusal, withdrawal and re-offering. | Domain review 1/4; DEC-001 |
+| FR-034 | M | Configure and independently check requested demand, physical storage, dated intake quotas and appointment places. Matching requires a feasible future slot/quota; approval holds demand/storage and booking adds quota/place. | Domain review 2; DEC-004/005 |
+| FR-035 | M | Use finite 72-hour review, 24-hour approval-to-booking, seven-day booking horizon and end+30-minute receipt deadlines. Withdrawal/cancellation/expiry/no-show releases all unreceived holds exactly once; ignore elapsed holds on reads before cleanup. | Domain review 3; DEC-002/003/005 |
+| FR-036 | M | Keep separate item, offer, booking and derived inventory states with audited transitions. Preserve prior decision and snapshots after cancellation; allow recovery by a new offer/booking until physical transfer. No partial lots/reversal in MVP. | Domain review 4; DEC-001/005/012 |
+| FR-037 | M | Define trusted profile creation, pending initial-admin bootstrap, atomic platform activation, admin-only member grants/role changes/revocation/transfer, last-enabled-admin protection and constrained orphan recovery. Current database permissions override stale JWT claims. | Domain review 5; DEC-008/010/011 |
+| FR-038 | M | Separate AI evidence attachment from working-fact seeding, use captured facts revisions/human origin, preserve all originals and late-response provenance, and allow acknowledged manual review of complete validated human facts when analysis is pending/unavailable. | Domain review 6; DEC-006/007 |
 
 ### Optional and post-MVP requirements
 
@@ -142,6 +154,8 @@ The order S1 → S2 → S3 → S4 is the mandated order for removing optional wo
 | FR-031 | P | Consider automatic RNA/SIRET checks, a visual map and formal redirection partnerships. These are roadmap candidates, not commitments for this MVP. | README roadmap |
 | FR-032 | P | Consider external notification channels, needs by email, urgent alerts, transfers/pickup logistics and routing only in a separately authorized later scope. No supporting channel or transport integration is required in the MVP. | README roadmap; current request |
 
+Analysis and expiry contracts are [analysis-v1](analysis-rules.md) and [expiry-v1](expiry-rules.md), with [future test fixtures](rules-test-cases.md). These proposed defaults resolve the two remaining review blockers without changing architecture or states.
+
 ## Analysis and data responsibilities
 
 | Category | Extracted / observed information to support | Indicator examples |
@@ -152,33 +166,33 @@ The order S1 → S2 → S3 → S4 is the mandated order for removing optional wo
 | `para` | Product, printed expiry, PAO months | Seal, medicine resemblance |
 | `furniture` | Item type, size class | Condition, visible damage |
 
-These are source-backed schema intentions, not an exhaustive finalized indicator-key vocabulary (AMB-017). Days left belongs to code-computed display, never model extraction; the pre-review README grouped it with indicators, and the reviewed README separates those responsibilities. Unknown dates and unobserved seals must not be represented as certain facts.
+These source-backed summaries are refined by the exhaustive analysis-v1 fields/indicator keys in analysis-rules.md; AMB-017 now has a working contract. Days left belongs to code-computed display, never model extraction; the pre-review README grouped it with indicators, and the reviewed README separates those responsibilities. Unknown dates and unobserved seals must not be represented as certain facts.
 
 Data concepts follow the existing plan, without defining SQL or adding a schema:
 
 | Planned entity / concept | Required responsibility |
 |---|---|
 | `profiles`, `associations`, `association_members` | Identity, association approval and membership-scoped permissions; approval is separate from donation decisions. |
-| `needs`, `capacity` | Current association demand and available intake space under agreed units. |
-| `donations` | Donor-owned item, current working facts/category, target offer and staff-controlled decision/status. Exact offer cardinality is open. |
+| `needs`, `capacity`, `intake_quotas` | Independent demand, physical storage and dated intake budgets. |
+| `donations`, `donation_offers`, `offer_events` | Reusable current item facts, separate targeted attempt snapshots/human decisions and immutable attempt history. |
 | `donation_analysis`, `donation_indicators` | Original provider/model/category/facts/confidence and indicators; immutable through application edits. |
 | Human correction record / representation | Separate working corrections and actor provenance; physical representation is not decided here. |
 | `expiry_info` | Source date/type/PAO facts and corrections only; never days left, expired flags, buckets or FEFO ranks. |
-| `slots`, `bookings` | Association appointments and approved-donation reservations with a QR reference. |
+| `slots`, `bookings` | Association appointments and approved-offer bookings with finite QR/receipt validity and preserved terminal outcomes. |
 | `inventory_movements` | Actual received/distributed quantities; pending offers are not received stock. |
-| `redirect_points`, photo storage | Alternative destinations and access-controlled item photos. |
+| `redirect_points`, `donation_photos`, `private.photo_contents` | Alternative destinations; photo metadata and separately protected base64 content. |
 
-Original AI indicators survive category edits and staff decisions. Staff can disagree with an indicator; disagreement is not an update to the original result. Whether a new category requires another analysis, and how multiple results are selected for display, remains AMB-004.
+Original AI indicators survive edits/decisions. The first successful run can be the comparison basis even if facts were already edited; only an untouched empty set may be seeded. New analysis after submission requires withdrawal first; existing in-flight requests remain scoped to the offered evidence. Mandatory same-category reanalysis is not an MVP gate; mismatch and unavailable evidence are explicit under DEC-006/007.
 
 ## Non-functional requirements
 
 | ID | Priority | Requirement and observable verification | Basis |
 |---|---|---|---|
-| NFR-001 | M | Enforce donor ownership and `association_members` scoping in RLS for association data; apply equivalent authorization to related analysis, indicators, bookings, stock and photos. Verify direct requests as well as UI navigation with two donors and two associations. Donor matching uses an explicitly limited listing projection, not unrestricted reads of another association's tables. | AGENTS; derived least-access boundary; Supabase skill |
+| NFR-001 | M | Enforce current membership and donor ownership in RLS and every backend command. Keep current donation/expiry facts donor-only; staff read their offer snapshot and explicit photo/analysis-request/edit scope. Test A→B re-offer privacy, direct Data API/RPC/private-photo access and revoked-token/retry denial. | AGENTS; derived least-access boundary; Supabase skill |
 | NFR-002 | M | Keep `OPENAI_API_KEY`, `TYPESAFE_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` server-only and out of client bundles/logs. Never commit `.env*` except `.env.example`. Privileged server paths must recheck actor authorization and cannot silently bypass product isolation. | AGENTS; Supabase skill |
-| NFR-003 | M | Validate uploads by allowed type and configured size, reject malformed files before analysis, and scope photo reads to owner/authorized receiving association. Exact formats/limits and retention remain AMB-003/AMB-015. | AGENTS; derived storage safeguard |
-| NFR-004 | M | Ensure retries/concurrent requests cannot produce duplicate offers unintentionally, overbook a slot or duplicate reception/distribution effects. Validate state and authorization at mutation time and surface conflicts for refresh/retry. Offer cardinality and capacity policy remain open. | Derived integrity safeguard |
-| NFR-005 | M | Preserve attribution between original AI output, human corrections and human decisions. Editing endpoints cannot mutate original AI records; stale screens cannot silently overwrite current operational state. Reanalysis/deletion policy is open. | Current request; derived integrity safeguard |
+| NFR-003 | M | Validate uploads by allowed type and configured size, reject malformed files before analysis, and scope photo reads to owner/authorized receiving association. Check decoded bytes and encoded base64 length, keep payloads out of list/audit/retry JSON, and authorize private content access. Exact upload formats/limits and retention remain AMB-003/AMB-015. | AGENTS; derived storage safeguard |
+| NFR-004 | M | Use locked atomic commands, idempotency, scoped FKs and stored-state unique constraints. Concurrent last-demand/storage/quota/slot claims, cancellation/receipt/expiry, re-offering and duplicate stock events cannot oversubscribe or repeat effects. Deadline-aware reads free expired holds without relying on a scheduler. | Derived integrity safeguard |
+| NFR-005 | M | Preserve original evidence, human corrections, offer decisions, item disposition, membership and booking history with attribution. Frozen offer evidence scopes exclude future donor facts. Stale screens do not overwrite state; late AI only appends evidence and optionally seeds an untouched empty working set. | Current request; derived integrity safeguard |
 | NFR-006 | M | Handle analysis/geocoding failures with an understandable in-app error and retry path. Preserve known facts and avoid fabricated indicators, distances or success states. A failed AI call never becomes a refusal or approval. Numeric timeout/latency targets remain AMB-019. | Derived reliability safeguard |
 | NFR-007 | M | Support the donor flow in a mobile browser and staff review/reception in a browser, with readable uncertainty, labeled inputs and warnings/status understandable without color alone. Offline operation and installability are not established by the “PWA” architecture label. | README/architecture; derived usability baseline |
 | NFR-008 | M | Use one provider-independent contract and category-schema validation, with OpenAI as the required provider. Calculations remain independently testable using an explicit reference date/input set; provider selection never changes human decision authority. | AGENTS |
@@ -187,31 +201,31 @@ Original AI indicators survive category edits and staff decisions. Staff can dis
 
 ## Ambiguities and decisions required
 
-Entries remain unresolved unless explicitly marked resolved; there are no hidden defaults. The “needed before” column identifies dependent work; unrelated implementation need not wait. The suggested decision owner is a documentation recommendation, not an assigned project role. No ambiguity permits violating BR-001–BR-006.
+Entries marked working profile are now concretely defined by the proposed DEC defaults; other questions remain unresolved. No default is hidden. The “needed before” column identifies dependent work; unrelated implementation need not wait. The suggested decision owner is a documentation recommendation, not an assigned project role. No ambiguity permits violating BR-001–BR-006.
 
 | ID | Open question / source gap | Needed before | Suggested owner |
 |---|---|---|---|
-| AMB-001 | Which management actions can `assoc_staff` perform? Who assigns/revokes roles or invites members? Does platform administration have any access beyond association approval? | Authorization policies and member UI | Product owner |
-| AMB-002 | How does the first association applicant become its admin? Is RNA, SIRET or both required and is formatting checked? What is the pending/rejected association experience? Which Supabase sign-in method works without outbound email? | Auth/onboarding implementation | Product + technical owner |
+| AMB-001 | **Working profile defined by DEC-010:** admins configure/manage membership; staff review/receive/distribute; last-admin protection, transfer, revocation and constrained original-applicant recovery are specified. Broader platform powers and invitations are outside MVP. | Implement/verify working profile; review later extensions | Product owner |
+| AMB-002 | **Working onboarding defined by DEC-008/010/011:** Google OAuth, trusted donor-profile provisioning, at least one syntactically valid unique RNA/SIRET, pending inactive applicant admin, atomic manual platform approval/activation. Provider credentials and migration setup remain deployment work; no email flow. Registration rejection/resubmission UI and multi-site support are deferred. | Implement/verify working profile; review later extensions | Product + technical owner |
 | AMB-003 | Does “1–2 photos + label close-up” mean two or three total? Which MIME types, byte limits, dimensions and replacement behavior are supported? | Upload configuration | Technical owner |
-| AMB-004 | Can donor/staff edit category or facts after offering, approval or booking? Does editing invalidate review/booking? Is reanalysis mandatory after a category change, which result is current, and what happens on reanalysis failure? How is a retained basis adopted without overwriting human facts if the first successful analysis races with an edit and cannot seed current facts (handoff AUD-004)? | Correction and lifecycle implementation | Product owner |
-| AMB-005 | Are expiry buckets cumulative filters (<7 ⊂ <30 ⊂ <90) or exclusive bands? Exactly 90 days is absent from `<90` / `>90`. Is “today” expired or zero days remaining? | Expiry arithmetic and UI labels | Product owner with association staff |
-| AMB-006 | How are month/year-only or ambiguous dates normalized? PAO needs an opening date: is it collected, and how is unopened status handled? Where do unknown/PAO-only items appear in FEFO? | Expiry parsing/FEFO tests | Product + technical owner |
-| AMB-007 | What defines a “high” medicine indicator if only a probability is returned? Does a suspected medicine/chilled-food warning stop submission or require clarification? Which human confirmation enforces actual exclusion? What review policy applies to DLC vs DDM and expired items? No automatic AI decision or medicine exception is permitted. | Safety-related workflow gates | Product owner with association staff |
-| AMB-008 | Are need/capacity units items, kg, volume or another measure? How is quantity entered and validated? At offer, approval, booking or reception, what reserves capacity? When do need/capacity decrement/release, including distribution and failed drop-offs? | Capacity/matching/reception transactions | Product owner with association staff |
-| AMB-009 | What are the need/season eligibility vocabulary, matching weights if any, search radius and tie-break? Does “distance ordering” mean strict nearest-first after eligibility? What happens with unknown season/location? | Matching behavior and tests | Product owner |
-| AMB-010 | What is a slot's duration/limit/unit, who can change a booked slot, and are overlapping slots, cancellation, rescheduling and no-shows supported? How do intake address, opening-hours or timezone changes affect existing bookings, and must a usable address be present before booking (with AMB-016)? | Slot/booking implementation | Product owner |
-| AMB-011 | Which timezone defines “today” for expiry, hours and bookings: platform, association or donor? How are midnight and daylight-saving boundaries handled? | Date/slot arithmetic | Product + technical owner |
-| AMB-012 | One or several target associations per item? Can a refusal be reversed, an item re-offered, an offer withdrawn or an approval revoked? Are refusal reasons required? Exact allowed transition/retry rules are unspecified. | Offer state model | Product owner |
-| AMB-013 | QR payload/token lifetime, invalidation, early/late arrivals, unavailable camera, partial reception and mismatched physical items are unspecified. A QR identifies a booking; it grants no standalone authority to receive it. | QR/reception implementation | Product + technical owner |
+| AMB-004 | **Working correction/reanalysis policy defined by DEC-006/007:** edit only with no active offer before transfer; freeze attempt snapshots; attach missing basis independently from seeding; no mandatory same-category reanalysis; acknowledged manual fallback. In-flight results never replace human facts. Post-receipt stock-fact correction/returns remain outside MVP. | Implement/verify working profile; review later extensions | Product owner |
+| AMB-005 | **Working default expiry-v1:** exclusive buckets including today and exactly 90; local calendar days, nullable unknown/NA and single-count metrics. See expiry-rules.md and EX-T001–010/028–029. | Implement/verify the versioned defaults; review later extensions | Product owner with association staff |
+| AMB-006 | **Working default expiry-v1:** source parser, DDM month/year bounds, strict-date uncertainty, human opening state/date, calendar-month PAO, combined minimum constraints and total FEFO order. No invented opening/year/century. See expiry-rules.md. | Implement/verify the versioned defaults; review later extensions | Product + technical owner |
+| AMB-007 | **Working defaults analysis-v1 / expiry-v1:** medium at 0.50, high at 0.80; pharmacy warning, explicit human clarification/acknowledgements; confirmed medicine/cold food excluded. Passed/unresolved strict dates block physical commands without setting decision; DDM has separate human review. | Implement/verify the versioned defaults; review later extensions | Product owner with association staff |
+| AMB-008 | **Working accounting defined by DEC-004/005:** integral item demand/intake, separate item_slot storage and staff rate, approval-time need/storage holds, booking-time quota/place holds, exact release/conversion rules. Kg/volume/partial lots remain post-MVP. | Implement/verify working profile; review later extensions | Product owner with association staff |
+| AMB-009 | **Working matching defined by DEC-009:** explicit calendar seasons, unrestricted empty need.seasons, nearest-first stable IDs, no radius/weights, unknown required attributes/location excluded with reason. Future scoring/radius changes require source/privacy review. | Implement/verify working profile; review later extensions | Product owner |
+| AMB-010 | **Working slots/recovery defined by DEC-003/012:** no active overlaps, same-local-day intervals, configured hours, finite horizon/grace, cancellation ends attempt, fresh review for rebooking. Freeze booked context/timezone rule; no automated reschedule or partial delivery. | Implement/verify working profile; review later extensions | Product owner |
+| AMB-011 | **Operational reference defined by DEC-009:** association IANA zone, Europe/Paris demo default and UTC deadline instants; frozen once slots exist. Shelf-life semantics now use expiry-v1; explicit offset/DST tests remain required. | Implement/verify working profile; review later extensions | Product + technical owner |
+| AMB-012 | **Working attempt lifecycle defined by DEC-001/002/005:** one active offer, preserved refused/cancelled/expired history, owner withdrawal/re-offer/restore, staff cancellation with reason, no reversal of prior human decision. Physical receipt is terminal for donor re-offering. | Implement/verify working profile; review later extensions | Product owner |
+| AMB-013 | **Working QR/reception defined by DEC-003:** signed booking/nonce/cutoff, state-based invalidation, receipt only in [start,end+30min), typed signed payload fallback, no partial/mismatch receipt. Cancel an unreceived mismatch and re-offer after correction; no late/early override. | Implement/verify working profile; review later extensions | Product + technical owner |
 | AMB-014 | Which dashboard items are in stock vs offered/approved? What defines an unreadable-date count, average shelf life, match, diverted kg, avoided cost or “expired item stopped”? No formulas or empirical factors are supplied. | Metrics implementation | Product owner |
 | AMB-015 | Photo/fact retention, account deletion, analysis deletion and privacy notice content are unspecified. “Immutable” means no silent edit to AI evidence, not a decision to retain personal data forever. | Retention policy and release | Product owner |
-| AMB-016 | What donor address precision/location permission and fallback are supported if API Adresse has no result? Which association contact/address details are exposed in matching? | Geocoding and donor-facing listing | Product owner |
-| AMB-017 | Final schema fields, indicator keys, confidence scales, probability bounds, low-confidence prompts and how unknown category is handled are unspecified. Do not infer a sixth category or force a confident classification. | Provider schemas/validation | Product + technical owner |
+| AMB-016 | **Working disclosure/ranking boundary defined by DEC-009/012:** donor origin request-scoped, no radius gate, limited association name/address projection and booked address snapshot; unavailable geocoding fails explicitly. Retention/privacy notice remains AMB-015. | Implement/verify working profile; review later extensions | Product owner |
+| AMB-017 | **Five closed contracts defined in analysis-rules.md:** categories, allowed attributes/indicator keys, finite category probability distribution, nulls, thresholds/conflicts, provider failure and manual fallback. No sixth category, implicit confidence or unversioned schema. Provider/model smoke tests remain implementation work. | Implement/verify the versioned defaults; review later extensions | Product + technical owner |
 | AMB-018 | Jev-only results cannot supply OCR/facts or the required category by extraction. What supplies those contract fields, and is image support usable? Optional modes must remain disabled until resolved. | S1 provider work | Technical owner |
 | AMB-019 | No supported device matrix, accessibility conformance target, model/cost budget, response-time target or uptime target is specified. Do not invent an SLA or accuracy claim. | Performance planning / deployment | Product + technical owner |
 | AMB-020 | The pre-review README labeled advanced metrics and formal impact reporting MVP. The reviewed README now aligns with proposed post-MVP deferral (FR-030); confirm if a simple measured counter must instead be included. This wording alignment does not resolve the product choice. No estimated factors are authorized. | Final MVP scope review | Product owner |
-| AMB-021 | **Service selection resolved:** user chooses the government BAN service; use the official IGN Géoplateforme address geocoder at https://data.geopf.fr/geocodage/. AGENTS and diagrams now name this explicitly. Verify adapter parameters, coordinate ordering, limits and failure behavior during integration. Location/radius/privacy decisions remain AMB-009/016. Evidence is linked in setup.md. | Adapter integration verification remains | Technical owner |
+| AMB-021 | **Service selection resolved:** user chooses the government BAN service; use the official IGN Géoplateforme address geocoder at https://data.geopf.fr/geocodage/. AGENTS and diagrams now name this explicitly. Verify adapter parameters, coordinate ordering, limits and failure behavior during integration. DEC-009 defines distance ordering/no radius and request-scoped origin; retention/privacy notice remains AMB-015. Evidence is linked in setup.md. | Adapter integration verification remains | Technical owner |
 
 ## Forty-hour scope and verification
 

@@ -15,7 +15,7 @@ Guidance for coding agents working on **Dono** — a hackathon MVP (≤ 40 h) th
 
 - Frontend: Next.js (App Router, TypeScript) · Tailwind CSS · shadcn/ui
 - Backend: FastAPI (Python), Pydantic request/response schemas; all business REST endpoints live here
-- Supabase: Auth, Postgres with row-level security, Storage (donation photos)
+- Supabase: Auth and Postgres with row-level security; photo metadata in donation_photos and base64 content in private.photo_contents; no Supabase Storage
 - OpenAI API: vision + structured outputs (JSON schema per category)
 - TypeSafe Jev: optional, behind `ANALYSIS_PROVIDER` (image support is experimental and requires the `TypeSafe-Danger-Zone-Images: true` header)
 - Government BAN address geocoding via IGN Géoplateforme (`https://data.geopf.fr/geocodage/`); no routing service
@@ -33,7 +33,7 @@ backend/               FastAPI application (planned, not scaffolded)
   app/api/             /api/v1 routers, authentication dependencies, error mapping
   app/services/        analysis, matching, review, booking and inventory orchestration
   app/domain/          pure expiry.py, matching.py and validated domain rules
-  app/adapters/        Supabase persistence/storage, providers and BAN geocoding
+  app/adapters/        Supabase/Postgres persistence, providers and BAN geocoding
   app/analysis/schemas/ category extraction/indicator schemas and prompts
   tests/               Python unit, API and concurrency checks
 supabase/
@@ -65,9 +65,11 @@ type AnalysisResult = {
 
 ## Data model
 
-`profiles` · `associations` · `association_members` · `capacity` · `needs` · `donations` · `donation_analysis` · `donation_indicators` · `expiry_info` · `slots` · `bookings` · `inventory_movements` · `redirect_points`
+`profiles` · `associations` · `association_members` · `membership_events` · `capacity` · `needs` · `intake_quotas` · `donations` · `donation_offers` · `offer_events` · `donation_photos` · `private.photo_contents` · `donation_analysis` · `donation_indicators` · `expiry_info` · `donation_edits` · `slots` · `bookings` · `inventory_movements` · `redirect_points` · `private.api_requests`
 
-Roles: `donor`, `assoc_admin`, `assoc_staff`, `platform_admin`. Every table touching association data must have RLS scoped by `association_members`; donors only see their own donations.
+Donation is a reusable donor item; each recipient attempt lives in donation_offers and owns the human decision. At most one active attempt per item. Demand, storage, daily intake and appointment places are independent budgets with finite holds. The proposed working defaults and separate lifecycles are documented in `docs/domain-model.md`; no migrations have been implemented.
+
+Roles: `donor`, `assoc_admin`, `assoc_staff`, `platform_admin`. Every table touching association data must have RLS scoped by `association_members`; donors only see their own donations. Personnel read their frozen offer/evidence scope, not later donor corrections. Admins alone configure/manage members; initial activation, revocation, last-admin protection and constrained orphan recovery require guarded audited commands.
 
 ## Security
 

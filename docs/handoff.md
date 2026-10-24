@@ -1,137 +1,101 @@
-# Dono implementation handoff and design audit
-
-Reviewed 2026-10-24. **Ready for decision closure and implementation planning; not ready for an unconditional schema/API freeze or application delivery.** This review creates documentation/configuration templates only. No application, migrations, accounts, policies, Storage bucket or remote project settings were implemented.
+# Dono implementation handoff and domain review
 
 ## Authority and current state
 
-[AGENTS.md](../AGENTS.md) overrides all other sources. [Requirements](requirements.md) hold stable BR/FR/NFR IDs and AMB questions; [features](features.md) hold use cases/acceptance criteria and traceability. [Architecture](architecture.md), [database design](databases.md) and [API](api.md) refine that baseline. DB-P01–DB-P07 are reviewable proposals, not accepted business policies. A narrower API proposal does not resolve an open product permission or lifecycle decision.
+This is a **design baseline**, not implemented software. [AGENTS.md](../AGENTS.md) remains authoritative and its six non-negotiable rules are unchanged. The review's six issues were valid defects/gaps in the previous model; the corrected [domain model](domain-model.md) supplies one coherent working profile rather than postponing the core mechanics. [Requirements](requirements.md), [features](features.md), [architecture/diagrams](architecture.md), [schema](databases.md) and [FastAPI API](api.md) must be implemented together.
 
-Reviewed inputs: AGENTS.md, the original README, all five existing `docs/*.md` specifications, and all seven diagram sources: [system](architecture/candidate.json), [actors/use cases](architecture/use-cases.json), [creation](architecture/donation-creation.json), [matching/review](architecture/matching-review.json), [booking/reception](architecture/booking-reception.json), [lifecycle](architecture/donation-lifecycle.json) and [ERD](architecture/database-erd.json). Revised diagrams have current Archify validation receipts. Required sources/evidence are retained; only unreferenced historical JSON reports are removed under the user’s cleanup choice.
+Next.js is the frontend and Python FastAPI is the business backend, as requested earlier. Supabase provides Auth/Postgres RLS with private base64 photo content; OpenAI supplies immutable extraction/indicators; BAN via IGN provides address search. There is no application scaffold, migration, live API, configured Auth provider or photo fixture set. Planned pnpm/uv commands are not runnable project commands yet. No remote Supabase changes were made.
 
-| Area | Current state | Remaining evidence |
-|---|---|---|
-| Product specification | 6 binding rules, 32 functional and 10 non-functional requirements; 21 features, 14 use cases. | Product decisions and observable implementation acceptance. |
-| Data design | 13 required + 3 support tables, 153 application columns, 30 FK-role relationships; separate managed Auth key stub. | Reviewed migrations, grants/RLS, guards and real database tests. |
-| REST design | 42 planned FastAPI operations, closed DTOs, examples, errors and cursor/retry conventions. | Handlers, verified sessions, command functions and contract tests. |
-| Diagrams | Seven interactive HTML artifacts with sources and prior validation evidence. | Six views regenerated for FastAPI/BAN/enum changes; lifecycle semantics retained. Current evidence replaces stale validation links. |
-| Application/tooling | No frontend/package.json, backend/pyproject.toml, app scaffold, migrations, seed data or photo fixture set. | Runtime/package versions, scripts, deployment and test harnesses. |
+## Decisions and proposed implementation profile
 
-## Binding decisions and proposed implementation profile
+Working defaults DEC-001–DEC-012 are listed fully in [domain-model.md](domain-model.md#working-defaults). They deliberately resolve the six structural findings for the MVP; changing them is a product decision requiring synchronized constraints/API/tests/diagrams. They are proposed defaults, not previously agreed user facts.
 
-The six AGENTS business rules remain unchanged: human-only donation decisions; code-only arithmetic with read-time expiry; deterministic matching; no medicine donation; only non-perishable room-temperature individual food; no MVP transport or messaging/email. Five categories, indicators, expiry buckets/distribute-first, review queue, QR reception and auth/RLS remain protected scope.
+- Reusable donor items have many historical recipient offers and at most one active attempt. Refusal ends an attempt, not an item. Each offer has at most one booking; cancellation/rescheduling uses a new attempt and fresh review.
+- Separate requested item demand, storage places using a staff-declared rate, category/day intake quantities and appointment counts. Matching checks all four; approval holds demand/storage; booking adds dated intake/place; receipt consumes demand/intake and makes stock; distribution releases storage only.
+- Review 72 elapsed hours; approval 24 hours to book; booked slot starts within seven days; receipt window [slot start, slot end+30m). Deadline equality is expired. No extension, early/late override or required cleanup scheduler.
+- Full lots only, one receipt and full distribution across all attempts; no splitting, partials, reversal or return. Independent donation/offer/booking enums and derived inventory projection preserve history.
+- Google OAuth is the working no-app-email sign-in choice. Profile bootstrap grants donor only; registration creates an inactive applicant admin; platform approval activates that original applicant atomically. Admins configure/manage members; admin/staff review/receive/distribute. Last-admin protection, audited transfer/revocation and narrow original-applicant orphan recovery are baseline safeguards.
+- Human input wins over any late AI response. Attach missing original basis separately from guarded empty-facts seeding. Complete human facts/photos may proceed without successful AI; staff explicitly acknowledge manual review and intake restrictions. Each offer freezes its own facts and evidence whitelist; later B-only facts remain private from A.
+- Association timezone is required; demo Europe/Paris. Calendar seasons and stable nearest-first Haversine ordering are defined; no radius gate or retained donor origin. Slots fit one local day/hours, do not overlap, and booked context is protected.
 
-The schema/API proposal separates immutable original analysis/indicators from current working facts, typed source dates and append-only human edits. Membership scopes association access; platform approval does not confer donation visibility. Guarded transaction commands own writes; client DML is denied. These are documented safeguards requiring implementation, not working controls.
-
-The following choices still require agreement under the existing AMB questions:
-
-| Proposal | Current proposal | Decision impact |
-|---|---|---|
-| DB-P01 | Protected platform capability + per-association roles; admin-only configuration; verified applicant. | AMB-001/002: management rights, role provisioning and bootstrap. |
-| DB-P02 | Persist `draft`; one target/need and one booking; freeze facts after offer; one full receipt; no cancellation/reversal endpoints. | AMB-004/008/010/012/013: changes may alter keys, transitions and endpoints. |
-| DB-P03 | Exact `numeric(12,3)` quantities and explicit shared units; integral `item`. | AMB-008: units/physical capacity must be meaningful for all five categories. |
-| DB-P04 | Approval reserves need/capacity; receipt converts the hold; distribution releases capacity without reopening fulfilled need. | AMB-008: approve before writing aggregate/locking tests or reservation logic. |
-| DB-P05 | Slot counts drop-offs; signed booking reference with nonce/deadline; explicit staff reception. | AMB-010/011/013: lifetime, timezone, exceptions and invalidation. |
-| DB-P06 | Finite [0,1] probabilities/confidence with original decimal preservation. | AMB-017/018: provider schema and optional Jev sourcing. |
-| DB-P07 | Staff intake assertions enforce actual medicine/food exclusions. | AMB-007: warning threshold, clarification and expired-item policies. |
+The earlier DB-P01–DB-P07 proposals and AMB entries for these structural policies are superseded by this profile, not simultaneously active alternative contracts. Remaining unrelated AMBs below still require decisions.
 
 ## Consistency audit
 
-“Aligned” means the specifications agree, not that runtime behavior was tested. “Resolved in documentation” fixes wording/abstraction without claiming a missing product choice is agreed. “Open” identifies a decision or contract repair needed before dependent work. Every finding remains subordinate to AGENTS.md.
+| Finding | Previous contradiction / failure | Resolution across artifacts | Verification at implementation |
+|---|---|---|---|
+| REV-001 Donation versus offer | Association, need and final refusal lived on the reusable item; one booking per item prevented recovery. | donation_offers owns target/decision/snapshot; partial unique active offer; booking unique by offer, not donation. FR-033; UC-007/015; new item/offer diagrams. | Two concurrent submissions; refusal→same-item re-offer to A/B; preserved decisions/history. |
+| REV-002 Demand versus capacity | One item quantity conflated need fulfilment, space and throughput. | needs, capacity, intake_quotas and slots are independent budgets; frozen storage rate and no used counters. FR-034; UC-002/006/008/010/012. | Exhaust each budget independently; approval/booking/configuration contention; distribution releases only space. |
+| REV-003 Indefinite reservations | Approval/cancellation/no-show semantics were unresolved; capacity could remain blocked. | Stored finite source deadlines; half-open validity, live aggregates and bounded reconciliation; static partial uniqueness materialized before reuse. FR-035; UC-015; booking/reception sequence. | No-job idle expiry; exact cutoffs; expiry versus reception; once-only release/reconciliation. |
+| REV-004 Incomplete lifecycle | One enum mixed decision, appointment and stock; refusal/reversal/partials undefined. | Four separate state machines; item withdrawal/restore; offer cancellation/expiry; booking cancellation/no-show; full-only ledger. FR-036; UC-015; four native lifecycle diagrams. | Cancel/receive race, transferred terminal, cross-attempt duplicate stock and recovery history. |
+| REV-005 Undefined permissions | Applicant bootstrap, member grants/revocation and management rights were deferred. | Explicit Google/profile bootstrap, inactive initial admin + atomic platform activation; admin-only config/members; last-admin transfer/recovery; RLS/current membership and server command guards. FR-037; UC-001/016. | Forged metadata, concurrent last-admin changes, stale JWT/retry after revocation, private RPC/Data API bypass and orphan recovery misuse. |
+| REV-006 AI versus corrections | Original rows were separate but first stale result could leave required basis unresolved; failure could block a valid item; historical reads could expose future facts. | Basis attach separate from seed; manual fallback; request fencing; frozen recipient evidence scopes and immutable snapshots; originals never mutate. FR-038; UC-005/008/015. | First delayed response after edit/offer; failed AI then manual approval; A→B privacy; no automatic decision/resource change. |
 
-| ID | Finding and cross-document evidence | Disposition / implementation consequence |
-|---|---|---|
-| AUD-001 | Original README called impact/advanced metrics MVP and grouped timeline/agreement into the dashboard; FR-026–FR-030 and AGENTS define optional cuts/proposed deferral. | **Resolved in documentation:** README now follows the M/S/P baseline, preserves the exact cut order and labels advanced reporting deferral as proposed. AMB-020 remains open if a measured counter is requested. |
-| AUD-002 | Original README quickstart could imply `pnpm install/dev` yields an app; no package/scripts/migrations exist. Architecture/API are plans. | **Resolved in documentation:** README/setup mark every application command as future and describe prerequisites. App verification remains unrun. |
-| AUD-003 | AI extraction, human corrections and human `decision` are distinct in BR-001, UC-004/005/008, sequences, ERD and API. “Approved” in lifecycle names is a staff status. | **Aligned:** retain original provider/model/category/facts/probabilities/confidence and photo provenance. Human decision actor/time are separate; no model/donor decision endpoint. |
-| AUD-004 | Category edits must preserve originals, mismatch and medicine concern. API exposes only pre-offer edits and a retained basis; product reanalysis/current-result/post-offer policy remains AMB-004. | **Open:** DB-P02 is conditional. Define analysis-basis adoption after a first analysis races with an edit: evidence may commit with `working_facts_seeded=false`, yet offering requires a non-NULL basis. Do not leave a valid draft permanently unofferable or replace human facts to repair it. Agree recovery/retry rules before implementing this path. |
-| AUD-005 | FR-001/NFR-001, actor matrix, diagrams and RLS agree on owner/active membership; API provisionally gives configuration only to admins. Platform capability grants association approval only. | **Aligned with an open split:** AMB-001/002 still block final management grants and bootstrap. Do not infer staff configuration or global platform reads. |
-| AUD-006 | DB/API correctly require RLS plus grants, deny ordinary DML, and isolate server-only persistence/reception capabilities. Privileged functions can bypass RLS. | **Aligned design; implementation risk:** audit each private command's explicit actor/tenant/field checks, invoker wrappers, search path and grants. Direct RPC must not forge a provider output or validated QR. Confirm grants for new tables instead of relying on old defaults. |
-| AUD-007 | AGENTS expiry labels `<90` and `>90` omit exactly 90; cumulative/exclusive bands, today, partial dates, PAO and timezone are undecided throughout requirements/API. | **Open:** AMB-005/006/011 need explicit expected outcomes. NULL/policy diagnostics are consistent interim reads but do not complete protected MVP expiry. Persist no derived values, including in retry result caches. |
-| AUD-008 | BR-003/FR-014 and matching sequence require deterministic current eligibility. DB's decision summary previously emphasized intake/capacity without explicitly repeating season/need/association guards. | **Resolved in documentation:** DB/API approval guards explicitly recheck approved association, active matching need, category/unit/season and sufficient demand/capacity under locks. Refusal remains a human action and needs no successful eligibility result. |
-| AUD-009 | API proposes ephemeral donor location; later offer/review eligibility may require a radius/origin, but the ERD has no retained donor-origin fields. DB/architecture broadly say revalidate eligibility. | **Open:** AMB-009/016 must decide distance as ordering versus an enduring eligibility constraint, and any protected retention needed. Do not claim full later distance revalidation from discarded coordinates. No hidden address column or routing service was added. |
-| AUD-010 | Requirements leave capacity timing/units open; ERD/API give the coherent but provisional DB-P03/04 accounting. Multiple HTTP writes are not an atomic transaction. | **Open policy, aligned mechanism:** agree units/reservation/release first. Then enforce the common parent lock order, current aggregates, same-tenant FKs and retry completion in one transaction. No cached occupied/expiry counters. |
-| AUD-011 | Preparing/capture-error in lifecycle are conceptual; ERD/API propose stored `draft`. Booking sequence says “booking + QR”; API separates committed booking from authenticated QR retrieval. | **Resolved as abstraction:** `draft` refines Preparing only if DB-P02 is agreed; failures add no approval state. UI may compose booking then QR GET. A QR-rendering/network failure does not roll back an already committed booking; retrieve the existing appointment/QR instead of creating another. |
-| AUD-012 | FR-023/024 and booking/lifecycle diagrams require owner-approved booking and explicit target-staff receipt; DB/API supply one-booking/full-receipt constraints. Reversals/partials/no-shows are absent. | **Aligned, policies open:** AMB-010/012/013 decide lifecycle exceptions. A scan/resolve is read-only; confirmation creates one receipt. Do not add cancellation/re-offering transitions merely because an endpoint is convenient. |
-| AUD-013 | Medicines and chilled/frozen individual food are excluded, but thresholds, clarification and expired DLC/DDM handling are open. Category labels and AI confidence cannot authorize intake. | **Aligned exclusion, open interaction:** AMB-007 and DB-P07 must be agreed. Confirmed excluded items cannot pass staff approval; no automatic AI refusal or category-based bypass. |
-| AUD-014 | Earlier setup named legacy Supabase anon/service-role keys. | **Resolved technical baseline:** frontend and backend use documented publishable keys; elevated secret stays in FastAPI. The template has explicit public/server sections and no legacy fallback. AGENTS still protects any legacy service-role key if later used. |
-| AUD-015 | User confirms the government BAN address service; the official listing points to IGN Géoplateforme. | **Service selection resolved AMB-021:** use https://data.geopf.fr/geocodage/. Adapter integration verification remains; radius/origin/privacy stay AMB-009/016. |
-| AUD-016 | Original `.gitignore` covered only `ignore/` and `.agents/`; no environment template existed. | **Resolved in configuration:** blank-only template and environment/dependency/build/test/cache ignores added; existing rules retained. Lockfiles, docs, diagram receipts, migrations and seeds remain trackable. Ignore rules cannot remove previously tracked secrets. |
-| AUD-017 | Revised diagram bytes invalidate prior receipts/captures as current proof. | **Resolved evidence handling:** use new FastAPI/enum receipts for changed views, retain current lifecycle evidence, and remove only unreferenced historical JSON. Dense ERD warnings remain disclosed; artifact checks prove no runtime behavior. |
-| AUD-018 | API prose formerly made all quantities positive except capacity limits, although computed available demand/capacity and distributed remaining stock can legitimately be zero. DB aggregate invariants permit zero. | **Resolved in documentation:** distinguish positive donation/need/movement inputs from nonnegative read totals/balances and configured capacity. Keep exact decimal-string representation; do not reject empty stock or zero availability. |
-| AUD-019 | Associations have nullable/changeable address/hours/timezone, while BookingDetail requires an address and only booked slot times are explicitly frozen. The lifecycle does not define effects on existing appointments. | **Open AMB-010/016:** agree address availability before booking and changes to appointment context. No implicit snapshot, relocation, timezone default or rescheduling was added. |
-| AUD-020 | User changes backend ownership from Next.js to FastAPI. | **Resolved:** AGENTS, REST contract, setup and diagrams now distinguish Next.js frontend from Python FastAPI business backend. Backend-only secrets, bearer verification, explicit CORS and authenticated image-fetch behavior are documented. |
-| AUD-021 | Closed vocabularies were shown as text even when values were specified. | **Resolved design:** named PostgreSQL enums and table-local allowed values now cover roles, category, unit, lifecycle, provider, source-date and event kinds. Unit/season labels remain provisional; no migrations generated. |
-| AUD-022 | attributes could be mistaken for generic metadata; database-base64 storage was questioned. | **Clarified:** keep attributes for category-specific item facts/need criteria. Original extraction/provenance remain separate. Keep photo bytes in private Storage and references/digests in Postgres; database-only bytea would require an explicit later design change. |
-| AUD-023 | User wants JSON cleanup without losing diagram maintenance. | **Resolved scope:** keep all seven sources, current delivery/finalize/browser/capture evidence and referenced dependencies; delete only unused historical generated JSON reports. Standalone HTML remains viewable. |
-| AUD-024 | /me was disliked and GET/PATCH returned different resource shapes. | **Resolved contract:** GET/PATCH /account/profile and paginated GET /account/memberships, 42 total business operations. All operations belong to FastAPI; static-route ordering, scope validation and error normalization need future tests. |
+The six binding rules remain consistent: human-only offer decisions; deterministic arithmetic/read-time expiry; need/capacity/season/Haversine matching; medicine exclusion/pharmacy warning; nonperishable room-temperature individual food; in-app status with no transport/email/messaging. Medicine warnings are indicators, not AI refusal. Operational expiry of a lease is code, not a donation acceptance verdict.
+
+Additional checked decisions remain: named SQL enums repeated with labels per column; attributes is validated item/need data, not technical metadata; private base64 text in Postgres, metadata/digest separately, no Supabase Storage; account/profile and account/memberships naming, no /me; FastAPI business routes, Next.js frontend; BAN through current IGN endpoint. New diagrams and sources are linked in architecture.md. Older receipts are historical and cannot prove revised bytes.
 
 ## Lifecycle and permission checks
 
-This table reconciles UC-007–UC-012, the lifecycle source and proposed DB/API. All commands also verify current identity, field allowlists, revision, scoped relationships and retry identity. Conditional policies above remain prerequisites.
+Raw donations/expiry_info are donor-only. Personnel receive frozen offered facts and explicit evidence IDs, not unrestricted access to the mutable donor item. Original analysis context includes request ID, photos/digests and captured facts revision; related private request context cannot be discarded as a retry cache while evidence depends on it. Immutable photo originals and history remain scoped after refusal or withdrawal. Retention is still to decide; this is not an indefinite retention authorization.
 
-| From → to | Actor / proposed command | Required guard and effect |
-|---|---|---|
-| Preparing (`draft` proposed) → same stage | Owner upload/analysis/correction | Validate files/schema; append original evidence; preserve human edits and provenance. Upload/analysis failure makes no decision. |
-| Preparing → offered | Owner offer | Original analysis/photo basis and valid current facts; approved eligible target, matching need/unit/season and capacity/demand checks. No physical stock. |
-| Offered → approved | Target active admin/staff decision | Explicit human approval, attribution, agreed intake assertions and current eligibility. DB-P04 would add a hold. |
-| Offered → refused | Target active admin/staff decision | Explicit human refusal/attribution; preserve evidence. No booking or receipt follows this offer branch. |
-| Approved → booked | Owner booking | Target slot/hours/time policy and remaining places; atomic booking/state. Existing category hold is not duplicated. |
-| Booked → received | Target active admin/staff reception | Server validates signed QR, then explicit physical-receipt confirmation; one movement and state transition. No new donation decision. |
-| Received → distributed | Target active admin/staff distribution | Received balance sufficient; full distribution completes state; no negative stock. Partial behavior awaits policy. |
+Only the addressed association's current enabled personnel write the decision, once. Preserve approved decision/actor/time after later cancellation/expiry; do not rewrite it to refused. Pending offers hold no budgets. Actual receipt atomically transfers item, fulfils offer, receives booking and appends stock/events; distribution appends against receipt ID and changes no appointment/offer version. All item expiry calculations remain read-time and out of stored audit/response caches.
 
-No donor, provider or unrelated association may cross the human-decision boundary. Platform operators need a separate valid membership to act as association personnel; platform capability alone grants none. Expired/unknown/mismatch are read-side facts, not lifecycle states. No additional transition is authorized by this review.
+Ordinary reads use user JWT + RLS; clients have no table DML. Privileged write commands require explicit fresh actor/tenant/state checks and scoped execution grants. Serialize resource budgets, membership revocation and business writes using the common lock protocol. Read-time deadline predicates release availability even before stored-state reconciliation. These are required implementation controls, not claims that documentation proves secure runtime behavior.
 
 ## Decisions needed before dependent work
 
-The complete question text and suggested decision owners remain in [requirements.md](requirements.md#ambiguities-and-decisions-required). The groups below organize work without replacing or closing IDs. Product owners should record answers in that register, update affected DB-P proposals/ACs, and then review schema/API/diagrams together.
-
-| Gate | Questions to close | Work that depends on it |
+| Open item | Affected work | Next action |
 |---|---|---|
-| Identity | AMB-001/002; selected key names in setup.md | Auth method without email, applicant→admin bootstrap, role assignment/revocation, staff configuration, RNA/SIRET validation. |
-| Evidence | AMB-003/004/017; analysis-basis race AUD-004 | MIME/content/byte/photo limits, category schemas, confidence/indicator contract, reanalysis/basis adoption, allowed edits. |
-| Expiry and intake | AMB-005/006/007/011 | Bucket edges including exactly 90/today, PAO/partial dates, unknown ordering, timezone, thresholds/clarification, DLC/DDM handling. |
-| Matching and capacity | AMB-008/009/016; AMB-021 adapter verification | Shared units, reservation/release, need/season/radius/ties, origin retention/disclosure, selected BAN geocoder adapter (service selection resolved). |
-| Appointments and lifecycle | AMB-010/012/013 (with AMB-016) | Offer cardinality, frozen facts/reversals, slot limits/overlap, booked address/hours/timezone changes, cancellations/no-shows, QR validity/recovery and partial/mismatched receipt. |
-| Release and reporting | AMB-014/015/019/020 | Count scope/formulas, retention/deletion/privacy, device/performance/model/cost limits and final advanced-reporting deferral. |
-| Optional providers | AMB-018 (and AMB-017) | Jev image viability and Jev-only contract fields; unnecessary for the OpenAI baseline. |
+| AMB-003 upload MIME/size/count/device rules | Photo validation, storage and analysis | Agree limits and server-side content checks before upload implementation. |
+| AMB-005/006 — working expiry-v1 defined | Exact bucket/partial/PAO/DLC/DDM/FEFO rules in expiry-rules.md | Implement EX-T001–033; version changes consistently, do not invent alternative boundaries. |
+| AMB-007 — working analysis-v1 / expiry-v1 defined | 0.50/0.80 warnings, manual clarification, strict-date and DDM assertions | Implement conditional human checks; probabilities never set decision. |
+| AMB-017 — five closed contracts defined | analysis-rules.md fixes keys/types/nulls/confidence and conflicts | Implement AN-T001–016 and the photo evaluation; no Jev dependency. |
+| AMB-015 retention, atomic photo cleanup, retry leases/retention and referenced context deletion | Privacy, evidence history, operational fencing | Set bounded policy and cleanup that respects evidence dependencies; avoid logging personal inputs. |
+| AMB-019 target browsers, timeouts/model/cost limits and performance goals | Device testing and provider resilience | Pick deployment environment, model/tool versions and explicit budgets; no measured performance promised. |
+| AMB-014/020 advanced metrics/impact scope | Optional reporting | Keep outside required delivery; formulas need separate agreement. |
+| AMB-018 Jev image/contract viability | Optional S1/S2 only | Defer until the complete baseline passes. |
+| Deployment credentials and manual verification process | OAuth login and legitimate association activation/recovery | Configure Google/Supabase redirects and trusted platform provisioning; agree who verifies RNA/SIRET/applicant identity. No app email/invite flow. |
 
-No numerical defaults, authentication provider, retention period, distance weights, QR TTL or expiry interpretation were selected by this review. Proposed configuration variable names in setup are technical placeholders. Resolving decisions should stay short and specific enough to implement and test inside the effort budget.
+AMB-001/002/004/008–013/016 now point to concrete defaults, with deployment prerequisites noted. Their former unresolved core mechanisms must not reappear as policy_required errors. BAN service selection AMB-021 remains resolved; verify current official search parameters/limits when writing its adapter.
 
 ## Recommended milestones and implementation order
 
-The existing [40-hour allocation](features.md#delivery-priorities-and-forty-hour-budget) totals project effort, not elapsed time or effort per developer. The same allocation is retained below; dependencies guide implementation order. Introduce expiry source handling and pure calculations alongside evidence/matching once policy is agreed, even though final gallery work has a later delivery milestone. Verification is continuous; the five-hour verification allocation is not permission to postpone isolation or concurrency design.
+This is an illustrative **40-hour total effort allocation**, not a guarantee. The domain safeguards add four small tables; private photo content adds one more small table and shared guarded commands, not microservices. Use full lots, one site, one active attempt, basic forms/lists and reusable evidence views to bound the work. Begin with constraints/auth/state contracts so UI cannot define inconsistent behavior later.
 
-| Milestone | Hours | Reviewable exit / dependencies |
-|---|---:|---|
-| Decision closure and integration contingency | 2 | Record blocking AMB answers and accepted/revised DB-P choices; check the geocoder and key-pair choice before dependent code. Reserve remaining time for fixes. |
-| Scaffold, auth, RLS and association approval | 5 | Pin tools/packages; verified identity, trusted bootstrap, own/member isolation, private storage boundary and manual platform approval. |
-| Needs, capacity, hours and slots | 4 | Structured form + confirmed free-text draft; agreed units/seasons/limits; scoped configuration. |
-| Photos, five analysis schemas, evidence and edits | 6 | Validated uploads; immutable attributable originals; edits/mismatch/warnings; original/working date facts and analysis-race recovery. |
-| Geocoding, deterministic matching, offer/status | 4 | Correct approved targets and current eligibility; no provider in matching; isolated offer visibility and stale-data guards. |
-| Staff review | 3 | Explicit human decision, current intake/eligibility checks and atomic capacity/demand holds under the agreed policy. |
-| Booking and donor QR | 4 | Atomic last-place booking; retrieve existing appointment and signed QR in-app; tested validity policy. |
-| Arrivals, QR reception and stock/distribution | 4 | Target-staff confirmation once; retry safety, no negative stock and coherent capacity/need effects. |
-| Expiry views and basic gallery | 3 | Resolved/read-time buckets and FEFO over received undistributed stock; unknown visibility; basic scoped counts/filters. |
-| Verification and demo | 5 | Actual lint/typecheck/tests, direct RLS/RPC/Storage checks, concurrent races, 25–35-photo evaluation and complete donor→staff→distribution flow. |
-| **Total** | **40** | **Required baseline; no stretch work budgeted.** |
+| Order | Deliverable and exit condition | Hours |
+|---|---|---:|
+| 1 | Resolve immediately dependent policy; pin/scaffold Next.js/FastAPI; implement identity/bootstrap/member commands, typed schema constraints/grants/RLS with tenant tests. | 7 |
+| 2 | Admin needs/storage/dated quotas/hours/slots; prove independent budget/reduction guards. | 4 |
+| 3 | Validated photos, five OpenAI schemas, originals/human facts, safe delayed completion and manual fallback. | 6 |
+| 4 | Python deterministic matching and reusable offer creation/history; deadlines and replacement after expiry. | 5 |
+| 5 | Human review with finite demand/storage holds and mandatory intake checks. | 3 |
+| 6 | Atomic quota/slot booking, cancellation/no-show and signed QR reception with duplicate guards. | 4 |
+| 7 | Full stock/distribution plus read-time expiry/buckets/FEFO/basic gallery. | 4 |
+| 8 | Complete RLS/API/race/photo/device/end-to-end verification and demo. Test risky guards throughout, not only at the end. | 5 |
+| 9 | Integration contingency and remaining policy fixes. | 2 |
+| **Total** | Required MVP, no stretch budget. | **40** |
 
-Do not implement every API row as a separate service or build a generic workflow/warehouse system. Reuse item/detail and list UI, one Next.js frontend and one FastAPI backend and the documented simple transaction protocol. If baseline effort exceeds the remaining budget, surface the constraint; do not silently cut protected capabilities. Remove optional work in the exact AGENTS order.
+Exact optional cut order: Jev → comparison → timeline → agreement. Never cut indicators, expiry buckets/distribute-first, review queue, QR reception or auth/RLS. If required correctness cannot fit, surface a scope/time constraint rather than silently dropping these mechanisms. Detailed requirements are not permission to add partial inventory, appointment editing, new background services or broad platform administration.
 
 ## Known risks and next actions
 
-| Risk | Consequence | Next action / evidence needed |
-|---|---|---|
-| Too many unresolved policies for a 40-hour build | Rework to schema, guards and acceptance tests; two-hour contingency may be insufficient. | Close dependency gates first, track actual effort and keep stretch disabled. |
-| Auth bootstrap and privileged commands | No initial admin path, self-escalation or cross-tenant writes if implemented loosely. | Decide provisioning, review exact grants/functions, test direct Data API/RPC/Storage with isolated identities. |
-| Holds without cancellation/no-show policy | Capacity/need may remain reserved indefinitely after non-arrival under DB-P04. | Agree minimum operational handling in AMB-008/010/012; do not ship an undocumented release rule or timer. |
-| Analysis/upload races and separate Storage commits | Orphan files, duplicate provider cost, unseeded drafts or overwritten corrections. | Resolve AUD-004; test revision/lease fencing and define cleanup/retention. Logical idempotency does not promise exactly-once provider billing. |
-| Unreliable label/medicine inference | Incorrect safety assumptions or fabricated dates. | Keep uncertainty visible, enforce actual exclusions, agree human intake workflow and evaluate medicine/para photos. |
-| Derived expiry and changing page context | Wrong bucket/FEFO around midnight or stale cursor results. | Explicit reference date/timezone/policy and stable cursor context; boundary/DST/unknown/PAO tests. |
-| BAN adapter and discarded origin | Integration outage or inability to recheck a later radius rule. | Verify the selected BAN adapter and resolve AMB-009/016 and perform a current contract smoke test at integration time. |
-| Device/browser QR and camera behavior | Demo works only on desktop; reception cannot complete on target hardware. | Agree device matrix and camera-failure/retrieval flow; test before final demo. |
-| Original evidence vs deletion | Immutability mistaken for indefinite personal-data retention. | Resolve AMB-015, document privacy/retention and separate authorized deletion from product edits. |
-| Dense ERD and old receipts | Readers mistake warnings or stale evidence for a fully validated runtime design. | Use current links/domain focus views and dictionary; preserve warnings/history. |
+The largest risk is the small time budget for two toolchains plus transactional/RLS correctness. Keep the database command surface small and reusable, and test the lock order before building all screens. Auth credentials/manual verification are prerequisites; Google availability is an external dependency and alternative no-app-email providers need a later explicit choice. Disabled-account/orphan recovery must use a trusted runbook and cannot become a backdoor for reassignment.
 
-Immediate next action: record the remaining product decisions and verify the selected BAN adapter, then freeze the affected schema/API sections before creating migrations. Unrelated tooling preparation can proceed once implementation is authorized; this task did not scaffold it.
+Deadline-based reads plus lazy state materialization require careful query/DTO consistency. UTC reference time must be captured after locks; a stale status cannot reserve or receive after cutoff. Membership helpers must avoid RLS recursion. Snapshot whitelists are validated references, not foreign keys, so scope validation/retention cannot be skipped. Daily quota/date and protected booked context need timezone/DST tests.
 
-All seven [interactive diagrams and their sources](architecture.md#interactive-diagrams), [current validation evidence](architecture.md#validation-evidence), [setup plan](setup.md) and [readiness report](readiness.md) are linked for the next implementer. All seven editable sources and standalone HTML diagrams remain. Current evidence is retained, revised views are revalidated, and only unused historical JSON reports are removed; historical capture images/HTML remain historical.
+Manual fallback preserves usability during provider failure but still requires honest evidence status and human intake assertions. Do not turn low confidence into a fabricated clearance, or let a late indicator automatically cancel human approval. The defined analysis-v1/expiry-v1 defaults must be verified before delivery; remaining upload/retention/deployment limits must be settled before dependent implementation.
+
+Next: review DEC defaults and settle immediately blocking upload/schema/shelf-life/safety choices, then implement milestone 1. The [readiness report](readiness.md) records actual documentation/diagram checks; the [setup plan](setup.md) marks all future application commands unimplemented.
+
+## Photo persistence revision
+
+The user explicitly replaces Supabase Storage with database base64. The current design has 21 application tables / 225 columns / 45 FK roles: donation_photos metadata loses object_path and private.photo_contents adds photo_id PK/FK plus image_base64 text. No application data needs migration because none exists; no bucket or remote service was changed.
+
+Multipart upload and authenticated binary content routes remain stable. FastAPI validates, encodes and atomically commits metadata/content; reads reauthorize, decode and verify size/digest. Lists, matching, snapshots and retry/history contain no payload. Current frozen photo IDs/digests and original AI provenance are preserved. The extra encoding size, decode memory and database backup volume are design tradeoffs; actual upload/resource/retention limits remain AMB-003/015/019. This is a user-selected persistence choice, not a new domain lifecycle or an expansion of the 40-hour scope.
+
+## Two-blocker resolution: analysis and expiry
+
+The only new design scope in this revision is [analysis-v1](analysis-rules.md) and [expiry-v1](expiry-rules.md). They resolve AMB-005/006/007/017 with proposed defaults rather than generic policy_required responses. All five branches have closed fields/indicators and honest null/class/confidence semantics; low-confidence/conflicting/failed output retains the existing human fallback and immutable originals. Expiry uses one exclusive bucket, an explicit exactly-90 case, Python source/PAO/calendar rules, strict-date versus DDM checks and total FEFO order.
+
+Existing columns/JSON, base64 persistence, auth/roles, offer/booking/resource policies and lifecycle diagrams stay intact. No native source/HTML changes are needed because these are contracts and guard details within existing workflows. Future verification is specified in [49 fixture scenarios](rules-test-cases.md); no application/provider/database tests were run. A 30-image photo evaluation remains to build. Calibration/model choice, upload/resource limits, retention and advanced reporting remain open/deferred; configurable per-association date policies and extra class fields are outside the 40-hour baseline.
