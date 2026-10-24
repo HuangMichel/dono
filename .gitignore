@@ -1,1 +1,41 @@
 ignore/
+.agents/
+
+# Environment files; only the root placeholder template is versioned.
+.env*
+!/.env.example
+
+# Dependencies and package-manager caches. Keep dependency lockfiles versioned.
+node_modules/
+.pnpm-store/
+.npm/
+
+# Next.js and other generated build/deployment output.
+.next/
+out/
+dist/
+build/
+.turbo/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# Test output and local logs.
+coverage/
+playwright-report/
+test-results/
+*.log
+
+# Local Supabase runtime/cache files; preserve future config, migrations and seeds.
+supabase/.temp/
+supabase/.branches/
+
+# Operating-system files and optional Python tooling caches.
+.DS_Store
+Thumbs.db
+__pycache__/
+*.py[cod]
+.venv/
+
+docs/architecture/*.json
+docs/architecture/*.json
