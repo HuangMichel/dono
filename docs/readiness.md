@@ -1,44 +1,46 @@
-# Dono domain correction readiness report
+# Backend readiness report
 
-**The six review findings were valid and are now corrected in the design.** This is a coherent proposed MVP profile, with remaining product-policy choices explicitly open. No application code, migrations, dependencies or remote configuration were implemented.
+FastAPI, PostgreSQL migrations/RLS and OpenAI integration are implemented. **96 tests pass; combined statement/branch coverage is 91%.** This is local backend evidence, not a claim of production readiness or measured AI accuracy. No frontend or hosted resources were created.
 
-## Created and updated files
+## Delivered
 
-Created [domain-model.md](domain-model.md) as the shared entity/state/accounting profile and added native sources/HTML for [offer](architecture/offer-lifecycle.html), [booking](architecture/booking-lifecycle.html) and [inventory](architecture/inventory-lifecycle.html) lifecycles.
+- [backend/](../backend/): uv project/lockfile, FastAPI composition, strict Pydantic request/response DTOs, Auth/authorization, domain services and provider/database adapters. All 64 documented REST method/path combinations are registered.
+- [supabase/migrations/](../supabase/migrations/): 15 ordered migrations, 21 app/private tables, named enums, PK/FK/indexes/constraints, RLS, immutable original/history guards and atomic commands. [config.toml](../supabase/config.toml) selects PostgreSQL 17 and disables Storage.
+- Backend tests cover deterministic expiry/matching, five analysis schemas, upload validation, failures/manual fallback, real PostgreSQL constraints/RLS/commands, lifecycle/history, membership recovery/revocation, late evidence privacy and concurrent capacity/booking reservations.
+- [setup](setup.md), [handoff](handoff.md), [README](../README.md), AGENTS implementation commands and affected contract/status documentation updated. `.env.example` remains blank placeholders; local environments/caches/build output are ignored. Existing diagram sources, HTML and validation receipts were preserved; all diagrams remain linked in [architecture](architecture.md).
 
-Updated [requirements](requirements.md), [features/use cases](features.md), [architecture](architecture.md), [database dictionary/RLS](databases.md), [FastAPI API](api.md), [handoff](handoff.md), [setup](setup.md), [README](../README.md), [AGENTS.md](../AGENTS.md), [.env.example](../.env.example) comments and [.gitignore](../.gitignore). Regenerated all seven original diagrams and their sources; retained existing history and current validation/capture evidence. Removed duplicate broad architecture JSON ignore rules so editable sources and current evidence can be committed with the HTML.
+## Executed checks
 
-## Verified design invariants
+From `backend/`, on 2026-10-25:
 
-| Review issue | Corrected model |
+| Check | Result |
 |---|---|
-| Donation versus offer | Stable reusable item ID; many historical offers; one active attempt; refusal permits re-offering; booking unique by offer, not item. |
-| Demand versus capacity | Separate requested items, storage places/rate, dated intake quantity and appointment places; matching checks all independently. |
-| Permanent reservations | 72h review, 24h approval-to-book, seven-day slot horizon, end+30m receipt cutoff; cancellation/no-show/timeouts release unreceived holds. Deadline-aware reads work without a scheduler. |
-| Lifecycle | Separate item/offer/booking states and movement-derived inventory; withdrawal/restore/re-offer/cancel/recovery retain snapshots, decisions and history. Full lots only. |
-| Permissions | Verified donor-profile bootstrap; inactive applicant admin + atomic platform activation; admin-only configuration/member changes; last-admin transfer/revocation/recovery; fresh database permissions/RLS and guarded commands. |
-| AI versus corrections | Immutable originals/provenance; separate human facts; safe late basis attachment without overwriting; complete manual facts can proceed during AI failure; recipient-specific frozen evidence/privacy. |
+| `ruff check .` | Pass. |
+| `mypy app` | Strict checking of 52 source modules. |
+| `pytest -q --cov=app` | 96 passed; 91% combined statement/branch coverage. One upstream Starlette/AnyIO deprecation warning. |
+| Locked dependency consistency | `uv sync` succeeded using the committed lockfile; release cutoff 2026-10-18. |
+| End-to-end API/SQL | Donor facts/photo → analysis → override → match → offer → staff decision → booking/signed QR → reception → inventory/distribution, plus collection/FEFO/gallery/configuration reads. |
+| Real database races | Competing reviewers cannot consume the last storage reservation; concurrent bookings cannot consume the last appointment place or dated intake quota twice. |
+| Privilege/privacy tests | Donor isolation; no ordinary client DML/restricted RPC/private image reads; original immutability; frozen A→B recipient evidence scope; current membership and last-admin/recovery controls. |
+| Audited date correction | Explicit assertion + staff reason + frozen human facts; reviewed original IDs persisted; unchanged original evidence; current expired/unresolved strict source facts still block. |
 
-AGENTS' six product rules were preserved byte-for-byte. Staff alone decide, matching/arithmetic are deterministic, item expiry is calculated at read time, medicines remain excluded, individual food remains nonperishable/room-temperature, and no transport/routing/email/messaging is included. Next.js remains the frontend and FastAPI the backend.
+SQL tests start disposable PostgreSQL and apply the actual migration files. Test-only Auth primitives and a simulated HTTP gateway replace managed Supabase services; HTTP identity verification and provider responses are simulated. Tiny synthetic images test mechanics, not vision accuracy. Existing Archify receipts validate diagrams only.
 
-The [current static audit receipt](architecture/validation/rules-consistency.json) records the checked artifacts and limitations. Static checks confirm **54 requirement IDs** (6 BR, 38 FR, 10 NFR), **23 features**, **16 use cases**, **80 acceptance criteria** and complete requirement traceability. The API lists **64 unique method/path operations** with account/profile naming and no donation-level decision route. The schema/ERD agree on **21 application tables, 225 columns, 45 FK roles and 25 named enum types**, plus a separate managed Auth key stub. Links, JSON examples, closed vocabularies, key/nullability roles, blank environment values, ignore behavior and current artifact provenance were checked. These are specification checks, not executed business tests.
+## Verified invariants
 
-All **ten interactive diagrams** pass Archify artifact/provenance and Chrome browser gates; selected current captures were inspected. [Architecture validation evidence](architecture.md#validation-evidence) records exact receipts, captures and limitations. The dense ERD has 61 documented composition warnings (60 crossings, one static readability warning), while browser containment/readability passes and no field/relation was omitted. Other diagrams have zero composition warnings; routing advisories remain documented. Generated HTML is retained exactly as delivered, including renderer whitespace, to preserve provenance.
+- AI extraction/indicators never decide approval/refusal; only authorized staff set the write-once offer decision. Late AI cannot overwrite human corrections or resource/decision state.
+- Dates, PAO calendar arithmetic, exclusive buckets, strict-date checks and deterministic total FEFO run in Python at read/command time. Derived expiry values are absent from stored source facts and command audits.
+- Matching is deterministic need + independent demand/storage/intake/place budgets + season + Haversine, with no model call. Resource mutations serialize through association locks and recheck live commitments.
+- Stable donations are reusable after refusal; historical offers freeze facts/evidence, one active attempt at a time. Finite review/approval/receipt windows, withdrawal, cancellation/no-show and reconciliation release unreceived holds without a scheduler.
+- Original analyses/indicators and photo digests/provenance remain separate from edited attributes/source dates. Photos persist as private canonical base64; lists contain authenticated content URLs, never payloads. No Storage SDK/bucket.
+- Auth metadata cannot elevate roles. Association registration starts inactive; platform approval activates original applicant; last-admin transfer/revocation/recovery is audited. Membership-scoped RLS and guarded server capabilities apply.
+- Medicines remain ineligible; staff must assert not-medicine, with original warnings preserved. Individual food requires room-temperature, nonperishable source facts and explicit staff eligibility assertion. No transport, routing, email or messaging implementation.
 
-## Remaining decisions and recommended order
+## Remaining release gates
 
-[Working DEC defaults](domain-model.md#working-defaults) resolve the six mechanisms; duration/unit/provider choices are proposed product defaults, not previous user facts. Analysis-v1/expiry-v1 now define all five category/indicator schemas, confidence/safety clarification and shelf-life/bucket/PAO/FEFO rules. Still decide upload limits, retention/retry leases and deployment/device/model/cost limits. Configure OAuth redirects/credentials and trusted manual association verification before use. No generic TBD remains in core offer, reservation or member-management behavior.
+1. Apply migrations to a chosen development Supabase project and verify managed ownership/grants, actual Data API/RPC restrictions, Google OAuth/redirects and current security/performance advisors. No remote provisioning or full Docker-stack run was performed.
+2. Select/configure OpenAI model/credential and execute live strict-schema smoke tests for all five categories. Supply and evaluate 25–35 real photos including medicines and para products. Model quality/calibration remain unmeasured.
+3. Decide photo/audit retention (AMB-015); configure deployment request-body/spool limits, rate/cost budgets and measure performance/mobile behavior (AMB-019). Multipart parsing precedes endpoint image-size validation.
+4. Future Next.js UI and graphical QR rendering/scanning remain unimplemented. Jev/hybrid and optional analytics remain deferred under the 40-hour scope.
 
-Implement in this order: dependent policy choices → auth/bootstrap/membership and schema constraints/RLS → independent intake budgets/slots → photos/original evidence/human facts/late-response safety → deterministic matching/offers/deadlines → human review/holds → booking/cancellation/QR reception → full stock/distribution and read-time expiry/FEFO/gallery → complete tenant/race/photo/device verification.
-
-The [40-hour allocation](handoff.md#recommended-milestones-and-implementation-order) reserves verification and contingency. Reuse simple forms/evidence views; no partial lots, rescheduling engine, worker fleet or broad platform administration. Cut optional Jev → comparison → timeline → agreement; preserve the protected MVP capabilities. Frontend pnpm checks, backend Ruff/mypy/pytest, RLS/API/concurrency tests and the 25–35-photo evaluation remain future gates because their application/tooling/fixtures do not exist.
-
-## Base64 photo revision
-
-The user-selected design now stores image_base64 text in private.photo_contents, with donation_photos metadata/digest and an atomic photo write. Supabase Storage, object paths and DONATION_PHOTOS_BUCKET configuration are removed. The content API still serves authenticated decoded bytes; ordinary DTOs never return payload text. System, use-case, creation-sequence and ERD sources/HTML are regenerated and validated for this revision; unchanged state/matching/booking diagrams retain their matching evidence. Updated current receipt links are in architecture.md. No code, migration or existing data conversion was performed.
-
-## Analysis and expiry blockers resolved on paper
-
-Created [analysis-rules.md](analysis-rules.md), [expiry-rules.md](expiry-rules.md) and [rules-test-cases.md](rules-test-cases.md). Updated requirement/use-case, API, database, architecture and handoff contracts for these two issues only. There are 49 future fixture scenarios, including all bucket boundaries, partial/ambiguous dates, PAO/opening uncertainty, immutable originals and failed/late analysis. The [scoped audit receipt](architecture/validation/rules-consistency.json) verifies IDs/links/examples/contracts and unchanged diagram source/HTML bytes; it does not claim runtime test success.
-
-No new tables, columns, routes, services, lifecycle states, app code or migrations; no native diagrams regenerated because workflows/physical schema did not change. Existing base64 photos, RLS, deterministic matching, human decisions and all six AGENTS rules are preserved. Thresholds and calendar defaults are proposed product choices, not measured model accuracy or general safety guarantees.
+Recommended order: Supabase/Auth deployment validation → live OpenAI/photo evaluation → Next.js required flows → mobile end-to-end/resource-race checks and deployment limits. Details and assumptions are in [handoff](handoff.md).

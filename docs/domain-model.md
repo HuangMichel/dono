@@ -1,6 +1,6 @@
 # Dono domain model and working MVP defaults
 
-Status: **corrected design, not an implementation**. This document replaces the earlier one-donation/one-target proposal. [AGENTS.md](../AGENTS.md) retains its six binding rules. [Requirements](requirements.md), [features](features.md), [schema](databases.md) and [FastAPI API](api.md) implement the same model on paper. Policy version: `mvp-domain-v1`.
+Status: **implemented backend domain baseline**; live Supabase/OpenAI verification remains in [readiness](readiness.md). This document replaces the earlier one-donation/one-target proposal. [AGENTS.md](../AGENTS.md) retains its six binding rules. [Requirements](requirements.md), [features](features.md), [schema](databases.md) and [FastAPI API](api.md) implement the same model on paper. Policy version: `mvp-domain-v1`.
 
 ## Why the six review findings matter
 

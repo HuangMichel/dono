@@ -2,7 +2,7 @@
 
 **Scan before you donate.** Dono helps individuals offer usable goods to associations that need them and have space. AI supplies indicators; association personnel make the donation decision.
 
-This repository is a **pre-implementation design baseline** for a hackathon MVP with a total effort budget of **40 hours**. It contains specifications and interactive diagrams. There is no application scaffold, frontend/package.json, backend/pyproject.toml, database migration, running API or photo evaluation set yet. Diagram validation does not verify application behavior.
+This repository now includes a FastAPI backend, Supabase PostgreSQL migrations/RLS and OpenAI Structured Outputs integration. All 64 documented REST method/path combinations are registered. The Next.js frontend is not implemented. The total product scope remains a **40-hour hackathon MVP**; [readiness](docs/readiness.md) distinguishes executed backend checks from remaining live-provider and photo-evaluation gates.
 
 ## Product and scope
 
@@ -35,7 +35,7 @@ Optional work is removed in this exact order: **Jev → OpenAI/Jev comparison �
 
 The [working defaults](docs/domain-model.md#working-defaults) separate need demand, storage places, daily intake quantities and appointment places. Review lasts 72 hours, approval allows 24 hours to book, and reception ends 30 minutes after a slot; expired/cancelled unreceived holds are released even without a scheduler. Four distinct lifecycles avoid permanently refusing the reusable item. Full lots only, one active offer and one site per association keep the MVP bounded.
 
-Human facts never depend on successful AI: valid manual facts/photos may proceed with explicit pending/unavailable evidence and staff review. Late results preserve originals and cannot overwrite corrections or a decision. Each association sees its own frozen offer evidence, not future corrections for another recipient. Analysis/indicator contracts and shelf-life boundaries/PAO/FEFO now have explicit [analysis-v1](docs/analysis-rules.md) and [expiry-v1](docs/expiry-rules.md) defaults with [future test cases](docs/rules-test-cases.md). Remaining upload, retention and operational budget decisions are listed in the [handoff](docs/handoff.md).
+Human facts never depend on successful AI: valid manual facts/photos may proceed with explicit pending/unavailable evidence and staff review. Late results preserve originals and cannot overwrite corrections or a decision. Each association sees its own frozen offer evidence, not future corrections for another recipient. Analysis/indicator contracts and shelf-life boundaries/PAO/FEFO now have explicit [analysis-v1](docs/analysis-rules.md) and [expiry-v1](docs/expiry-rules.md) defaults with [rule test cases](docs/rules-test-cases.md). Approved upload limits and remaining retention/operational budget decisions are listed in the [handoff](docs/handoff.md).
 
 ## Planned stack
 
@@ -48,7 +48,7 @@ Human facts never depend on successful AI: valid manual facts/photos may proceed
 | Optional indicators | TypeSafe Jev / hybrid behind `ANALYSIS_PROVIDER`; Jev does no OCR/date/number extraction. |
 | Geocoding | Government BAN address data through IGN Géoplateforme, `https://data.geopf.fr/geocodage/`. Backend geocoding only; no routing service. |
 
-No dependency versions are selected. Next.js is the frontend; FastAPI is a separate Python backend. Check the future frontend/package.json and backend/pyproject.toml, pin compatible versions and commit both lockfiles; prefer releases at least seven days old.
+Backend dependencies are pinned in backend/pyproject.toml and backend/uv.lock with a 2026-10-18 release cutoff. Frontend dependencies remain unselected; prefer releases at least seven days old.
 
 ## Documentation
 
@@ -59,14 +59,14 @@ No dependency versions are selected. Next.js is the frontend; FastAPI is a separ
 | [Domain model](docs/domain-model.md) | Corrected entities, independent budgets, lifecycles, working defaults and recovery. |
 | [Analysis rules](docs/analysis-rules.md) | Five closed extraction/indicator contracts, probabilities, uncertainty and immutable provenance. |
 | [Expiry rules](docs/expiry-rules.md) | Exclusive buckets, source dates/PAO, Python date checks and deterministic FEFO. |
-| [Rule test cases](docs/rules-test-cases.md) | 49 future analysis/date/FEFO scenarios; no implementation test claims. |
+| [Rule test cases](docs/rules-test-cases.md) | Analysis/date/FEFO acceptance scenarios; backend evidence is in readiness. |
 | [Features and use cases](docs/features.md) | Acceptance criteria, traceability and illustrative 40-hour allocation. |
 | [Architecture](docs/architecture.md) | Components, interaction design and current Archify validation evidence. |
 | [Database design](docs/databases.md) | Columns, constraints, RLS, locks, accounting and working domain constraints. |
-| [REST API](docs/api.md) | Planned FastAPI endpoints, DTOs, permissions, errors and examples. |
-| [Setup](docs/setup.md) | Prerequisites, planned Supabase configuration, environment and future checks. |
+| [REST API](docs/api.md) | Implemented FastAPI route contracts, DTOs, permissions, errors and examples. |
+| [Setup](docs/setup.md) | Backend setup, environment, executable checks and remaining Supabase deployment configuration. |
 | [Handoff and audit](docs/handoff.md) | Decisions, contradictions, assumptions, blockers, milestones and risks. |
-| [Readiness report](docs/readiness.md) | Review outcome, changed files, verified design invariants and implementation order. |
+| [Readiness report](docs/readiness.md) | Actual backend checks, implementation invariants and pending release gates. |
 
 ## Interactive diagrams
 
@@ -85,7 +85,7 @@ Open the standalone HTML files in a browser. Sources and current receipts/captur
 | Inventory | [Receipt and distribution](docs/architecture/inventory-lifecycle.html) | [JSON](docs/architecture/inventory-lifecycle.json) |
 | Database | [Full ERD](docs/architecture/database-erd.html) | [JSON](docs/architecture/database-erd.json) |
 
-The complete ERD uses a dense schema view; current validation/capture results and any layout advisories are recorded in architecture.md. Editable JSON sources and current evidence are kept alongside HTML and are no longer ignored. Historical captures do not prove revised artifacts.
+The complete ERD uses a dense schema view; current validation/capture results and any layout advisories are recorded in architecture.md. Editable JSON sources and current evidence are preserved alongside HTML. The existing broad architecture JSON ignore rule remains; explicitly review source tracking before staging new diagram JSON. Historical captures do not prove revised artifacts.
 
 ## Design choices clarified
 
@@ -93,22 +93,25 @@ Closed vocabularies such as roles, unit, category and state use named PostgreSQL
 
 The API uses `/api/v1/account/profile` and `/api/v1/account/memberships` for the signed-in user. All business routes belong to FastAPI; Next.js renders the frontend.
 
-## Planned quickstart
+## Frontend status
 
-Today you can read the documents and open the diagrams. Neither toolchain nor migrations exists. The root [.env.example](.env.example) separates public frontend settings from FastAPI-only secrets; populate the two future app environments selectively, never copy backend secrets into the frontend.
+The Next.js frontend is planned; there is no frontend package or runnable pnpm command yet. Backend setup and commands follow below. Hosted Supabase/Auth configuration and live model evaluation remain prerequisites described in [setup](docs/setup.md).
 
-After scaffolding, package configuration, policy decisions and reviewed Supabase provisioning, the intended commands are:
-
-```sh
-# Future frontend/ directory only; not runnable in this repository today.
-pnpm install
-pnpm dev
-```
+## Run the backend
 
 ```sh
-# Future backend/ directory only; pyproject/app entry point do not exist yet.
-uv sync
+cd backend
+uv sync --locked
 uv run uvicorn app.main:app --reload
 ```
 
-The actual origins/ports and migration procedure will be documented after configuration. Planned frontend checks are pnpm lint/typecheck/test; planned backend checks are Ruff, mypy and pytest. None ran here. [Setup](docs/setup.md) lists prerequisites, environment boundaries and future RLS, concurrency, expiry and photo-set verification.
+Configure the backend-only values described in [setup](docs/setup.md). The interactive API reference is served at `/docs`, with OpenAPI at `/openapi.json`. Protected operations require a Supabase bearer token; missing provider credentials produce explicit unavailable errors, with manual donation entry preserved. No development auth bypass is installed.
+
+```sh
+# From backend/
+uv run ruff check .
+uv run mypy app
+uv run pytest
+```
+
+The [handoff](docs/handoff.md) records decisions, implementation boundaries and the next verification work. Existing [interactive diagrams](docs/architecture.md#interactive-diagrams) are preserved; their artifact validation is separate from backend test evidence.

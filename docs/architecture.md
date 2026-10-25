@@ -109,3 +109,9 @@ The two remaining blockers are specified in [analysis-v1](analysis-rules.md), [e
 FastAPI calculates item-expiry views/guards in Python. The existing restricted atomic command rechecks unchanged sources/evidence and the reference-day UTC clock fence, so a calculation made before midnight cannot commit afterward. It does not compute item expiry in SQL or persist the result. Physical commands retain the same actors/routes/states; date-specific acknowledgements/reason refine their existing guards.
 
 No native diagram source or HTML was regenerated: topology, workflow messages, lifecycle transitions and physical schema are unchanged. Existing diagrams already show code expiry, immutable originals, corrections and explicit human review; their current byte-bound validation remains valid. The [rules consistency receipt](architecture/validation/rules-consistency.json) records the scoped documentation review. Application/provider/RLS/date tests remain unimplemented.
+
+## Backend implementation status
+
+The architecture is now backed by [FastAPI composition](../backend/app/main.py), explicit [REST response contracts](../backend/app/api/responses.py), pure [expiry](../backend/app/domain/expiry.py) and [matching](../backend/app/domain/matching.py), [OpenAI](../backend/app/adapters/openai.py)/[BAN](../backend/app/adapters/geocoding.py) adapters, and [PostgreSQL migrations](../supabase/migrations/). Ordinary reads use bearer-scoped RLS; privileged projections and commands reauthorize inside restricted functions owned by a dedicated application role.
+
+No frontend, Storage bucket, transport, messaging, queue or worker was added. All ten native diagram sources/HTML artifacts remain unchanged because component boundaries, table columns and workflows are unchanged. Historical statements above about missing application tests describe the earlier diagram delivery; current runtime evidence is in [readiness](readiness.md).

@@ -1,6 +1,6 @@
 # Expiry and FEFO rules — expiry-v1
 
-Status: **proposed deterministic MVP defaults, not implemented**. This resolves AMB-005/006 and the date portion of AMB-007. [AGENTS.md](../AGENTS.md) remains unchanged. [Analysis schemas](analysis-rules.md) extract source facts; this policy defines Python calculations and command guards. [Executable acceptance scenarios](rules-test-cases.md) are specifications for future tests, not existing application tests.
+Status: **expiry-v1 implemented in Python with database guard fencing**; actual verification is recorded in [readiness](readiness.md). This resolves AMB-005/006 and the date portion of AMB-007. [AGENTS.md](../AGENTS.md) remains unchanged. [Analysis schemas](analysis-rules.md) extract source facts; this policy defines Python calculations and command guards. [Executable acceptance scenarios](rules-test-cases.md) are specifications for future tests, not existing application tests.
 
 ## Source facts, reference time and persistence
 
@@ -106,3 +106,8 @@ Unknown and not-applicable items are retained, not lost from inventory/counts. A
 ## Assumptions and limits
 
 Version expiry-v1 is the chosen proposed policy for this 40-hour design; it replaces generic policy_required for these cases. Operational policy_version=mvp-domain-v1 remains separate. Policy revisions need versioned fixtures and consistent contracts, not mutations of source facts or originals. Stock is kept in its received packaging/state until full distribution; opening/repacking or post-receipt source-date correction is outside the existing MVP. A frozen unopened fact is not proof of present physical condition: staff must not confirm distribution if the item no longer matches it. Association-specific thresholds/custom expiry-policy UI, food post-opening arithmetic, nutritional/clinical suitability, partial-date ML disambiguation and jurisdiction-specific compliance engines are outside MVP. Staff retain responsibility for actual intake suitability; remaining deployment/retention/upload limits stay in the AMB register. The core date behavior is now explicit, not left for an LLM or frontend implementer to invent.
+
+
+## Implemented correction assertion
+
+The user approved `date_label_correction_confirmed: true` with mandatory reason for an incorrectly detected original strict label. A frozen donor-confirmed source-facts edit/create is required. Python may disregard only that original label concern after this explicit staff review; it still computes all limits from corrected source facts and blocks their expired/unresolved strict dates. Original evidence is immutable. Approval audits completed analysis IDs; booking reuse is valid only for that unchanged evidence set. Reception/distribution need a fresh assertion/reason. No expiry arithmetic or derived expiry value is persisted in this audit. See [API clarification](api.md#audited-false-date-label-correction) and `tests/test_rule_edges.py`.
