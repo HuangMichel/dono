@@ -249,8 +249,11 @@ describe("refusal releases provisional holds while retaining history", () => {
     expect(() =>
       reduceDemo(next, {
         type: "slot",
-        slot: edited,
-        expected_revision: slot.revision,
+        id: slot.id,
+        patch: {
+          starts_at: edited.starts_at,
+          expected_revision: slot.revision,
+        },
       }),
     ).toThrow("times cannot change");
   });
@@ -297,8 +300,8 @@ describe("refusal releases provisional holds while retaining history", () => {
     expect(() =>
       reduceDemo(state, {
         type: "slot",
-        slot: { ...slot, max_bookings: 1 },
-        expected_revision: "1",
+        id: slot.id,
+        patch: { max_bookings: 1, expected_revision: "1" },
       }),
     ).not.toThrow();
   });
@@ -331,8 +334,11 @@ describe("approval history after refusal", () => {
     expect(() =>
       reduceDemo(state, {
         type: "need",
-        need: { ...need, attributes: { product: "Different item" } },
-        expected_revision: need.revision,
+        id: need.id,
+        patch: {
+          attributes: { product: "Different item" },
+          expected_revision: need.revision,
+        },
       }),
     ).toThrow("criteria are locked");
   });

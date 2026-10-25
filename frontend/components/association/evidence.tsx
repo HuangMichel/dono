@@ -1,4 +1,10 @@
 "use client";
+import {
+  formatCount,
+  indicatorLabel,
+  factLabel,
+  enumLabel,
+} from "@/lib/ui-text";
 
 import Image from "next/image";
 import type { Donation } from "@/lib/contracts";
@@ -35,17 +41,7 @@ export function dateLabel(value: string | null | undefined) {
         timeZone: "Europe/Paris",
       }).format(parsed);
 }
-export const indicatorLabels: Record<string, string> = {
-  looks_like_medicine: "Medicine concern",
-  cold_food: "Needs refrigeration",
-  stains: "Stains",
-  sealed: "Sealed",
-  packaged_unopened: "Unopened packaging",
-  damaged_packaging: "Damaged packaging",
-  date_readable: "Date readable",
-  sole_wear: "Sole wear",
-  pairs_complete: "Pairs complete",
-};
+export { indicatorLabels } from "@/lib/ui-text";
 export function probabilityLabel(value: number) {
   return new Intl.NumberFormat("en-GB", {
     style: "percent",
@@ -123,7 +119,7 @@ export function Evidence({ donation }: { donation: Donation }) {
           <strong>Date corrected by donor</strong>
           <dl>
             <div>
-              <dt>Detected</dt>
+              <dt>Original extraction</dt>
               <dd>{dateLabel(extractedDate)}</dd>
             </div>
             <div>
@@ -148,13 +144,13 @@ export function Evidence({ donation }: { donation: Donation }) {
             </div>
             {Object.entries(donation.attributes).map(([key, value]) => (
               <div key={key}>
-                <dt>{key.replaceAll("_", " ")}</dt>
+                <dt>{factLabel(key)}</dt>
                 <dd>{factValue(value)}</dd>
               </div>
             ))}
             <div>
               <dt>Quantity</dt>
-              <dd>{donation.quantity} items</dd>
+              <dd>{formatCount(donation.quantity)}</dd>
             </div>
             {(donation.category === "food" || donation.category === "para") && (
               <>
@@ -163,18 +159,21 @@ export function Evidence({ donation }: { donation: Donation }) {
                   <dd>{facts?.date_type ?? "Unknown"}</dd>
                 </div>
                 <div>
-                  <dt>Source date</dt>
+                  <dt>Printed date</dt>
                   <dd>{dateLabel(facts?.expiry_date)}</dd>
                 </div>
                 <div>
-                  <dt>Readability</dt>
-                  <dd>{facts?.readability ?? "Unknown"}</dd>
+                  <dt>Date readability</dt>
+                  <dd>{enumLabel(facts?.readability ?? "unknown")}</dd>
                 </div>
                 {facts?.date_type === "PAO" && (
                   <div>
                     <dt>After opening</dt>
                     <dd>
-                      {facts.pao_months ?? "Unknown"} months, no opening date
+                      {facts.pao_months === null
+                        ? "Months not provided"
+                        : formatCount(facts.pao_months, "month")}
+                      , no opening date
                     </dd>
                   </div>
                 )}
@@ -183,7 +182,7 @@ export function Evidence({ donation }: { donation: Donation }) {
                   <dd>
                     {expiry.days_left === null
                       ? "Unknown"
-                      : `${expiry.days_left} days`}
+                      : formatCount(expiry.days_left, "day")}
                   </dd>
                 </div>
               </>
@@ -204,10 +203,7 @@ export function Evidence({ donation }: { donation: Donation }) {
               <dl>
                 {analysis.indicators.map((indicator, index) => (
                   <div key={`${indicator.key}-${index}`}>
-                    <dt>
-                      {indicatorLabels[indicator.key] ??
-                        indicator.key.replaceAll("_", " ")}
-                    </dt>
+                    <dt>{indicatorLabel(indicator.key)}</dt>
                     <dd>
                       {indicator.value}
                       {indicator.probability !== undefined &&
@@ -218,7 +214,7 @@ export function Evidence({ donation }: { donation: Donation }) {
                             indicator.level === "high" ? "warning" : "neutral"
                           }
                         >
-                          {indicator.level}
+                          {enumLabel(indicator.level)}
                         </Chip>
                       )}
                       {indicator.value === undefined &&
@@ -239,7 +235,7 @@ export function Evidence({ donation }: { donation: Donation }) {
                 <dl>
                   {Object.entries(analysis.extracted).map(([key, value]) => (
                     <div key={key}>
-                      <dt>{key.replaceAll("_", " ")}</dt>
+                      <dt>{factLabel(key)}</dt>
                       <dd>{factValue(value)}</dd>
                     </div>
                   ))}
@@ -247,7 +243,7 @@ export function Evidence({ donation }: { donation: Donation }) {
               </details>
             </>
           ) : (
-            <p className="console-meta">No retained analysis.</p>
+            <p className="console-meta">No sample analysis is available.</p>
           )}
         </section>
       </div>

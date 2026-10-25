@@ -1,4 +1,5 @@
 "use client";
+import { formatCount, indicatorLabel } from "@/lib/ui-text";
 import { DataTable } from "@/components/ui/data-table";
 import Link from "next/link";
 import Image from "next/image";
@@ -93,8 +94,8 @@ function DonationEvidence({ donation: d }: { donation: Donation }) {
             .
           </p>
           <p className="meta muted">
-            All {refusal.original_quantity} items were refused. No receipt or
-            stock was recorded.
+            Staff refused {formatCount(refusal.original_quantity)} at reception.
+            Nothing was added to stock.
           </p>
         </>
       )}
@@ -137,7 +138,7 @@ function DonationEvidence({ donation: d }: { donation: Donation }) {
             </p>
             {a.indicators.map((i) => (
               <p key={i.key} className="meta">
-                {i.key.replaceAll("_", " ")}:{" "}
+                {indicatorLabel(i.key)}:{" "}
                 {i.probability !== undefined
                   ? new Intl.NumberFormat("en", {
                       style: "percent",
@@ -150,8 +151,8 @@ function DonationEvidence({ donation: d }: { donation: Donation }) {
         ))}
       {state.receipt_originals[d.id] && (
         <p className="meta muted">
-          Original offered quantity: {state.receipt_originals[d.id]}. Received:{" "}
-          {d.quantity}. No pending remainder.
+          Originally offered: {formatCount(state.receipt_originals[d.id])}.
+          Received: {formatCount(d.quantity)}. This donation is complete.
         </p>
       )}
     </div>
@@ -182,6 +183,27 @@ export default function Donations() {
       month: "short",
       timeZone: "Europe/Paris",
     }).format(new Date(d.created_at));
+  const statusFilters = (
+    <div className="segmented donation-filters">
+      {[
+        ["all", "All"],
+        ["draft", "Drafts"],
+        ["posted", "Posted"],
+        ["offered", "Waiting for review"],
+        ["approved", "Ready to book"],
+        ["booked", "Appointments"],
+      ].map(([key, label]) => (
+        <Button
+          key={key}
+          variant="soft"
+          aria-pressed={filter === key}
+          onClick={() => setFilter(key)}
+        >
+          {label}
+        </Button>
+      ))}
+    </div>
+  );
   return (
     <PublicShell>
       <main id="main" className="container donations-page">
@@ -197,27 +219,9 @@ export default function Donations() {
           </EmptyState>
         ) : (
           <>
-            <div className="segmented donation-filters">
-              {[
-                ["all", "All"],
-                ["draft", "Drafts"],
-                ["posted", "Posted"],
-                ["offered", "In review"],
-                ["approved", "Ready to book"],
-                ["booked", "Appointments"],
-              ].map(([key, label]) => (
-                <Button
-                  key={key}
-                  variant="soft"
-                  aria-pressed={filter === key}
-                  onClick={() => setFilter(key)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
             {state.donations.length ? (
               <DataTable
+                filters={statusFilters}
                 rows={donations}
                 getRowId={(d) => d.id}
                 getRowLabel={name}
@@ -255,7 +259,7 @@ export default function Donations() {
                           />
                         </button>
                         <span className="meta muted block">
-                          {d.quantity} units
+                          {formatCount(d.quantity, "unit")}
                           {d.donor_kind === "company"
                             ? ", " + d.company_name
                             : ""}
@@ -328,12 +332,15 @@ export default function Donations() {
                 )}
               />
             ) : (
-              <EmptyState title="No donations in this view">
-                <p>Prepare one item to get started.</p>
-                <LinkButton href="/donate" size="app">
-                  Scan an item
-                </LinkButton>
-              </EmptyState>
+              <>
+                {statusFilters}
+                <EmptyState title="No donations in this view">
+                  <p>Prepare one item to get started.</p>
+                  <LinkButton href="/donate" size="app">
+                    Photograph an item
+                  </LinkButton>
+                </EmptyState>
+              </>
             )}
           </>
         )}

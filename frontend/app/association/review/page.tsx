@@ -1,4 +1,5 @@
 "use client";
+import { indicatorLabel } from "@/lib/ui-text";
 
 import Image from "next/image";
 import { useState } from "react";
@@ -40,9 +41,9 @@ export default function ReviewPage() {
               ["all", "All"],
               ["food", "Food"],
               ["clothes", "Clothes"],
-              ["para", "Care"],
+              ["para", "Hygiene & care"],
               ["shoes", "Shoes"],
-              ["furniture", "Furniture"],
+              ["furniture", "Small furniture"],
             ].map(([value, label]) => (
               <Button
                 key={value}
@@ -114,7 +115,7 @@ export default function ReviewPage() {
                         indicator.level === "high" ? "danger" : "warning"
                       }
                     >
-                      {indicator.key.replaceAll("_", " ")}
+                      {indicatorLabel(indicator.key)}
                       {indicator.probability !== undefined
                         ? ` ${new Intl.NumberFormat("en-GB", { style: "percent", maximumFractionDigits: 2 }).format(indicator.probability)}`
                         : ""}

@@ -1,7 +1,7 @@
 "use client";
 
 import { CapacityMeter } from "@/components/ui/capacity-meter";
-import { Button, Chip, Field } from "@/components/ui";
+import { Button, CardActions, Chip, Field } from "@/components/ui";
 
 import { useState, type FormEvent } from "react";
 import type { Category } from "@/lib/contracts";
@@ -54,7 +54,7 @@ export default function CapacityPage() {
             const limit = Number(capacity.limit_quantity);
             return (
               <div className="console-row console-capacity-row" key={key}>
-                <div style={{ flex: 1, minWidth: 140 }}>
+                <div className="console-capacity-meter">
                   <CapacityMeter
                     label={label}
                     inStock={capacity.computed.in_stock}
@@ -114,7 +114,9 @@ export default function CapacityPage() {
             The limit includes stock and approved reservations. Set zero to
             close an empty category. Pause individual needs on the Needs page.
           </p>
-          <Button variant="primary">Save capacity</Button>
+          <CardActions>
+            <Button variant="primary">Save capacity</Button>
+          </CardActions>
         </form>
       </div>
     </>

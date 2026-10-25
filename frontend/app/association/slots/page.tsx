@@ -3,9 +3,13 @@
 import { Button, Chip, Card, Field } from "@/components/ui";
 
 import { useState, type FormEvent } from "react";
-import type { Slot } from "@/lib/contracts";
+import type { Slot, SlotInput } from "@/lib/contracts";
 import { useDemo } from "@/lib/demo-context";
-import { DEMO_ASSOCIATION_ID, getOccupyingBookings } from "@/lib/demo-store";
+import {
+  DEMO_ASSOCIATION_ID,
+  getOccupyingBookings,
+  getSlot,
+} from "@/lib/demo-store";
 import { Calendar, useParisClock } from "@/components/ui/calendar";
 import { ConsoleTitle, Feedback } from "@/components/association/shell";
 import {
@@ -27,6 +31,7 @@ export default function SlotsPage() {
   const [error, setError] = useState(false);
   const slots = state.slots
     .filter((s) => s.association_id === DEMO_ASSOCIATION_ID)
+    .map((slot) => getSlot(state, slot))
     .toSorted((a, b) => a.starts_at.localeCompare(b.starts_at));
   const occupyingBookings = getOccupyingBookings(state);
   const hasHistoricalBookings = Boolean(
@@ -38,25 +43,31 @@ export default function SlotsPage() {
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      const now = new Date().toISOString();
-      const slot: Slot = {
-        id: editing?.id ?? crypto.randomUUID(),
-        association_id: DEMO_ASSOCIATION_ID,
+      const input: SlotInput = {
         starts_at: parisInputToInstant(start),
         ends_at: parisInputToInstant(end),
         max_bookings: Number(max),
         active: editing?.active ?? true,
-        revision: editing?.revision ?? "1",
-        created_at: editing?.created_at ?? now,
-        updated_at: now,
-        computed: {
-          booked_count: booked,
-          remaining_places: Math.max(0, Number(max) - booked),
-        },
       };
       if (Number(max) < booked)
         throw new Error("The place limit cannot be below existing bookings.");
-      dispatch({ type: "slot", slot, expected_revision: editing?.revision });
+      dispatch(
+        editing
+          ? {
+              type: "slot",
+              id: editing.id,
+              patch: {
+                expected_revision: editing.revision,
+                max_bookings: input.max_bookings,
+                active: input.active,
+                // Disabled historical times are not editable request fields.
+                ...(!hasHistoricalBookings
+                  ? { starts_at: input.starts_at, ends_at: input.ends_at }
+                  : {}),
+              },
+            }
+          : { type: "slot", id: crypto.randomUUID(), input },
+      );
       setError(false);
       setFeedback(editing ? "Slot updated." : "Slot created.");
       setFormOpen(false);
@@ -74,9 +85,20 @@ export default function SlotsPage() {
     try {
       dispatch({
         type: "slot",
-        slot: { ...slot, active: !slot.active },
-        expected_revision: slot.revision,
+        id: slot.id,
+        patch: { active: !slot.active, expected_revision: slot.revision },
       });
+      // Keep unsaved form values. Rebase only this successful status change,
+      // without hiding an external edit that had already made the form stale.
+      setEditing((current) =>
+        current?.id === slot.id && current.revision === slot.revision
+          ? {
+              ...current,
+              active: !slot.active,
+              revision: String(BigInt(slot.revision) + 1n),
+            }
+          : current,
+      );
       setError(false);
       setFeedback(
         slot.active

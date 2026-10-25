@@ -50,7 +50,7 @@ export function FileUpload({
             ? `${photos.length} added`
             : optional
               ? "Optional"
-              : "Needed"}
+              : "Required"}
         </Chip>
       </div>
       {photos.length ? (

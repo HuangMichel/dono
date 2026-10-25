@@ -1,4 +1,5 @@
 import Link from "next/link";
+import "./card.css";
 import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,13 @@ export function Card({
   ...props
 }: HTMLAttributes<HTMLElement> & { variant?: "default" | "subtle" }) {
   return <section className={`card card-${variant} ${className}`} {...props} />;
+}
+/** Explicit footer for a card's primary actions. */
+export function CardActions({
+  className = "",
+  ...props
+}: HTMLAttributes<HTMLElement>) {
+  return <footer className={cn("card-actions", className)} {...props} />;
 }
 export function Chip({
   children,

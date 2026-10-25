@@ -1,10 +1,18 @@
 "use client";
+import { formatCount } from "@/lib/ui-text";
 import Link from "next/link";
 import Image from "next/image";
 import { use, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { PublicShell, DemoTools } from "@/components/public-shell";
-import { Button, Card, Chip, PageHeading, SelectField } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardActions,
+  Chip,
+  PageHeading,
+  SelectField,
+} from "@/components/ui";
 import { Calendar, useParisClock } from "@/components/ui/calendar";
 import { availableBookingSlots } from "@/lib/booking-availability";
 import { getOccupyingBookings } from "@/lib/demo-store";
@@ -101,9 +109,11 @@ export default function Booking({
           <Card className="stack">
             <h1>Appointment unavailable</h1>
             <p>Choose donor demo and open an approved donation.</p>
-            <Link href="/login" className="button button-primary">
-              Choose role
-            </Link>
+            <CardActions>
+              <Link href="/login" className="button button-primary">
+                Choose role
+              </Link>
+            </CardActions>
           </Card>
         ) : d.status === "refused" && booking ? (
           <Card className="stack">
@@ -122,8 +132,8 @@ export default function Booking({
                   {format(refusal.original_approval.decided_at)}.
                 </p>
                 <p>
-                  {refusal.original_quantity} items were refused. No receipt or
-                  stock was recorded.
+                  Staff refused {formatCount(refusal.original_quantity)} at
+                  reception. Nothing was added to stock.
                 </p>
               </>
             )}
@@ -135,9 +145,11 @@ export default function Booking({
             <p className="meta muted">
               This appointment is closed. Its QR is unavailable.
             </p>
-            <Link className="button button-outline" href="/donations">
-              Back to my donations
-            </Link>
+            <CardActions>
+              <Link className="button button-outline" href="/donations">
+                Back to my donations
+              </Link>
+            </CardActions>
           </Card>
         ) : !["approved", "booked", "received", "distributed"].includes(
             d.status,
@@ -145,9 +157,11 @@ export default function Booking({
           <Card className="stack">
             <h1>Staff approval comes first</h1>
             <p>You can book once the association approves your offer.</p>
-            <Link href="/donations" className="button button-primary">
-              My donations
-            </Link>
+            <CardActions>
+              <Link href="/donations" className="button button-primary">
+                My donations
+              </Link>
+            </CardActions>
           </Card>
         ) : (
           <>
@@ -215,7 +229,7 @@ export default function Booking({
                   </dl>
                   <SelectField
                     id="booking-location"
-                    label="Where"
+                    label="Drop-off location"
                     value={association?.id ?? ""}
                     onChange={() => {}}
                   >
@@ -224,8 +238,8 @@ export default function Booking({
                     </option>
                   </SelectField>
                   <p className="meta muted">
-                    A time is reserved only after confirmation. Your demo QR is
-                    rendered separately.
+                    Your time is reserved after you confirm. Your demo QR code
+                    then appears.
                   </p>
                   <DemoTools>
                     <label className="check">
@@ -237,14 +251,16 @@ export default function Booking({
                       Simulate QR failure after booking
                     </label>
                   </DemoTools>
-                  <Button
-                    className="full"
-                    size="app"
-                    disabled={!chosenSlot}
-                    onClick={book}
-                  >
-                    Confirm booking
-                  </Button>
+                  <CardActions>
+                    <Button
+                      className="full"
+                      size="app"
+                      disabled={!chosenSlot}
+                      onClick={book}
+                    >
+                      Confirm booking
+                    </Button>
+                  </CardActions>
                 </Card>
               </div>
             ) : (
@@ -285,15 +301,17 @@ export default function Booking({
                     Local demo reference. No signature, security validity or
                     real appointment.
                   </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setQr("");
-                      setAttempt((x) => x + 1);
-                    }}
-                  >
-                    Reload QR
-                  </Button>
+                  <CardActions>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setQr("");
+                        setAttempt((x) => x + 1);
+                      }}
+                    >
+                      Reload QR
+                    </Button>
+                  </CardActions>
                 </Card>
                 <Card className="stack">
                   <h2>Booking confirmed</h2>
@@ -303,18 +321,21 @@ export default function Booking({
                   </p>
                   <p>{association?.display_address}</p>
                   <p>
-                    {d.quantity} units, {String(d.attributes.product)}
+                    {formatCount(d.quantity, "unit")},{" "}
+                    {String(d.attributes.product)}
                   </p>
                   <p className="notice">
-                    Bring your item for staff inspection. Reception records the
-                    actual quantity once.
+                    Bring your item for staff inspection. Staff confirm the
+                    quantity received.
                   </p>
-                  <Link className="button button-primary" href="/donations">
-                    Back to my donations
-                  </Link>
-                  <Link href="/login" className="button button-outline">
-                    Switch to reception demo
-                  </Link>
+                  <CardActions>
+                    <Link className="button button-primary" href="/donations">
+                      Back to my donations
+                    </Link>
+                    <Link href="/login" className="button button-outline">
+                      Switch to reception demo
+                    </Link>
+                  </CardActions>
                 </Card>
               </div>
             )}

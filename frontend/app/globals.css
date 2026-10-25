@@ -628,15 +628,25 @@ textarea.field {
 .needs-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
 }
 .location-search {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   flex: 1 1 320px;
   max-width: 420px;
+}
+.needs-toolbar .button {
+  height: 40px;
+  min-height: 40px;
+}
+.needs-toolbar .category-filter {
+  padding: 0;
+}
+.needs-toolbar .category-filter .button {
+  padding-inline: 10px;
 }
 .location-input {
   display: flex;
@@ -702,12 +712,16 @@ textarea.field {
 }
 .needs-note {
   margin: 12px 0 24px;
+  min-height: 40px;
 }
 .needs-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
+}
+.needs-results {
+  min-width: 0;
 }
 .need-row {
   text-align: left;
@@ -1071,8 +1085,9 @@ textarea.field {
 }
 .donation-filters {
   width: fit-content;
+  max-width: 100%;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  margin: 0;
 }
 .desktop-donations {
   border: 0.5px solid var(--border);
@@ -1731,10 +1746,10 @@ textarea.field {
   }
 }
 
-/* Location search reuses shared field errors while retaining its leading pin. */
+/* Keep the optional location control aligned with the toolbar controls. */
 .location-input.location-field {
-  height: auto;
-  min-height: 40px;
+  height: 40px;
+  flex-basis: 0;
   position: relative;
   align-items: flex-start;
   padding: 0;
@@ -1754,6 +1769,8 @@ textarea.field {
 .location-field input.field {
   width: 100%;
   height: 40px;
+  min-height: 40px;
+  flex: none;
   padding-left: 40px;
   border: 0.5px solid var(--border-ui);
   border-radius: 6px;
@@ -1762,7 +1779,4 @@ textarea.field {
 .location-field input.field[aria-invalid="true"] {
   border-color: var(--danger);
   background: var(--danger-bg);
-}
-.location-search:has(.field-error) > .button {
-  align-self: flex-start;
 }

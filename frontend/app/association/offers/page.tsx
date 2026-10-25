@@ -1,4 +1,10 @@
 "use client";
+import {
+  formatCount,
+  indicatorLabel,
+  factLabel,
+  enumLabel,
+} from "@/lib/ui-text";
 
 import Image from "next/image";
 import { useState } from "react";
@@ -50,7 +56,7 @@ export default function OffersPage() {
   return (
     <>
       <ConsoleTitle
-        title="Offers nearby"
+        title="Posted offers"
         detail={`${offers.length} available`}
       />
       <div className="console-gallery-layout">
@@ -105,7 +111,8 @@ export default function OffersPage() {
                     )}
                   </span>
                   <strong>
-                    {String(offer.attributes.product)}, {offer.quantity} units
+                    {String(offer.attributes.product)},{" "}
+                    {formatCount(offer.quantity, "unit")}
                   </strong>
                   <span className="console-meta">
                     {CATEGORY_LABELS[offer.category]}
@@ -153,7 +160,8 @@ export default function OffersPage() {
             <div className="console-stack">
               <h2>{String(selected.attributes.product)}</h2>
               <span className="console-meta">
-                {CATEGORY_LABELS[selected.category]}, {selected.quantity} units
+                {CATEGORY_LABELS[selected.category]},{" "}
+                {formatCount(selected.quantity, "unit")}
               </span>
               <Chip>Available</Chip>
             </div>
@@ -162,7 +170,7 @@ export default function OffersPage() {
                 .filter(([key]) => key !== "product")
                 .map(([key, value]) => (
                   <div key={key}>
-                    <dt>{key.replaceAll("_", " ")}</dt>
+                    <dt>{factLabel(key)}</dt>
                     <dd>{String(value)}</dd>
                   </div>
                 ))}
@@ -176,7 +184,7 @@ export default function OffersPage() {
                       ? "Unreadable"
                       : selected.expiry?.date_type === "PAO"
                         ? selected.expiry.pao_months !== null
-                          ? `PAO, ${selected.expiry.pao_months} months after opening`
+                          ? `PAO, ${formatCount(selected.expiry.pao_months, "month")} after opening`
                           : "PAO, months unknown"
                         : selected.expiry?.expiry_date
                           ? `${selected.expiry.date_type ?? "Type unknown"}, ${printedDate(selected.expiry.expiry_date, selected.expiry.date_precision)}`
@@ -186,7 +194,7 @@ export default function OffersPage() {
                 {selected.expiry?.expiry_date && (
                   <div>
                     <dt>Date precision</dt>
-                    <dd>{selected.expiry.date_precision}</dd>
+                    <dd>{enumLabel(selected.expiry.date_precision)}</dd>
                   </div>
                 )}
               </dl>
@@ -197,7 +205,7 @@ export default function OffersPage() {
                 <dl className="facts-list">
                   {selected.indicators.map((indicator) => (
                     <div key={indicator.key}>
-                      <dt>{indicator.key.replaceAll("_", " ")}</dt>
+                      <dt>{indicatorLabel(indicator.key)}</dt>
                       <dd>
                         {[
                           indicator.value ?? indicator.level,

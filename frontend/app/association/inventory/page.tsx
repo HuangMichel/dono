@@ -1,4 +1,5 @@
 "use client";
+import { formatCount } from "@/lib/ui-text";
 import { DataTable } from "@/components/ui/data-table";
 
 import { Button, Field } from "@/components/ui";
@@ -36,7 +37,7 @@ export default function InventoryPage() {
   );
   return (
     <>
-      <ConsoleTitle title="Stock" detail={`${total} items remaining`} />
+      <ConsoleTitle title="Stock" detail={`${formatCount(total)} remaining`} />
       <div className="console-summary-tiles" aria-label="Stock categories">
         {[
           ["all", "All categories"],
@@ -64,7 +65,9 @@ export default function InventoryPage() {
                 {label}
                 <span>{count}</span>
               </strong>
-              <span className="console-meta">items in stock</span>
+              <span className="console-meta">
+                {count === 1 ? "item in stock" : "items in stock"}
+              </span>
             </Button>
           );
         })}
@@ -132,7 +135,7 @@ export default function InventoryPage() {
             },
             {
               id: "date",
-              label: "Source date",
+              label: "Printed date",
               sortValue: (item) => {
                 const facts = state.expiry_facts.find(
                   (f) => f.donation_id === item.donation.id,
@@ -149,7 +152,7 @@ export default function InventoryPage() {
                   <>
                     {dateLabel(facts?.expiry_date)}
                     <p className="console-meta">
-                      {facts?.date_type ?? "No source date"}
+                      {facts?.date_type ?? "Date not available"}
                       {facts?.readability === "unreadable"
                         ? ", unreadable"
                         : ""}
@@ -165,7 +168,7 @@ export default function InventoryPage() {
               cell: (item) =>
                 item.expiry.days_left === null
                   ? "Unknown"
-                  : `${item.expiry.days_left} days`,
+                  : formatCount(item.expiry.days_left, "day"),
             },
             {
               id: "stock",
@@ -222,9 +225,9 @@ function StockDistribution({
       });
       setRevision(String(BigInt(revision) + 1n));
       setError(false);
-      setMessage(`${quantity} items given out.`);
+      setMessage(`${formatCount(quantity)} given out.`);
       onDistributed(
-        `${quantity} items of ${itemName(item.donation)} given out. Stock updated.`,
+        `${formatCount(quantity)} of ${itemName(item.donation)} given out. Stock updated.`,
       );
     } catch (cause) {
       setError(true);
@@ -257,7 +260,7 @@ function StockDistribution({
             revision !== item.donation.revision
           }
         >
-          Given out
+          Record distribution
         </Button>
         {revision !== item.donation.revision && (
           <Button

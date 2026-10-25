@@ -13,7 +13,7 @@ import {
   type DemoState,
   type DemoCommand,
 } from "./demo-store";
-import { createDemoPersistence } from "./demo-persistence";
+import { createDemoPersistence, DEMO_STORAGE_KEY } from "./demo-persistence";
 import { StorageNotice } from "@/components/storage-notice";
 type Context = {
   state: DemoState;
@@ -41,12 +41,24 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setSnapshot(persistence.current!.hydrate());
     setReady(true);
+    function onStorage(event: StorageEvent) {
+      if (event.key !== DEMO_STORAGE_KEY && event.key !== null) return;
+      if (event.storageArea !== window.localStorage) return;
+      setSnapshot(persistence.current!.synchronize());
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
   function publish(next: DemoState) {
     setSnapshot(persistence.current!.publish(next));
   }
   function dispatch(c: DemoCommand) {
-    publish(reduceDemo(persistence.current!.snapshot().state, c));
+    try {
+      persistence.current!.update((state) => reduceDemo(state, c));
+    } finally {
+      // A rejected stale command still reveals the newer saved record.
+      setSnapshot(persistence.current!.snapshot());
+    }
   }
   function reset() {
     publish(createInitialState());

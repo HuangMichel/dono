@@ -1,4 +1,6 @@
 "use client";
+import { sampleIdentity } from "@/lib/sample-identity";
+import { formatCount, indicatorLabel } from "@/lib/ui-text";
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -7,6 +9,7 @@ import { PublicShell, DemoTools } from "@/components/public-shell";
 import {
   Button,
   Card,
+  CardActions,
   Chip,
   Field,
   SelectField,
@@ -39,6 +42,11 @@ import {
 } from "@/components/donor/flow-states";
 import { DonationHome } from "@/components/donor/donation-home";
 import type { Category } from "@/lib/contracts";
+import {
+  hydrateWorkingDetails,
+  workingDetailsPatch,
+  type WorkingDetails,
+} from "@/components/donor/working-details";
 export default function Donate() {
   return (
     <Suspense fallback={<p>Loading donation…</p>}>
@@ -93,15 +101,16 @@ function DonationFlow({
       null,
     ),
     [reviewWarning, setReviewWarning] = useState(false),
-    [product, setProduct] = useState("Winter coat"),
-    [category, setCategory] = useState<Category>("clothes"),
-    [quantity, setQuantity] = useState("1"),
-    [size, setSize] = useState("M"),
-    [expiry, setExpiry] = useState(""),
-    [paoMonths, setPaoMonths] = useState(""),
-    [dateType, setDateType] = useState<"DLC" | "DDM" | "expiry" | "PAO">("DDM"),
-    [location, setLocation] = useState("Paris 11e (fixture location)"),
+    [location, setLocation] = useState("Paris 11e (sample location)"),
     [selected, setSelected] = useState("");
+  const [details, setDetails] = useState<WorkingDetails>(() =>
+    hydrateWorkingDetails(),
+  );
+  const { product, category, quantity, size, expiry, paoMonths, dateType } =
+    details;
+  function updateDetails(patch: Partial<WorkingDetails>) {
+    setDetails((current) => ({ ...current, ...patch }));
+  }
   const [photoState, setPhotoState] = useState<PhotoSnapshot>({
     photos: [],
     errors: [],
@@ -118,15 +127,7 @@ function DonationFlow({
   const readingPhotos = photoState.photos.some((photo) => photo.loading);
   useEffect(() => () => photoController.dispose(), [photoController]);
   const correctionSheet = useRef<HTMLDialogElement>(null);
-  const correctionSnapshot = useRef<{
-    product: string;
-    category: Category;
-    quantity: string;
-    size: string;
-    expiry: string;
-    paoMonths: string;
-    dateType: typeof dateType;
-  } | null>(null);
+  const correctionSnapshot = useRef<WorkingDetails | null>(null);
   const alert = useRef<HTMLDivElement>(null),
     sheetAlert = useRef<HTMLDivElement>(null),
     timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -140,18 +141,12 @@ function DonationFlow({
     hydratedId.current = donation.id;
     const facts = state.expiry_facts.find((f) => f.donation_id === donation.id);
     // Hydrate once per draft; later local edits belong to this form until saved.
-    setCategory(donation.category ?? "clothes");
+    setDetails(hydrateWorkingDetails(donation, facts));
     setScenario((current) =>
       current === "medicine" || current === "cold"
         ? current
         : (donation.category ?? "clothes"),
     );
-    setQuantity(donation.quantity ?? "1");
-    setProduct(String(donation.attributes.product ?? "Winter coat"));
-    setSize(String(donation.attributes.size ?? "M"));
-    setExpiry(facts?.expiry_date ?? "");
-    setDateType(facts?.date_type ?? "DDM");
-    setPaoMonths(facts?.pao_months?.toString() ?? "");
   }, [donation, state.expiry_facts]);
   useEffect(
     () => () => {
@@ -173,9 +168,11 @@ function DonationFlow({
   function initialize() {
     try {
       if (donation) {
-        setCategory(donation.category ?? "clothes");
-        setProduct(String(donation.attributes.product ?? ""));
-        setQuantity(donation.quantity ?? "1");
+        updateDetails({
+          category: donation.category ?? "clothes",
+          product: String(donation.attributes.product ?? ""),
+          quantity: donation.quantity ?? "1",
+        });
         setStep(analysis ? 1 : 0);
         return;
       }
@@ -184,12 +181,7 @@ function DonationFlow({
         type: "create",
         id: next,
         input: {
-          category:
-            scenario === "medicine"
-              ? "para"
-              : scenario === "cold"
-                ? "food"
-                : scenario,
+          category: sampleIdentity(scenario).category,
           quantity: "1",
           unit: "item",
         },
@@ -217,22 +209,14 @@ function DonationFlow({
           scenario,
           expected_revision: donation.revision,
         });
-        const cat =
-          scenario === "medicine"
-            ? "para"
-            : scenario === "cold"
-              ? "food"
-              : scenario;
         if (!donation.basis_analysis_id) {
-          setCategory(cat);
-          if (!donation.attributes.product)
-            setProduct(
-              cat === "food"
-                ? "Sealed pasta, 500 g"
-                : cat === "clothes"
-                  ? "Winter coat"
-                  : "Demo item",
-            );
+          const sample = sampleIdentity(scenario);
+          updateDetails({
+            category: sample.category,
+            ...(!donation.attributes.product
+              ? { product: sample.product }
+              : {}),
+          });
         }
         setStep(1);
       } catch (e) {
@@ -241,28 +225,14 @@ function DonationFlow({
     }, 650);
   }
   function openCorrections() {
-    correctionSnapshot.current = {
-      product,
-      category,
-      quantity,
-      size,
-      expiry,
-      paoMonths,
-      dateType,
-    };
+    correctionSnapshot.current = details;
     setError("");
     correctionSheet.current?.showModal();
   }
   function discardCorrections() {
     const original = correctionSnapshot.current;
     if (!original) return;
-    setProduct(original.product);
-    setCategory(original.category);
-    setQuantity(original.quantity);
-    setSize(original.size);
-    setExpiry(original.expiry);
-    setPaoMonths(original.paoMonths);
-    setDateType(original.dateType);
+    setDetails(original);
     setError("");
     correctionSnapshot.current = null;
   }
@@ -281,24 +251,7 @@ function DonationFlow({
         type: "patch",
         id: donation.id,
         expected_revision: donation.revision,
-        patch: {
-          category,
-          quantity,
-          attributes: { product, ...(category === "clothes" ? { size } : {}) },
-          ...(["food", "para"].includes(category)
-            ? {
-                expiry: {
-                  expiry_date: dateType === "PAO" ? null : expiry || null,
-                  date_type: dateType,
-                  pao_months:
-                    dateType === "PAO" && paoMonths ? Number(paoMonths) : null,
-                  date_precision: expiry ? "day" : "unknown",
-                  raw_label: expiry || null,
-                  readability: expiry ? "readable" : "unknown",
-                },
-              }
-            : {}),
-        },
+        patch: workingDetailsPatch(details),
       });
       setError("");
       correctionSnapshot.current = null;
@@ -339,9 +292,11 @@ function DonationFlow({
           <Card className="stack">
             <h1>Prepare a useful donation</h1>
             <p>Choose the donor role to create and track an offer.</p>
-            <Link href="/login" className="button button-primary">
-              Choose donor demo
-            </Link>
+            <CardActions>
+              <Link href="/login" className="button button-primary">
+                Choose donor demo
+              </Link>
+            </CardActions>
           </Card>
         </main>
       </PublicShell>
@@ -363,10 +318,11 @@ function DonationFlow({
             <Chip>Posted</Chip>
             <h1>Your offer is posted</h1>
             <p>
-              {String(donation.attributes.product)}, {donation.quantity} units
+              {String(donation.attributes.product)},{" "}
+              {formatCount(donation.quantity, "unit")}
             </p>
             <p className="muted">
-              Associations can browse your item in Offers nearby.
+              Associations can browse your item in Posted offers.
             </p>
             <p className="meta muted">
               Withdraw the post to change the item details.
@@ -413,10 +369,12 @@ function DonationFlow({
         <main id="main" className="container narrow">
           <Card className="stack">
             <h1>This donation has already been offered</h1>
-            <p>Working facts are locked after offering.</p>
-            <Link href="/donations" className="button button-primary">
-              View my donations
-            </Link>
+            <p>Item details cannot be changed after sending an offer.</p>
+            <CardActions>
+              <Link href="/donations" className="button button-primary">
+                View my donations
+              </Link>
+            </CardActions>
           </Card>
         </main>
       </PublicShell>
@@ -558,11 +516,7 @@ function DonationFlow({
                       onPrimary={photoController.makePrimary}
                       onUseSample={() => {
                         photoController.addSamples(
-                          scenario === "medicine"
-                            ? "para"
-                            : scenario === "cold"
-                              ? "food"
-                              : scenario,
+                          sampleIdentity(scenario).category,
                         );
                         setError("");
                       }}
@@ -588,7 +542,7 @@ function DonationFlow({
                   <DemoTools>
                     <div className="stack-sm" style={{ marginTop: 16 }}>
                       <label className="field-label">
-                        Fixture scenario
+                        Sample scenario
                         <select
                           value={scenario}
                           onChange={(e) =>
@@ -661,7 +615,7 @@ function DonationFlow({
                 <div>
                   <strong>{product}</strong>
                   <p className="meta muted">
-                    {CATEGORY_LABELS[category]}, {quantity} units
+                    {CATEGORY_LABELS[category]}, {formatCount(quantity, "unit")}
                   </p>
                   {expiry && (
                     <p className="meta">
@@ -684,13 +638,15 @@ function DonationFlow({
                     {expiryRead.days_left}
                   </span>
                   <div>
-                    <p>days left</p>
+                    <p>
+                      {expiryRead.days_left === 1 ? "day left" : "days left"}
+                    </p>
                     <p className="meta">
                       From the printed date, computed for{" "}
                       {expiryRead.reference_date}, Europe/Paris.
                     </p>
                     <p className="meta">
-                      Expiry status and intake policy remain unresolved.
+                      Dates do not determine eligibility in this demo.
                     </p>
                   </div>
                 </section>
@@ -705,13 +661,7 @@ function DonationFlow({
               {analysis?.indicators.map((i) => (
                 <div className="indicator-row" key={i.key}>
                   <div className="row between">
-                    <span>
-                      {i.key === "looks_like_medicine"
-                        ? "Medicine-like appearance"
-                        : i.key === "cold_food"
-                          ? "Chilled food concern"
-                          : "Stains likely"}
-                    </span>
+                    <span>{indicatorLabel(i.key)}</span>
                     <span className="num">
                       {i.probability !== undefined
                         ? new Intl.NumberFormat("en", {
@@ -800,14 +750,16 @@ function DonationFlow({
                   required
                   label="Product"
                   value={product}
-                  onChange={(e) => setProduct(e.target.value)}
+                  onChange={(e) => updateDetails({ product: e.target.value })}
                 />
                 <div className="grid-two">
                   <SelectField
                     label="Category"
                     required
                     value={category}
-                    onChange={(e) => setCategory(e.target.value as Category)}
+                    onChange={(e) =>
+                      updateDetails({ category: e.target.value as Category })
+                    }
                   >
                     {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
                       <option key={k} value={k}>
@@ -824,7 +776,9 @@ function DonationFlow({
                     max="999999999"
                     step="1"
                     value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
+                    onChange={(e) =>
+                      updateDetails({ quantity: e.target.value })
+                    }
                   />
                 </div>
                 {category === "clothes" && (
@@ -832,7 +786,7 @@ function DonationFlow({
                     id="working-size"
                     label="Size"
                     value={size}
-                    onChange={(e) => setSize(e.target.value)}
+                    onChange={(e) => updateDetails({ size: e.target.value })}
                   />
                 )}{" "}
                 {["food", "para"].includes(category) && (
@@ -842,14 +796,16 @@ function DonationFlow({
                       required
                       value={dateType}
                       onChange={(e) => {
-                        setDateType(e.target.value as typeof dateType);
-                        if (e.target.value === "PAO") setExpiry("");
+                        updateDetails({
+                          dateType: e.target.value as typeof dateType,
+                          ...(e.target.value === "PAO" ? { expiry: "" } : {}),
+                        });
                       }}
                     >
                       <option value="DLC">Use by</option>
                       <option value="DDM">Best before</option>
                       <option value="expiry">Expiry</option>
-                      <option>PAO</option>
+                      <option value="PAO">Period after opening</option>
                     </SelectField>
                     {dateType !== "PAO" ? (
                       <Field
@@ -857,37 +813,41 @@ function DonationFlow({
                         label="Printed date, if readable"
                         type="date"
                         value={expiry}
-                        onChange={(e) => setExpiry(e.target.value)}
+                        onChange={(e) =>
+                          updateDetails({ expiry: e.target.value })
+                        }
                       />
                     ) : (
                       <>
                         <Field
                           id="pao-months"
-                          label="Printed PAO months, if readable"
+                          label="Months after opening, if readable"
                           type="number"
                           min="1"
                           max="120"
                           value={paoMonths}
-                          onChange={(e) => setPaoMonths(e.target.value)}
+                          onChange={(e) =>
+                            updateDetails({ paoMonths: e.target.value })
+                          }
                         />
                         <p className="notice">
-                          PAO is preserved as evidence. No opening date or
-                          after-opening expiry is calculated. Opened products
-                          are ineligible.
+                          The printed period after opening is retained. No
+                          expiry date is calculated from it. Opened products
+                          cannot be offered.
                         </p>
                       </>
                     )}
                     <p className="meta muted">
-                      Unclear date? Leave it blank. Expiry buckets and final
-                      intake policy remain unresolved.
+                      Leave an unreadable date blank. Dates do not determine
+                      eligibility in this demo.
                     </p>
                   </>
                 )}{" "}
                 {analysis?.category !== category && (
                   <p className="notice warning">
-                    Working category differs from the original analysis. The
-                    original evidence remains unchanged. Reanalysis rules are
-                    unresolved.
+                    You changed the category. The original sample indicators
+                    remain unchanged. Analysis for the new category is
+                    unavailable.
                   </p>
                 )}
               </form>
@@ -924,7 +884,8 @@ function DonationFlow({
             <section className="flow-state">
               <h1>No current match</h1>
               <p className="meta muted">
-                {String(donation.attributes.product)}, {donation.quantity} units
+                {String(donation.attributes.product)},{" "}
+                {formatCount(donation.quantity, "unit")}
               </p>
               <p>Post your item so associations can find it.</p>
               {warningKeys.length > 0 && (
@@ -966,8 +927,8 @@ function DonationFlow({
                 }}
               >
                 <p className="muted">
-                  {String(donation.attributes.product)}, {donation.quantity}{" "}
-                  identical units
+                  {String(donation.attributes.product)},{" "}
+                  {formatCount(donation.quantity, "identical unit")}
                 </p>
                 <Field
                   id="match-location"
@@ -1012,17 +973,23 @@ function DonationFlow({
                     <dl className="facts-list">
                       <div>
                         <dt>Your offer</dt>
-                        <dd>{donation.quantity} units</dd>
+                        <dd>{formatCount(donation.quantity, "unit")}</dd>
                       </div>
                       <div>
                         <dt>Active offers</dt>
                         <dd>One per item</dd>
                       </div>
                     </dl>
-                    <Button size="app" type="submit" disabled={!matches.length}>
-                      Send offer
-                      <Icon name="arrow-right" />
-                    </Button>
+                    <CardActions>
+                      <Button
+                        size="app"
+                        type="submit"
+                        disabled={!matches.length}
+                      >
+                        Send offer
+                        <Icon name="arrow-right" />
+                      </Button>
+                    </CardActions>
                   </Card>
                 </div>
               </form>

@@ -58,6 +58,7 @@ vi.mock("@/components/association/evidence", () => ({
 vi.mock("@/components/ui", () => ({
   Button: "Button",
   Card: "Card",
+  CardActions: "CardActions",
   Chip: "Chip",
   PageHeading: "PageHeading",
   Field: "Field",

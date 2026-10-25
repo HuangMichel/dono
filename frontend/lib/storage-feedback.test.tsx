@@ -8,7 +8,6 @@ vi.mock("@/components/ui", () => ({
   Icon: () => null,
   LinkButton: "a",
 }));
-vi.mock("../components/ui", () => ({ Button: "button" }));
 import { OfferSent } from "../components/donor/flow-states";
 import { StorageNotice } from "../components/storage-notice";
 import { STORAGE_WRITE_ERROR } from "./demo-persistence";
