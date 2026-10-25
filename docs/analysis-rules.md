@@ -99,6 +99,8 @@ For clothes/shoes/furniture, dates is {expiry_date:null, date_type:null, pao_mon
 
 Each provider-wire indicator has required key, probability and value; probability is number|null and value is a concise observation|string|null. There is no provider-wire level. The adapter omits null optional fields to satisfy the AGENTS Indicator shape, preserves the original numeric probability/value and assigns level in Python once under analysis-v1. Persist that attributable normalized original unchanged. No recalibration or relabeling after a donor correction.
 
+Generated indicator descriptions and need-draft warnings use British English, even when the input is in another language. Names, brands, printed labels and other literal source facts retain their original wording. Provider prompts request this language; schema validation does not verify it. Existing saved evidence remains unchanged.
+
 | Probability p | Original normalized level | Meaning |
 |---|---|---|
 | null | absent | Not assessable from these images; never equivalent to 0 or low. Keep the key-only/observation row with NULL probability/level. |
