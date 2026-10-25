@@ -1,0 +1,27 @@
+.needs-search {
+  align-items: flex-end;
+}
+.needs-search .field-label {
+  min-width: 0;
+  flex: 1;
+}
+.needs-search input {
+  width: 100%;
+}
+.nearby-page .need-row {
+  overflow-wrap: anywhere;
+}
+.nearby-page .need-row-heading .meta {
+  display: block;
+}
+.nearby-page .need-detail {
+  align-self: start;
+}
+@media (max-width: 767px) {
+  .needs-search {
+    width: 100%;
+  }
+  .needs-search .field-label {
+    flex-basis: 100%;
+  }
+}

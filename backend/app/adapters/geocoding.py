@@ -13,6 +13,8 @@ class Location:
     display_address: str
     latitude: float
     longitude: float
+    city: str | None = None
+    postcode: str | None = None
 
 
 class BANGeocoder:
@@ -20,11 +22,20 @@ class BANGeocoder:
         self.client = client
         self.base_url = base_url.rstrip("/")
 
-    async def geocode(self, address: str) -> Location:
+    async def geocode(
+        self, address: str, *, municipality_only: bool = False
+    ) -> Location:
+        """Resolve an address, or restrict discovery searches to municipalities."""
+        address = address.strip()
+        if not 3 <= len(address) <= 200 or not address[0].isalnum():
+            raise DomainError("invalid_location", 422)
+        params: dict[str, str | int] = {"q": address, "index": "address", "limit": 1}
+        if municipality_only:
+            params["type"] = "municipality"
         try:
             response = await self.client.get(
                 self.base_url + "/search",
-                params={"q": address, "index": "address", "limit": 1},
+                params=params,
                 timeout=15,
             )
             if response.status_code != 200:
@@ -41,6 +52,19 @@ class BANGeocoder:
                 or not (-90 <= latitude <= 90 and -180 <= longitude <= 180)
             ):
                 raise ValueError("invalid location")
-            return Location(label, latitude, longitude)
+            properties = feature["properties"]
+            if municipality_only and properties.get("type") != "municipality":
+                raise ValueError("municipality required")
+            city = properties.get("city")
+            postcode = properties.get("postcode")
+            return Location(
+                label,
+                latitude,
+                longitude,
+                city.strip() if isinstance(city, str) and city.strip() else None,
+                postcode.strip()
+                if isinstance(postcode, str) and postcode.strip()
+                else None,
+            )
         except (httpx.RequestError, ValueError, KeyError, IndexError, TypeError) as exc:
             raise DomainError("geocoding_unavailable", 503) from exc

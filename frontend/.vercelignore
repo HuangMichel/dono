@@ -1,0 +1,14 @@
+.env
+.env.*
+node_modules/
+.next/
+.vercel/
+.turbo/
+out/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+**/*.test.ts
+**/*.test.tsx
+test/

@@ -36,9 +36,19 @@ def postgres(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
             "grant usage on schema auth to authenticated; grant execute on "
             "function auth.uid() to authenticated;"
         )
-        for migration in sorted(
-            (Path(__file__).parents[2] / "supabase/migrations").glob("*.sql")
-        ):
+        supabase = Path(__file__).parents[2] / "supabase"
+        migrations = sorted((supabase / "migrations").glob("*.sql"))
+        for migration in migrations:
             connection.execute(migration.read_text())
+        # Run reviewed payloads until the CLI materializes the deployment migration.
+        if not any(path.stem.endswith("_vercel_setup") for path in migrations):
+            change = supabase / "changes/vercel/photo_upload_limit_4mib.sql"
+            connection.execute(change.read_text())
+        if not any(path.stem.endswith("_public_needs") for path in migrations):
+            connection.execute((supabase / "changes/public_needs.sql").read_text())
+        if not any(path.stem.endswith("_public_needs_location") for path in migrations):
+            connection.execute(
+                (supabase / "changes/public_needs_location.sql").read_text()
+            )
     yield uri
     server.cleanup()

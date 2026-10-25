@@ -19,6 +19,7 @@ from app.api.workflow_shared import (
 )
 from app.domain.errors import DomainError
 from app.services.workflow import (
+    OfferContext,
     guard_for,
     offer_context,
 )
@@ -88,13 +89,34 @@ async def booking_response(
 ) -> dict[str, object]:
     row = await booking_record(booking_id, actor, db)
     context = await offer_context(db, actor, UUID(str(row["offer_id"])))
+    return booking_projection(row, context, request)
+
+
+@router.get("/offers/{offer_id}/booking", response_model=Single[BookingDTO])
+async def offer_booking(
+    offer_id: UUID,
+    request: Request,
+    actor: Actor = Depends(enabled),
+    db: Supabase = Depends(database),
+) -> dict[str, object]:
+    """Restore an appointment through the existing offer visibility guard."""
+    context = await offer_context(db, actor, offer_id)
+    if context.booking is None:
+        raise DomainError("not_found", 404)
+    return booking_projection(context.booking, context, request)
+
+
+def booking_projection(
+    booking: dict[str, object], context: OfferContext, request: Request
+) -> dict[str, object]:
+    row = dict(booking)
     if context.slot is None:
         raise DomainError("database_unavailable", 503)
     row["computed"] = {
         "effective_state": (
             "no_show"
             if row["status"] == "booked"
-            and context.as_of >= datetime.fromisoformat(row["receivable_until"])
+            and context.as_of >= datetime.fromisoformat(str(row["receivable_until"]))
             else row["status"]
         ),
         "starts_at": context.slot["starts_at"],

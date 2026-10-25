@@ -1,0 +1,29 @@
+.booking-pass {
+  align-items: center;
+  text-align: center;
+}
+.booking-pass img {
+  max-width: 100%;
+  height: auto;
+}
+.booking-available-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.booking-cancellation {
+  border-top: 0.5px solid var(--border);
+  padding-top: 16px;
+}
+.booking-cancellation summary {
+  cursor: pointer;
+}
+.booking-cancellation form {
+  margin-top: 16px;
+}
+@media (max-width: 767px) {
+  .booking-page .booking-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,18 @@
+# Dependencies and generated output
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+.turbo/
+.vercel/
+playwright-report/
+test-results/
+next-env.d.ts
+*.tsbuildinfo
+
+# Package-manager output, assets and local configuration
+pnpm-lock.yaml
+public/
+.env*

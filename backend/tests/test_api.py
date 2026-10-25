@@ -63,3 +63,45 @@ def test_verified_identity_and_user_jwt_read_scope() -> None:
         )
         assert response.status_code == 422
         assert "input" not in str(response.json())
+
+
+def test_health_is_available_without_credentials_or_dependencies() -> None:
+    def upstream(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("Liveness must not call external services")
+
+    config = Settings(_env_file=None)
+    with TestClient(create_app(config, httpx.MockTransport(upstream))) as client:
+        response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert response.headers["cache-control"] == "private, no-store"
+
+
+def test_cors_allows_configured_frontend_headers_and_denies_other_origins() -> None:
+    config = Settings(_env_file=None, app_origin="https://dono.example")
+    with TestClient(create_app(config)) as client:
+        headers = {
+            "Origin": "https://dono.example",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": (
+                "authorization,content-type,idempotency-key"
+            ),
+        }
+        allowed = client.options("/api/v1/donations", headers=headers)
+        assert allowed.status_code == 200
+        assert allowed.headers["access-control-allow-origin"] == "https://dono.example"
+        assert "access-control-allow-credentials" not in allowed.headers
+
+        denied = client.options(
+            "/api/v1/donations", headers=headers | {"Origin": "https://other.example"}
+        )
+        assert denied.status_code == 400
+        assert "access-control-allow-origin" not in denied.headers
+
+        unauthenticated = client.get(
+            "/api/v1/account/profile", headers={"Origin": "https://dono.example"}
+        )
+        assert unauthenticated.status_code == 401
+        assert unauthenticated.headers["access-control-allow-origin"] == (
+            "https://dono.example"
+        )

@@ -6,7 +6,7 @@ colors:
   primary: "#2A7E3B"
   primary-hover: "#203C25"
   on-primary: "#FFFFFF"
-  focus: "#65BA74"
+  focus: "#2A7E3B"
   background: "#FDFDFC"
   background-subtle: "#F9F9F8"
   background-component: "#F1F0EF"
@@ -177,7 +177,7 @@ Use steps strictly by role:
 | --- | --- | --- |
 | 1–2 | Page and subtle backgrounds | app bg, sidebar, lanes |
 | 3–5 | Component backgrounds, hover, active | chips, soft buttons, selected rows |
-| 6–8 | Borders and focus | hairline borders (6–7), selection and focus (8) |
+| 6–8 | Borders and focus | hairline borders (6–7), selection and focus (11) |
 | 9–10 | Solid surfaces | primary and solid status buttons |
 | 11–12 | Text | 11 for low-contrast, 12 for high-contrast |
 
@@ -189,7 +189,8 @@ mockups so white text passes AA (5.1:1): `{colors.primary}` is grass-11 and
 (#46A758 grass, #E5484D red, 3.0–3.9:1 with white) remain accent colors for icons and selection
 marks, not for text-bearing surfaces. Hairlines have no component sub-token, so they are
 documented here: every border is 0.5 px — sand-6 `#DAD9D6` subtle, sand-7 `#CFCECA` UI,
-sand-8 `#BCBBB5` strong — and selection and keyboard focus use grass-8, `{colors.focus}`.
+sand-8 `#BCBBB5` strong — and selection and keyboard focus use grass-11, `{colors.focus}`, pinned
+up from the mockups' grass-8 so the ring passes 3:1 against the page.
 Disabled controls use `{colors.text-disabled}` on `{colors.background-component}`
 (sand-9 on sand-3), which WCAG exempts as inactive UI.
 Status color encodes **who speaks**, not just severity:
@@ -222,7 +223,9 @@ Four surfaces, each with its own container:
 - **Donor app** — mobile-first: full-viewport screens at phone width; desktop-adapted layouts at
   768 px and above. Flow states (loading, errors, empty, warnings) render as phone-sized frames on
   desktop and full-bleed screens on mobile.
-- **Company portal** — desktop-first, max-width 1120 px.
+- **Company portal** — desktop-first, max-width 1120 px. Future design: the
+  backend has no company attribution, so the connected frontend shows an
+  explicit unavailable state instead of this surface.
 
 Spacing runs on the 4 px base: gaps 8 / 12 / 16 inside components, 24 / 32 between sections.
 Alignment is optical: connector lines center on their markers (a 0.5 px line through a 20 px dot
@@ -264,9 +267,11 @@ exact class strings in the selected mockups.
   surface treatments; list rows inside use 0.5 px dividers, not extra cards, selected rows use
   `{components.row-selected}`, meta lines use `{components.list-meta}`.
 - **Console shell** — `{components.console-sidebar}` with the section nav; one chrome across
-  Dashboard, Review, Offers, Reception, Stock, Needs, Capacity, Slots and Images.
+  Dashboard, Review, Reception, Stock, Needs, Capacity, Slots and Photos. A separate
+  posted-offers section is future design and is not implemented in the connected frontend.
 - **Lists** — one row per entity: primary text, muted meta line, status chip on the right. No
   nested cards. Overlays sit on `{components.sheet-scrim}`.
+- **Action notifications** appear in a fixed stack at the top right, with safe screen-edge spacing and a maximum width of 384 px. Use the page background, a hairline border, a semantic icon and a dismiss button. Show at most three popups. Success and information messages close after six seconds; pause the timer on hover or keyboard focus. Errors do not expire automatically. Keep field validation and resource-loading errors beside the affected controls. Notifications survive client navigation and clear when the signed-in account changes. Do not move focus when a notification appears.
 
 ## Do's and Don'ts
 
@@ -304,18 +309,37 @@ Terminology is fixed; do not improvise synonyms:
 | --- | --- | --- |
 | Approved / Refused | Staff decisions only | Never attributed to AI |
 | Waiting for review | Offers after sending | Amber pending state |
-| Photo requested | Staff asking for a better photo | In-app status, never a message |
+| Item | Physical goods offered by a donor | One item record may contain several identical units |
+| Donation | The donor's reusable item record | Distinguish donation counts from item quantities |
+| Offer | One attempt to give an item to one association | One active offer per item |
+| Drop-off / Appointment | The donor's booked visit | Do not imply a collection or transport service |
+| Received | Items handed over to the association | Do not use "Transferred" or "No show" as donor status labels |
+| In stock | Received items still held by the association | Staff term |
 | Given out | Items distributed by the association | Staff term |
-| Best before / Use by | Donor-facing date types | DDM and DLC appear on staff screens only |
-| FEFO | Stock ordering | Staff screens only |
+| Best before / Use by | Printed date types | Preserve the original label as evidence |
+| Distribute first | Stock ordered by earliest expiry | FEFO is an internal term |
 | Needs | What associations ask for | "Nearby needs" for public browsing |
-| Offer | What a donor sends | One active offer per item |
+| Storage space | Capacity for received items and reservations | Separate from daily intake and appointment places |
+| Daily intake limit | Quantity the association can receive on one day | Separate from storage space |
+| Category confidence | Confidence in the AI's item classification | Never describe this as a suitability score |
+| Indicators | AI observations about an item | Keep probability and human decisions distinct |
 
 Rules of thumb: one sentence per empty state; one action per screen; numbers carry units
 ("412 kg", "142 days left"); dates in "15 Mar 2027" form; the AI never approves, refuses or
 decides anything. Describe AI output as extracted facts, indicators and estimates. Code computes
 days left, expiry buckets, distances and totals. Use factual headings such as "Check your item
-details" instead of claiming that an item is ready or suitable to donate.
+details" instead of claiming that an item is ready or suitable to donate. Use British English,
+sentence case and "association" throughout the app, including validation errors and generated
+indicator descriptions and need-draft warnings, regardless of the browser or input language.
+Format known category values as readable
+labels, such as "T-shirt" and "Room temperature". Preserve names, brands, printed labels and
+other free text exactly as entered. Explain failed actions in user terms, with an available next
+step. Do not expose internal codes, revision numbers, JSON or deployment settings in errors.
+After an uncertain save, ask the user to check the current status before trying again.
+
+An empty matching list means that no matching association is available; it does not prove that
+no association needs the item. Staff review is required after every new offer. A photo-request
+action remains a design proposal until the API supports it.
 
 
 ## Donation and appointment states
@@ -324,6 +348,9 @@ One donation contains one product type and may contain several identical units. 
 
 Use Europe/Paris for appointment times. Show staff approval before slot selection. Confirm the booking before generating its QR. A failed QR request leaves the appointment booked and offers a QR retrieval retry.
 
-Reception has one confirmation. Staff may first adjust the actual quantity to a positive value no greater than the offered quantity. Confirmation records reception and stock together. Preserve the original offered quantity in the receipt history. Do not show a received state followed by a separate add-to-stock action or a pending remainder.
+Reception has one confirmation that records reception and stock together. The current API requires the full offered quantity at reception and the full remaining quantity when giving items out. Describe that limit beside each action. The earlier design proposal to receive a smaller quantity is not implemented. Do not show a received state followed by a separate add-to-stock action or a pending remainder.
 
-Company offers use a donor account and company name. Food must remain unopened, non-perishable and stored at room temperature. Do not imply company verification, tax receipts or chilled-food support.
+Company offers are future design: the backend has no company attribution. The
+current app keeps the food rules (unopened, non-perishable, room temperature)
+on its explicit unavailable state and does not imply company verification, tax
+receipts or chilled-food support.

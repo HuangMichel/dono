@@ -63,6 +63,15 @@ class Supabase:
         )
         return self._rows(response)
 
+    async def public_needs(self, args: dict[str, object]) -> dict[str, object]:
+        """Read the limited public projection with server credentials."""
+        response = await self.client.post(
+            self.settings.supabase_url + "/rest/v1/rpc/dono_public_needs_in_location",
+            headers=self.headers(),
+            json=args,
+        )
+        return self._rows(response)[0]
+
     @staticmethod
     def _rows(response: httpx.Response) -> list[dict[str, object]]:
         if response.is_error:
@@ -102,6 +111,7 @@ class Supabase:
                 "outside_reception_window": 422,
                 "invalid_qr": 422,
                 "photo_limit_reached": 422,
+                "upload_too_large": 413,
                 "photo_integrity_error": 500,
             }
             if error.get("code") == "23505" and any(

@@ -6,9 +6,12 @@ Status: proposed delivery specification for a ≤40-hour hackathon MVP. The [req
 
 ## Feature catalog
 
+The frontend now uses the real API and removes runtime demo records. The [current integration notes](requirements.md#connected-frontend--2026-10-25) distinguish connected behavior from unsupported product designs. Unmatched public posting and reception refusal from the former demo have no equivalent backend command and are no longer exposed as working actions.
+
 | ID | Feature | Priority | Minimum deliverable / boundary |
 |---|---|---|---|
 | FEAT-001 | Identity, roles and association approval | M | Donor/staff isolation and platform approval of RNA/SIRET association registrations. No general platform access to donation decisions. |
+| FEAT-024 | Public needs directory | M | Browse needs without an account; sign up or sign in when choosing to offer an item, preserving the selected need. |
 | FEAT-002 | Needs capture | M | Structured form plus editable free-text parsing draft. Staff confirm the final need. |
 | FEAT-003 | Capacity, hours and slots | M | Separate item demand, storage places, dated intake quotas and appointment places; configure all four explicitly. |
 | FEAT-004 | Donation photo capture | M | Mobile-browser capture/upload, food/para label close-up and server validation before provider calls. |
@@ -47,11 +50,23 @@ Review expires after 72 hours, unbooked approval after 24 hours. A booking start
 
 ## Detailed MVP use cases
 
+### UC-017 — Browse needs and start an offer
+
+**Actor:** public visitor or signed-in donor. **Feature:** FEAT-024. **Trigger:** open Nearby needs.
+
+**Flow:** load public needs; optionally search by town or postcode and filter by category; inspect a need; choose Offer an item. A visitor creates an account or signs in before preparing a donation. Authentication preserves the selection. The existing matching and offer flow validates the actual item against current availability.
+
+- **UC-017-AC01:** A visitor without a session can load needs, inspect criteria and association drop-off details, filter and paginate. No authentication request is required for the listing.
+- **UC-017-AC02:** Only approved associations' active, in-season needs with positive remaining demand appear. The response excludes staff identities, free-text source notes, private budgets, donations and photos.
+- **UC-017-AC03:** Empty or whitespace-only location lists eligible needs without distances. A town search includes only associations with the BAN-resolved town name; a full five-digit postcode search includes only that postcode. Combine location with category filtering before pagination, then order matches by computed straight-line distance. For example, searching `Mulhouse` or `68100` excludes Paris associations. Changing the search or category resets the page and selected need. Geocoding failure shows an error with retry; an empty list stays empty.
+- **UC-017-AC04:** Offer an item leads a visitor to signup, with a sign-in alternative. Successful authentication and profile bootstrap return to donation preparation with the selected need, category and location. Email confirmation preserves the same continuation when configured.
+- **UC-017-AC05:** A changed or unavailable need cannot bypass matching or send an offer automatically. Unauthenticated donation writes, private reads and evidence access remain rejected. Return URLs cannot navigate to an external site.
+
 ### UC-001 — Authenticate and enable an association
 
 **Actors:** donor, association applicant, platform admin. **Features:** FEAT-001. **Trigger:** a person signs in or submits an association registration.
 
-**Preconditions:** Supabase Google OAuth configured; verified subject; profile bootstrapped as donor only (DEC-008).
+**Preconditions:** Supabase email/password authentication configured; an authenticated session exists, after email confirmation if required; profile bootstrapped as donor only (DEC-008).
 
 **Main flow:** verify identity; provision the caller's donor profile; register a pending association with the applicant's inactive admin membership and bootstrap event; platform manually verifies RNA/SIRET; approve and activate that same applicant atomically.
 
@@ -65,7 +80,8 @@ Acceptance criteria:
 - **UC-001-AC02:** Given personnel for associations X and Y, X cannot read or mutate Y's offers, needs, capacity, slots, stock or photos through UI or direct API/data requests.
 - **UC-001-AC03:** Given a pending association, it is absent from new matching results until a platform admin manually approves its registration.
 - **UC-001-AC04:** A donor cannot self-assign a privileged role through editable account metadata; association approval grants no platform permission to decide donations.
-- **UC-001-AC05:** Google sign-in and registration require no app email; approval activates only the original applicant admin once, and a failure rolls back both registration approval and activation.
+- **UC-001-AC05:** Email/password signup and sign-in replace Google. When signup returns no session, show a confirmation prompt and do not bootstrap a profile or allow protected operations. When a session exists, provision donor capability only. Association approval activates only the original applicant admin once, and a failure rolls back both registration approval and activation.
+- **UC-001-AC06:** Signup accepts passwords of at least eight characters. Credentials go directly to Supabase Auth. Invalid credentials and provider failures show a recoverable error; submission cannot create duplicate in-flight requests. Profile or membership failures keep protected content unavailable while allowing retry and sign-out.
 
 ### UC-002 — Configure needs, capacity and drop-off availability
 
@@ -106,6 +122,8 @@ Acceptance criteria:
 - **UC-003-AC03:** Another donor or unrelated association cannot obtain the photo through a guessed photo/donation identifier or a direct query of the private payload table.
 - **UC-003-AC04:** A failed upload shows failure and allows correction/retry without presenting an analysis result or successful offer. Metadata/content commit together or both roll back; retries cannot duplicate photos.
 - **UC-003-AC05:** Photo list/evidence DTOs contain no base64 payload; authenticated content reads decode the retained original bytes and check their digest, without accessing a bucket.
+- **UC-003-AC06:** The donor can open a live camera preview for an item or label, capture a photo, retake it and confirm it. Only confirmation changes the local photo selection; capture alone starts no upload or analysis. The same size and total-count limits apply to captured and selected files.
+- **UC-003-AC07:** Closing the camera, leaving the screen or reviewing a capture releases every camera track. A late permission response cannot reopen a closed camera or add a photo. Camera errors provide a file-selection fallback. Keyboard users can reach every control, close with Escape and return focus to the opener.
 
 ### UC-004 — Read category-specific analysis and safety indicators
 
@@ -376,6 +394,7 @@ Each feature maps to all requirements it directly implements or constrains. All 
 | FEAT-021 | P | FR-032 | BR-006; NFR-010 | Excluded from MVP; future scope/criteria TBD |
 | FEAT-022 | M | FR-033, FR-035, FR-036, FR-038 | BR-001, BR-002; NFR-001, NFR-004, NFR-005 | UC-015 |
 | FEAT-023 | M | FR-001, FR-002, FR-037 | BR-006; NFR-001, NFR-002, NFR-004 | UC-001, UC-016 |
+| FEAT-024 | M | FR-039 | BR-002, BR-003; NFR-001, NFR-002, NFR-007 | UC-017 |
 
 ## Delivery priorities and forty-hour budget
 
@@ -410,10 +429,10 @@ Post-MVP contains advanced reporting/impact and discovery/verification/partnersh
 | Isolation and immutability | Two donors/two associations; direct read/write attempts across boundaries; original-result mutation rejected; secrets absent from client output | FR-001; NFR-001–NFR-005; UC-001/UC-003/UC-005/UC-008 |
 | Lifecycle and concurrency | Staff-only decision; one active attempt; deadline equality without jobs; cancellation/re-offer; last-quota/slot contention; cross-attempt receipt/distribution uniqueness; stale JWT revocation/last-admin and delayed analysis races | NFR-004; UC-007/UC-008/UC-010–UC-012 |
 | Full flow | Own item → corrected facts → match → offer → staff review → booking/QR → staff reception → distribution, with in-app donor status and FEFO/gallery | All M features |
-| Product language and exclusions | Every AI view uses indicator wording; human decision identified; no transport, routing, email or messaging paths | BR-001, BR-006 |
-| Repository checks | Frontend pnpm lint/typecheck/test and backend Ruff/mypy/pytest pass once scaffolded; photo fixtures are present and exercised | NFR-009 |
+| Product language and exclusions | Every AI view uses indicator wording; human decision identified; no transport, routing, donation notification emails or messaging paths; account confirmation allowed | BR-001, BR-006 |
+| Repository checks | Frontend pnpm lint/typecheck/test/build and backend Ruff/mypy/pytest pass for changed components; photo fixtures are present and exercised | NFR-009 |
 
-These acceptance specifications now have backend implementation and automated evidence in [readiness](readiness.md). There is no frontend `package.json` or real photo evaluation set, so frontend commands and model/photo evaluation remain delivery gates. Documentation review checks that IDs are unique, all requirements are traceable, links resolve, priorities respect AGENTS.md and ambiguities remain explicit.
+These acceptance specifications have backend implementation and automated evidence in [readiness](readiness.md). The connected frontend and its package scripts now exist. Hosted email/password authentication, API flows and model/photo evaluation remain delivery gates. Documentation review checks that IDs are unique, all requirements are traceable, links resolve, priorities respect AGENTS.md and ambiguities remain explicit.
 
 ## Two-blocker contract revision
 

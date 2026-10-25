@@ -257,6 +257,12 @@ def test_http_donation_review_booking_receipt_stock(postgres: str) -> None:
         ]:
             response = client.get(path, headers=headers(actor))
             assert response.status_code == 200, response.text
+        assert (
+            client.get(
+                f"/api/v1/offers/{offer['id']}/booking", headers=headers(donor)
+            ).status_code
+            == 404
+        )
         approved = checked(
             client.post(
                 f"/api/v1/offers/{offer['id']}/decision",
@@ -284,6 +290,20 @@ def test_http_donation_review_booking_receipt_stock(postgres: str) -> None:
                 json={"expected_offer_revision": "2", "slot_id": slot},
             ),
             201,
+        )
+        for actor in (donor, admin):
+            restored = checked(
+                client.get(
+                    f"/api/v1/offers/{offer['id']}/booking", headers=headers(actor)
+                )
+            )
+            assert restored == booking
+            assert "qr_nonce" not in restored
+        assert (
+            client.get(
+                f"/api/v1/offers/{offer['id']}/booking", headers=headers(operator)
+            ).status_code
+            == 404
         )
         response = client.get(
             f"/api/v1/associations/{association}/arrivals?date={day}",
