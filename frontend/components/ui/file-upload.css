@@ -1,0 +1,113 @@
+.file-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.file-upload-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.file-upload-preview {
+  display: grid;
+  place-items: center;
+  height: 128px;
+  min-height: 128px;
+  padding: 16px;
+  border: 0.5px dashed var(--strong);
+  border-radius: 8px;
+  background: var(--subtle);
+  text-align: center;
+}
+.file-upload-preview > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+}
+.file-upload-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.file-upload-photo {
+  min-width: 0;
+  padding: 8px;
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.file-upload-thumbnail {
+  height: 96px;
+  display: grid;
+  place-items: center;
+  background: var(--subtle);
+  border-radius: 4px;
+}
+.file-upload-thumbnail img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 96px;
+  object-fit: contain;
+}
+.file-upload-filename {
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+.file-upload-photo-status {
+  min-height: 24px;
+}
+.file-upload-photo-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.file-upload-multiple .file-upload-photo-actions {
+  grid-auto-rows: minmax(36px, auto);
+}
+.file-upload-photo-actions > .button:nth-child(n + 3) {
+  grid-column: 1 / -1;
+}
+.file-upload-photo-actions .button {
+  min-height: 36px;
+  padding: 5px 8px;
+}
+.file-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.file-upload input:focus-visible ~ .file-upload-actions {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+@media (max-width: 767px) {
+  .file-upload-preview {
+    min-height: 112px;
+    height: 112px;
+  }
+}
+
+.file-upload-gallery {
+  max-height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.file-upload-single .file-upload-gallery {
+  grid-template-columns: minmax(0, 1fr);
+}

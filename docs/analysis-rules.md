@@ -1,0 +1,150 @@
+# Donation analysis rules — analysis-v1
+
+Status: **analysis-v1 schemas and OpenAI adapter implemented**; live model/photo evaluation remains pending in [readiness](readiness.md). This resolves AMB-017 and the indicator/uncertainty part of AMB-007. [AGENTS.md](../AGENTS.md) remains authoritative. The five contracts below refine its unchanged AnalysisResult envelope. [Expiry rules](expiry-rules.md) own all date interpretation/calculation; [test cases](rules-test-cases.md) specify verification, with implemented schemas/prompts/tests under backend/. Live provider and photo evaluation remain release gates.
+
+## Authority and output envelope
+
+OpenAI is the required extraction/indicator provider. Five category branches share one envelope; a single structured-output call can use nested attributes anyOf branches with these exact keys; Python verifies the chosen branch agrees with the top-level category. No top-level anyOf or new classifier service is required. The optional category_hint guides inspection, never fixes the output category. Jev/hybrid remains deferred and cannot provide OCR, dates, quantity or dimensions by estimation.
+
+| Field | Closed contract / source |
+|---|---|
+| provider / model | Trusted server configuration/actual provider identity, not model-assigned permissions. |
+| category | clothes, shoes, food, para or furniture. Preserve the model's selected original category. No sixth unknown/medicine category. |
+| confidence | Finite number in [0,1], equal to the selected entry in extracted.classification. It is a self-reported **category estimate**, not confidence in every OCR field, safety or suitability. |
+| extracted | Closed object: schema_version="analysis-v1", classification, attributes, dates. No extra fields. |
+| extracted.classification | Object with exactly five numeric keys clothes/shoes/food/para/furniture, each [0,1]. Sum must differ from 1 by at most 0.01, inclusive; Python uses exact decimal validation for this boundary without renormalizing originals. category must be a maximal entry; ties choose the first of the five keys in that listed order. confidence equals its entry. |
+| extracted.attributes | Exactly the category-specific model fields listed below, each key present and nullable. Human write payloads use the same allowed keys/types, may omit unknown keys, and normalize omitted values to null. |
+| extracted.dates | Common source-date object below; all keys present. Clothes/shoes/furniture use the explicit empty object values described there. |
+| indicators | Exactly the three common keys plus this category's keys, each once. No decision/accepted/refused/score-of-donatability key. |
+
+All objects are closed; unsupported keys/categories, nonfinite/out-of-range numbers, duplicate/missing indicator keys, invalid enums or impossible calendar values fail validation. No successful row is fabricated from invalid output. Text is trimmed plain text, maximum 120 characters except raw_label (240); size is at most 40 characters. Blank/unknown values become null, never guessed sizes/products/dates. Strings are not executable instructions. Facts describe visible labels/objects only; an image cannot prove hygiene, storage history, internal damage or medicine absence.
+
+Model schemas use required keys with nullable values and additionalProperties=false. The provider adapter must handle incomplete output and provider refusal separately from successful parsing; a provider refusal is **analysis unavailable**, never donation refused. Python performs business and cross-field validation even with structured output. This follows the [official OpenAI structured-output guidance](https://developers.openai.com/api/docs/guides/structured-outputs). A compatible model/version and actual provider-schema smoke test remain deployment work, with no new model choice here.
+
+## Category extraction schemas
+
+Every value below also permits null for unavailable evidence. Unknown must not be encoded as the categorical value other. Quantities/unit remain explicit human/code-validated item facts, outside model extraction. No inferred item count, measurement, PAO duration conversion or expiry arithmetic.
+
+### Clothes
+
+| Attribute | Expected value |
+|---|---|
+| type | tshirt, shirt, trousers, dress, coat, knitwear, other |
+| size | Literal visible label, e.g. M or 6 ans; no inferred numeric size. |
+| audience | adult, child, baby; null if not supported visually/by label. |
+| seasons | Unique subset of spring/summer/autumn/winter; [] means a visible all-season indication, null means unknown. Need.seasons remains the separate operational season criterion. |
+
+Indicators: wear_visible, stains_visible, holes_visible, pilling_visible. Each estimates the named visible condition, not whether the association should take the garment.
+
+### Shoes
+
+| Attribute | Expected value |
+|---|---|
+| type | sneakers, boots, sandals, formal, other |
+| size | Literal printed size, e.g. EU 39; no sizing conversion. |
+| pair_complete | Boolean only if the supplied images support a complete/incomplete pair; otherwise null. |
+
+Indicators: pair_incomplete, sole_damage, upper_damage, heavy_wear. No inferred remaining lifespan or walking safety.
+
+### Food
+
+| Attribute | Expected value |
+|---|---|
+| product | Visible product name/type. |
+| brand | Visible brand or null. |
+| storage_condition | room_temperature, chilled, frozen, as supported by label; unknown is null. |
+| non_perishable | Boolean supported by declared/visible product evidence, otherwise null; no invented shelf life. |
+| packaging_state | sealed, opened; null if unclear. Physical packaging damage is separately an indicator. |
+
+Indicators: packaging_damaged, seal_broken, spoilage_visible. No claim that a low spoilage probability means safe food. Individual-food eligibility still requires staff not-medicine and eligible-individual-food assertions. Working food facts must explicitly state room_temperature and non_perishable=true before a valid offer; uncertain AI results cannot supply a default true. Opened food is outside this proposed MVP intake profile; this bounds post-opening food-life rules without inventing a second shelf life.
+
+### Parapharmacy / hygiene (para)
+
+| Attribute | Expected value |
+|---|---|
+| product | Visible product name/type. |
+| brand | Visible brand or null. |
+| product_kind | hygiene, cosmetic, medical_device, other. This is a description, never medicine clearance. |
+| opening_state | unopened, opened; null means unknown. Donor may confirm this source fact. |
+| seal_state | intact, broken, not_present; null means uncertain. |
+
+Indicators: seal_broken, packaging_damaged. The common looks_like_medicine indicator is mandatory even for a hygiene/cosmetic label. Opening state and human opened_on determine PAO applicability; neither is invented from a pot icon alone. A medical_device label does not establish that any particular item is suitable; staff still review it.
+
+### Furniture
+
+| Attribute | Expected value |
+|---|---|
+| type | chair, table, cabinet, shelving, other |
+| size_class | small, medium, large, when visible support exists; otherwise null. |
+| printed_dimensions | Literal displayed measurement text only, or null. No inferred centimetres, volume, weight or storage cost. |
+
+Indicators: structural_damage, surface_damage, visible_mould. Visible structural-damage evidence is not an assessment of actual structural safety. Matching uses confirmed need criteria and staff-declared storage rate, never model-estimated dimensions/capacity.
+
+## Common date extraction
+
+The dates object has exactly expiry_date, date_type, pao_months, date_precision, raw_label and readability. It **does not accept opened_on**; that is human-only. Values match the source fields in expiry_info:
+
+- expiry_date: ISO YYYY-MM-DD or null, only an exact full visible/confirmed source date. Python must independently validate the calendar value and its consistency with raw_label. Never fill missing year/day, choose a century, resolve ambiguous 03/04/2026 or calculate an end-of-month/PAO date in a model.
+- date_type: DLC / DDM / expiry / PAO or null. Identify DLC/DDM from wording, not merely product category. Para absolute shelf-life labels map to expiry; food best-before labels map to DDM. If an absolute label and PAO coexist, retain its absolute type plus printed pao_months; PAO is the type only when no absolute date exists.
+- pao_months: positive integer printed as months, maximum 120 for this MVP input contract; otherwise null. A duration printed only in years remains raw/unknown until a human supplies a confirmed month value; the model performs no multiplication.
+- date_precision: day/month/year/unknown. Partial dates retain their source text and null expiry_date. Ambiguous order/year uses unknown precision. Missing/unreadable date uses unknown.
+- raw_label: verbatim selected date-label/date token, or null; unreadable characters are not completed. Multiple conflicting absolute labels retain the text fragments joined in reading order with " | ", date_precision=unknown and expiry_date=null. This is an unresolved conflict, not permission to choose one silently.
+- readability: readable/unreadable/unknown. Readable but ambiguous is readable with unknown precision and preserved raw text. No label supplied is unknown, not unreadable.
+
+Non-null expiry_date requires date_precision=day and readability=readable; otherwise reject the contradictory payload. Food allows DLC/DDM or expiry for an explicitly generic EXP label, never cosmetic PAO; para absolute labels use expiry. The category-qualified date shapes are validated in Python in addition to the shared SQL enum.
+
+For clothes/shoes/furniture, dates is {expiry_date:null, date_type:null, pao_months:null, date_precision:"unknown", raw_label:null, readability:"unknown"}. An unexpected visible medicine/date label still raises the common concern indicator and requires human clarification; it cannot be discarded through category override. Source normalization is Python; all effective date, days/bucket/FEFO computations occur in Python at read time.
+
+## Indicator semantics, levels and missing evidence
+
+Each provider-wire indicator has required key, probability and value; probability is number|null and value is a concise observation|string|null. There is no provider-wire level. The adapter omits null optional fields to satisfy the AGENTS Indicator shape, preserves the original numeric probability/value and assigns level in Python once under analysis-v1. Persist that attributable normalized original unchanged. No recalibration or relabeling after a donor correction.
+
+Generated indicator descriptions and need-draft warnings use British English, even when the input is in another language. Names, brands, printed labels and other literal source facts retain their original wording. Provider prompts request this language; schema validation does not verify it. Existing saved evidence remains unchanged.
+
+| Probability p | Original normalized level | Meaning |
+|---|---|---|
+| null | absent | Not assessable from these images; never equivalent to 0 or low. Keep the key-only/observation row with NULL probability/level. |
+| 0 ≤ p < 0.50 | low | Event estimated less likely; no guarantee it is absent. |
+| 0.50 ≤ p < 0.80 | medium | Concern requiring explicit attention. |
+| 0.80 ≤ p ≤ 1 | high | Strong warning; no automatic staff decision. |
+
+The common keys, present in every category, are looks_like_medicine (item visually/label-wise resembles a medicine), chilled_or_frozen (item requires cold storage) and label_unreadable (supplied label cannot reliably be read). A missing label has null probability for label_unreadable; it is not a negative observation. Condition probabilities concern independent named events given these photos; they need not sum to one and cannot be averaged into a donation-acceptance score. Category probabilities alone form the five-way distribution. All estimates are uncalibrated until evaluated; 0.8 is not a measured 80% accuracy claim. UI percentage formatting is Python/frontend code and never rewrites stored precision.
+
+For medium/high medicine or cold-food concern, retain a warning across category overrides. High medicine always displays pharmacy redirection. Submission may proceed for human review; it never creates approval. Approval requires the existing explicit not_medicine / eligible_individual_food assertions plus a nonempty reason documenting clarification when such a concern is in scope. Confirmed medicine or chilled/frozen individual food cannot pass those assertions. An absent/unassessable medicine indicator requires manual-review acknowledgement, not a synthetic low indicator. This refines AMB-007 without letting a probability set decision.
+
+## Classification uncertainty, conflicts and fallback
+
+| Condition | Working facts / review behavior |
+|---|---|
+| confidence ≥0.80, valid output, no evidence conflict | May seed only an empty unchanged working set with no effective active offer, under DEC-007. It never establishes human eligibility. |
+| confidence <0.80, including a tie | Persist the valid original as uncertain. Do not seed facts/category automatically; donor explicitly selects category and completes fields. No fake sixth category. Staff manual-review acknowledgement required. |
+| Missing attribute/date/indicator | Preserve null/key-only unknown. Donor can enter facts; required publication fields must be completed. Apply the explicit expiry policy rather than guess. |
+| High opposite evidence versus a factual field (e.g. pair_complete=true and pair_incomplete≥0.80), incompatible dated labels, or conflicting prior runs | Keep valid originals and compute evidence_conflict; no automatic seeding. Show both observations and request human clarification. Syntactically impossible/schema-invalid output fails rather than becoming evidence. |
+| Human category differs from original, or two runs classify differently | Human current category drives matching. Old indicators retain their original category/provider/model/photo context. Show mismatch/conflict; reanalysis is optional, never replaces the basis or originals. |
+| Provider error/refusal, timeout, incomplete or invalid structured output | No successful analysis row/confidence. Existing evidence remains; status unavailable, retry while editable or use complete human facts/photos for manual review. No worker or new workflow. |
+| Delayed successful result after correction/offer | Append original once and attach missing basis; never overwrite human facts, frozen offer snapshots, permissions, holds or decisions. Only captured request scopes see it. |
+
+A field is not reliable solely because category confidence is high. The MVP intentionally has no separate invented per-field probability or computed aggregate quality score: visible-source validation, nulls/conflicts and human correction handle OCR uncertainty. Working publication requires category, positive human item quantity/unit, validated photos and a type for clothes/shoes/furniture or product for food/para. Other descriptive keys may remain null. Food's positive room-temperature/nonperishable facts and strict date clarifications in expiry-v1 remain required. No fully successful AI analysis is mandatory.
+
+## Example original (normalized provider contract)
+
+```json
+{
+  "provider":"openai", "model":"<configured vision model>", "category":"para", "confidence":0.86,
+  "extracted":{
+    "schema_version":"analysis-v1",
+    "classification":{"clothes":0.01,"shoes":0.01,"food":0.08,"para":0.86,"furniture":0.04},
+    "attributes":{"product":"Hand cream","brand":null,"product_kind":"cosmetic","opening_state":null,"seal_state":null},
+    "dates":{"expiry_date":null,"date_type":"PAO","pao_months":12,"date_precision":"unknown","raw_label":"12M","readability":"readable"}
+  },
+  "indicators":[
+    {"key":"looks_like_medicine","probability":0.12,"level":"low"},
+    {"key":"chilled_or_frozen","probability":0.02,"level":"low"},
+    {"key":"label_unreadable","probability":0.1,"level":"low"},
+    {"key":"seal_broken"},
+    {"key":"packaging_damaged","probability":0.18,"level":"low"}
+  ]
+}
+```
+
+The missing opening state/date remains unknown; neither confidence=0.86 nor the visible 12M icon creates a calendar expiry. Provider/model source attributes are attached per indicator in the API/DB adapter. schema_version and level-policy attribution live in existing extracted/provenance JSON; no table or column is added.

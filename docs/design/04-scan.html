@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — Scan an item</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+</head>
+<body class="bg-sand-2 text-sand-12 font-sans text-lead antialiased">
+<section class="border-b-hair border-sand-6">
+    <div class="hidden md:block">
+      <div class="max-w-2xl mx-auto px-6 py-10">
+        <h2 class="text-title font-semibold">Photograph your item</h2>
+        <div class="mt-4 flex items-center gap-1.5" aria-label="Steps">
+          <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-grass-9 text-white text-meta font-semibold grid place-items-center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="text-meta text-sand-11">Item</span></span>
+          <span class="flex-1 h-[0.5px] bg-grass-8"></span>
+          <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-sand-1 border-hair border-sand-8 text-sand-12 text-meta font-semibold grid place-items-center num">2</span><span class="text-meta font-medium">Label</span></span>
+          <span class="flex-1 h-[0.5px] bg-sand-6"></span>
+          <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-sand-3 text-sand-11 text-meta font-semibold grid place-items-center num">3</span><span class="text-meta text-sand-11">Check</span></span>
+        </div>
+        <div class="mt-6 grid sm:grid-cols-2 gap-4">
+          <section class="rounded-xl border-hair border-sand-6 p-4 flex flex-col">
+            <div class="flex items-center justify-between"><p class="font-medium">Item photos</p><span class="text-meta text-sand-11 num">2 added</span></div>
+            <div class="mt-3 rounded-lg border-hair border-dashed border-sand-8 p-4 text-center">
+              <p class="text-sand-11 text-body">Drop more photos here</p>
+              <button class="mt-2 h-8 px-3 rounded-lg border-hair border-sand-7 text-meta font-medium">Browse files</button>
+            </div>
+            <div class="mt-3 flex gap-2"><div class="w-12 h-12 rounded-lg photo"></div><div class="w-12 h-12 rounded-lg photo"></div></div>
+            <button class="mt-3 self-start text-meta text-grass-11 font-medium">Replace</button>
+          </section>
+          <section class="rounded-xl border-hair border-dashed border-sand-8 p-4 flex flex-col">
+            <div class="flex items-center justify-between"><p class="font-medium">Label close-up</p><span class="chip bg-amber-3 text-amber-11">Needed</span></div>
+            <div class="mt-3 flex-1 grid place-items-center text-center">
+              <div>
+                <p class="text-sand-11 text-body">Pasta 500 g — the best-before area</p>
+                <div class="mt-2 flex justify-center gap-2">
+                  <button class="h-8 px-3 rounded-lg border-hair border-sand-7 text-meta font-medium">Take photo</button>
+                  <button class="h-8 px-3 rounded-lg border-hair border-sand-7 text-meta font-medium">Upload</button>
+                </div>
+              </div>
+            </div>
+            <p class="mt-3 text-meta text-sand-11">No date on the package? Skip this step.</p>
+          </section>
+        </div>
+        <ul class="mt-5 flex flex-wrap gap-2 text-meta text-sand-11">
+          <li class="chip bg-sand-3">Good light, no flash reflection</li>
+          <li class="chip bg-sand-3">Dates in focus, straight-on</li>
+          <li class="chip bg-sand-3">Upload existing photos or use the camera</li>
+        </ul>
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+          <button class="h-10 px-5 rounded-[20px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Analyse</button>
+          <button class="h-10 px-4 rounded-[20px] border-hair border-sand-7 font-medium">Use camera instead</button>
+        </div>
+      </div>
+    </div>
+    <section class="mscreen md:hidden bg-sand-1">
+      <div class="pt-11 px-5 h-[88px] flex items-center">
+        <button aria-label="Back" class="-ml-[18px] w-11 h-11 grid place-items-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+      </div>
+      <div class="px-5">
+        <h2 class="text-title font-semibold">Photograph your item</h2>
+        <div class="mt-4 flex items-center gap-1.5" aria-label="Steps">
+          <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-grass-9 text-white text-meta font-semibold grid place-items-center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="text-meta text-sand-11">Item</span></span>
+          <span class="flex-1 h-[0.5px] bg-grass-8"></span>
+          <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-sand-1 border-hair border-sand-8 text-sand-12 text-meta font-semibold grid place-items-center num">2</span><span class="text-meta font-medium">Label</span></span>
+          <span class="flex-1 h-[0.5px] bg-sand-6"></span>
+          <span class="flex items-center gap-1.5"><span class="w-6 h-6 rounded-full bg-sand-3 text-sand-11 text-meta font-semibold grid place-items-center num">3</span><span class="text-meta text-sand-11">Check</span></span>
+        </div>
+      </div>
+      <div class="px-5 mt-5 space-y-3">
+        <div class="rounded-xl border-hair border-sand-6 p-3 flex items-center gap-3">
+          <div class="w-12 h-12 rounded-lg photo shrink-0"></div>
+          <div class="flex-1"><p class="font-medium">Item photo</p><p class="text-meta text-sand-11">Added, 2 photos</p></div>
+          <button class="text-meta text-grass-11 font-medium">Replace</button>
+        </div>
+        <div class="rounded-xl border-hair border-dashed border-sand-8 p-3 flex items-center gap-3">
+          <span class="w-12 h-12 rounded-lg bg-sand-3 grid place-items-center text-sand-11"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+          <div class="flex-1"><p class="font-medium">Label close-up</p><p class="text-meta text-sand-11">Pasta 500 g — photograph the best-before area</p></div>
+          <button class="text-meta text-grass-11 font-medium">Take</button>
+        </div>
+      </div>
+      <ul class="px-5 mt-5 space-y-1.5 text-meta text-sand-11">
+        <li class="flex items-center gap-2"><span class="w-1 h-1 rounded-full bg-sand-9"></span>Good light, no flash reflection</li>
+        <li class="flex items-center gap-2"><span class="w-1 h-1 rounded-full bg-sand-9"></span>Dates in focus, straight-on</li>
+        <li class="flex items-center gap-2"><span class="w-1 h-1 rounded-full bg-sand-9"></span>No date on the package? Skip this step.</li>
+      </ul>
+      <div class="mt-auto p-5"><button class="w-full h-12 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Analyse</button></div>
+    </section>
+  </section>
+<section>
+    <div class="stategrid">
+
+      <figure>
+        <figcaption class="slabel">Home</figcaption>
+        <section class="mscreen bg-sand-1">
+          <div class="pt-11 px-5 h-[88px] flex items-center gap-3">
+            <button aria-label="Account" class="w-8 h-8 rounded-full bg-sand-3 text-meta font-medium grid place-items-center">KB</button>
+            <span class="font-semibold text-body text-grass-11">dono</span>
+          </div>
+          <h2 class="px-5 mt-4 text-title font-semibold">What would you like to give?</h2>
+          <div class="flex-1 grid place-items-center">
+            <button class="w-40 h-40 rounded-full bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold flex flex-col items-center justify-center gap-2">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+              Scan an item
+            </button>
+          </div>
+          <form class="mx-5 mb-4 rounded-[24px] border-hair border-sand-7 pl-4 pr-1.5 h-12 flex items-center gap-2 focus-within:border-grass-8">
+            <label for="say" class="sr-only">Describe what you're giving</label>
+            <input id="say" placeholder="Or describe it" class="flex-1 min-w-0 bg-transparent focus:outline-none placeholder:text-sand-11" />
+            <button aria-label="Create offer" class="w-9 h-9 rounded-full bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white grid place-items-center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+          </form>
+          <nav class="border-t-hair border-sand-6 grid grid-cols-3 text-meta text-center pt-3 pb-6"><a class="font-semibold">Home</a><a class="text-sand-11" href="02-nearby-needs.html">Needs</a><a class="text-sand-11" href="07-donations.html">Donations</a></nav>
+        </section>
+      </figure>
+
+      <figure>
+        <figcaption class="slabel">Offer from text</figcaption>
+        <section class="mscreen bg-sand-1">
+          <div class="pt-11 px-5 h-[88px] flex items-center"><button aria-label="Back" class="-ml-[18px] w-11 h-11 grid place-items-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+          <p class="mx-5 rounded-xl bg-sand-3 px-4 py-3">6 packs of pasta and a winter coat, size M</p>
+          <h2 class="px-5 mt-6 text-title font-semibold">2 separate donations</h2>
+          <ul class="mx-5 mt-4 rounded-xl border-hair border-sand-6 divide-y-hair divide-sand-6">
+            <li class="px-4 py-3 flex items-center gap-3"><div class="flex-1 min-w-0"><p class="font-medium">Pasta 500 g</p><p class="text-meta text-sand-11">Food, 6 packs</p></div><span class="text-meta text-orange-11 font-medium">Photo needed</span></li>
+            <li class="px-4 py-3 flex items-center gap-3"><div class="flex-1 min-w-0"><p class="font-medium">Winter coat</p><p class="text-meta text-sand-11">Clothes, size M</p></div><span class="text-meta text-orange-11 font-medium">Photo needed</span></li>
+          </ul>
+          <div class="mt-auto p-5"><button class="w-full h-12 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Add photos</button></div>
+        </section>
+      </figure>
+
+      <figure>
+        <figcaption class="slabel">Analysing</figcaption>
+        <section class="mscreen bg-sand-1">
+          <div class="pt-11 px-5 h-[88px] flex items-center"><button aria-label="Close" class="-ml-4 w-11 h-11 grid place-items-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+          <div class="mx-5 h-44 rounded-[24px] photo"></div>
+          <h2 class="px-5 mt-6 text-title font-semibold" role="status">Checking your item</h2>
+          <ul class="mx-5 mt-4 rounded-xl border-hair border-sand-6 divide-y-hair divide-sand-6" aria-hidden="true"><li class="px-4 py-3 flex justify-between items-center"><span class="h-4 w-16 rounded-[4px] bg-sand-3"></span><span class="h-4 w-10 rounded-[4px] bg-sand-3"></span></li><li class="px-4 py-3 flex justify-between items-center"><span class="h-4 w-20 rounded-[4px] bg-sand-3"></span><span class="h-4 w-16 rounded-[4px] bg-sand-3"></span></li><li class="px-4 py-3 flex justify-between items-center"><span class="h-4 w-12 rounded-[4px] bg-sand-3"></span><span class="h-4 w-14 rounded-[4px] bg-sand-3"></span></li></ul>
+          <div class="mt-auto p-5"><button disabled class="w-full h-12 rounded-[24px] bg-sand-3 text-sand-9 font-semibold">Find an association</button></div>
+        </section>
+      </figure>
+
+      <figure>
+        <figcaption class="slabel">Unclear photo</figcaption>
+        <section class="mscreen bg-sand-1">
+          <div class="pt-11 px-5 h-[88px] flex items-center"><button aria-label="Back" class="-ml-[18px] w-11 h-11 grid place-items-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+          <div class="mx-5 h-52 rounded-[24px] photo blur-[1.5px]"></div>
+          <h2 class="px-5 mt-6 text-title font-semibold">Photo not clear enough</h2>
+          <ol class="px-5 mt-4 space-y-3">
+            <li class="flex items-center gap-3"><span class="w-6 h-6 rounded-full bg-grass-3 text-grass-11 text-meta font-semibold grid place-items-center num">1</span>Put the whole item in the frame</li>
+            <li class="flex items-center gap-3"><span class="w-6 h-6 rounded-full bg-grass-3 text-grass-11 text-meta font-semibold grid place-items-center num">2</span>Use daylight, without flash</li>
+            <li class="flex items-center gap-3"><span class="w-6 h-6 rounded-full bg-grass-3 text-grass-11 text-meta font-semibold grid place-items-center num">3</span>Add a close-up of the details</li>
+          </ol>
+          <div class="mt-auto p-5"><button class="w-full h-12 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Retake photo</button></div>
+        </section>
+      </figure>
+
+      <figure>
+        <figcaption class="slabel">Analysis failed</figcaption>
+        <section class="mscreen bg-sand-1">
+          <div class="pt-11 px-5 h-[88px] flex items-center"><button aria-label="Back" class="-ml-[18px] w-11 h-11 grid place-items-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+          <div class="mx-5 h-52 rounded-[24px] photo"></div>
+          <h2 class="px-5 mt-6 text-title font-semibold">Couldn't analyse the photo</h2>
+          <p class="px-5 mt-1 text-sand-11">No internet connection</p>
+          <div class="mt-auto p-5"><button class="w-full h-12 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Try again</button></div>
+        </section>
+      </figure>
+
+    </div>
+  </section>
+</body>
+</html>

@@ -1,0 +1,90 @@
+.images-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+.images-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.images-tile {
+  margin: 0;
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--background, #fff);
+}
+.images-tile-photo {
+  position: relative;
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  background: var(--subtle);
+}
+.images-tile-photo .console-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.images-tile-chips {
+  position: absolute;
+  inset-inline: 8px;
+  top: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+.images-tile figcaption {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+.images-aside {
+  position: static;
+}
+.images-buckets,
+.images-fefo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.images-buckets li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.images-buckets li:last-child {
+  border-bottom: none;
+}
+.images-buckets li > span:first-child {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+.images-fefo li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.images-fefo li:last-child {
+  border-bottom: none;
+}
+.images-fefo li > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+@media (max-width: 899px) {
+  .images-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — Needs</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<script src="shell.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+</head>
+<body class="bg-sand-1 text-sand-12 font-sans text-body antialiased">
+<section>
+  <div class="flex flex-col md:flex-row min-h-[620px]">
+    <div data-shell="needs" data-dir="a"></div>
+    <main class="flex-1 min-w-0 p-6 max-w-[1280px]">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-title-sm font-semibold">Needs</h2>
+        <span class="text-meta text-sand-11">7 open, 1 paused</span>
+      </div>
+      <div class="mt-4 grid xl:grid-cols-[1fr_320px] gap-5 items-start">
+        <div class="rounded-xl border-hair border-sand-6 overflow-x-auto">
+          <table class="w-full min-w-[640px]">
+            <thead><tr class="bg-sand-2 text-meta text-sand-11 text-left">
+              <th class="px-4 py-2.5 font-medium">Need</th>
+              <th class="px-3 py-2.5 font-medium">Category</th>
+              <th class="px-3 py-2.5 font-medium">Progress</th>
+              <th class="px-3 py-2.5 font-medium">Urgency</th>
+              <th class="px-3 py-2.5 font-medium">Status</th>
+            </tr></thead>
+            <tbody class="divide-y-hair divide-sand-6">
+              <tr><td class="px-4 py-3 font-medium">Winter coats, M–XL</td><td class="px-3 py-3"><span class="chip bg-sand-3">Clothes</span></td><td class="px-3 py-3 num">12 / 40</td><td class="px-3 py-3"><span class="chip bg-orange-3 text-orange-11">Urgent</span></td><td class="px-3 py-3"><span class="chip bg-grass-3 text-grass-11">Open</span></td></tr>
+              <tr><td class="px-4 py-3 font-medium">Men's jeans, 40–46</td><td class="px-3 py-3"><span class="chip bg-sand-3">Clothes</span></td><td class="px-3 py-3 num">9 / 20</td><td class="px-3 py-3"><span class="chip bg-sand-3 text-sand-11">Normal</span></td><td class="px-3 py-3"><span class="chip bg-grass-3 text-grass-11">Open</span></td></tr>
+              <tr><td class="px-4 py-3 font-medium">Dry pasta</td><td class="px-3 py-3"><span class="chip bg-sand-3">Food</span></td><td class="px-3 py-3 num">12 / 30</td><td class="px-3 py-3"><span class="chip bg-sand-3 text-sand-11">Normal</span></td><td class="px-3 py-3"><span class="chip bg-grass-3 text-grass-11">Open</span></td></tr>
+              <tr><td class="px-4 py-3 font-medium">Rice</td><td class="px-3 py-3"><span class="chip bg-sand-3">Food</span></td><td class="px-3 py-3 num">5 / 20</td><td class="px-3 py-3"><span class="chip bg-sand-3 text-sand-11">Normal</span></td><td class="px-3 py-3"><span class="chip bg-grass-3 text-grass-11">Open</span></td></tr>
+              <tr><td class="px-4 py-3 font-medium">Unopened hygiene products</td><td class="px-3 py-3"><span class="chip bg-sand-3">Care</span></td><td class="px-3 py-3 num">8 / 15</td><td class="px-3 py-3"><span class="chip bg-sand-3 text-sand-11">Normal</span></td><td class="px-3 py-3"><span class="chip bg-grass-3 text-grass-11">Open</span></td></tr>
+              <tr><td class="px-4 py-3 font-medium">Complete shoe pairs, 36–44</td><td class="px-3 py-3"><span class="chip bg-sand-3">Shoes</span></td><td class="px-3 py-3 num">3 / 10</td><td class="px-3 py-3"><span class="chip bg-sand-3 text-sand-11">Normal</span></td><td class="px-3 py-3"><span class="chip bg-sand-4 text-sand-11">Paused</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <form class="rounded-xl border-hair border-sand-6 p-4 space-y-3">
+          <p class="font-medium">Add a need</p>
+          <p class="text-meta text-sand-11">Matching criteria cannot change after an offer is approved or units are received.</p>
+          <div><label class="block text-meta text-sand-11" for="a-item">Item</label><input id="a-item" class="field mt-1" placeholder="e.g. Winter coats" /></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-meta text-sand-11" for="a-cat">Category</label>
+              <select id="a-cat" class="field mt-1"><option>Clothes</option><option>Shoes</option><option>Food</option><option>Care</option><option>Furniture</option></select>
+            </div>
+            <div><label class="block text-meta text-sand-11" for="a-target">Target</label><input id="a-target" class="field mt-1 num" placeholder="40" /></div>
+          </div>
+          <div><span class="block text-meta text-sand-11">Urgency</span>
+            <div class="mt-1 p-0.5 rounded-lg bg-sand-3 grid grid-cols-2 text-meta" role="radiogroup">
+              <button type="button" role="radio" aria-checked="true" class="h-8 rounded-[6px] bg-sand-1 border-hair border-sand-7 font-medium">Normal</button>
+              <button type="button" role="radio" class="h-8 rounded-[6px] text-sand-11">Urgent</button>
+            </div>
+          </div>
+          <button type="button" class="w-full h-9 rounded-lg bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-medium">Publish need</button>
+                  </form>
+      </div>
+    </main>
+  </div>
+</section>
+</body>
+</html>

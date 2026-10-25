@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<script src="shell.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+</head>
+<body class="bg-sand-1 text-sand-12 font-sans text-body antialiased">
+<section>
+  <div class="flex flex-col md:flex-row min-h-[600px]">
+    <div data-shell="dashboard" data-dir="a"></div>
+    <main class="flex-1 min-w-0 p-6 max-w-[1280px]">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-title-sm font-semibold">Dashboard</h2>
+        <span class="text-meta text-sand-11 num">Saturday 24 October</span>
+      </div>
+      <div class="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <a href="11-review.html" class="rounded-xl border-hair border-sand-6 p-4 hover:bg-sand-3 transition-colors duration-250 ease-out"><p class="text-title font-semibold num text-amber-11">12</p><p class="text-meta text-sand-11">offers to review</p></a>
+        <a href="15-reception.html" class="rounded-xl border-hair border-sand-6 p-4 hover:bg-sand-3 transition-colors duration-250 ease-out"><p class="text-title font-semibold num">7</p><p class="text-meta text-sand-11">drop-offs today</p></a>
+        <a href="16-images.html" class="rounded-xl border-hair border-sand-6 p-4 hover:bg-sand-3 transition-colors duration-250 ease-out"><p class="text-title font-semibold num text-orange-11">9</p><p class="text-meta text-sand-11">expiring under 30 days</p></a>
+        <a href="12-needs.html" class="rounded-xl border-hair border-sand-6 p-4 hover:bg-sand-3 transition-colors duration-250 ease-out"><p class="text-title font-semibold num">3</p><p class="text-meta text-sand-11">urgent needs</p></a>
+      </div>
+      <div class="mt-4 rounded-xl bg-orange-3 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-orange-11"><span class="font-medium">1 offer flagged as possible medicine</span> — review the indicators before accepting.</p>
+        <a href="11-review.html" class="shrink-0 h-8 px-3 rounded-[16px] border-hair border-orange-8 text-orange-11 text-meta font-medium flex items-center">Open review</a>
+      </div>
+      <div class="mt-5 grid lg:grid-cols-3 gap-5">
+        <section class="rounded-xl border-hair border-sand-6 p-4">
+          <h3 class="font-medium">Distribute first <span class="text-meta text-sand-11 font-normal">(FEFO)</span></h3>
+          <ul class="mt-3 divide-y-hair divide-sand-6">
+            <li class="pb-2 flex items-center justify-between"><span>Canned tuna ×4</span><span class="chip bg-red-3 text-red-11 num">Use by, 5 days</span></li>
+            <li class="py-2 flex items-center justify-between"><span>Rice 1 kg ×2</span><span class="chip bg-orange-3 text-orange-11 num">21 days</span></li>
+            <li class="py-2 flex items-center justify-between"><span>Shower gel ×4</span><span class="chip bg-amber-3 text-amber-11 num">48 days</span></li>
+            <li class="pt-2 flex items-center justify-between"><span>Pasta ×6</span><span class="chip bg-grass-3 text-grass-11 num">142 days</span></li>
+          </ul>
+                  </section>
+        <section class="rounded-xl border-hair border-sand-6 p-4">
+          <h3 class="font-medium">Capacity</h3>
+          <ul class="mt-3 space-y-3">
+            <li><div class="flex justify-between text-meta"><span>Clothes</span><span class="num text-amber-11">92%, nearly full</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[92%] rounded-full bg-amber-9"></div></div></li>
+            <li><div class="flex justify-between text-meta"><span>Food</span><span class="num">65%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[65%] rounded-full bg-grass-9"></div></div></li>
+            <li><div class="flex justify-between text-meta"><span>Shoes</span><span class="num">40%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[40%] rounded-full bg-grass-9"></div></div></li>
+            <li><div class="flex justify-between text-meta"><span>Care</span><span class="num">30%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[30%] rounded-full bg-grass-9"></div></div></li>
+          </ul>
+          <a href="13-capacity.html" class="mt-3 inline-block text-meta text-grass-11 font-medium">Edit capacity →</a>
+        </section>
+        <section class="rounded-xl border-hair border-sand-6 p-4">
+          <h3 class="font-medium">Today's drop-offs</h3>
+          <ul class="mt-3 divide-y-hair divide-sand-6">
+            <li class="pb-2.5 flex items-center justify-between gap-2"><span><span class="num font-medium">15:00</span>, Winter coat, M, KB</span><span class="chip bg-amber-3 text-amber-11">Expected</span></li>
+            <li class="py-2.5 flex items-center justify-between gap-2"><span><span class="num font-medium">15:20</span>, Pasta ×6, Karim B.</span><span class="chip bg-amber-3 text-amber-11">Expected</span></li>
+            <li class="py-2.5 flex items-center justify-between gap-2"><span><span class="num font-medium">14:00</span>, Sweaters ×2, Aïcha D.</span><span class="chip bg-grass-3 text-grass-11">Received</span></li>
+          </ul>
+          <a href="15-reception.html" class="mt-3 inline-block text-meta text-grass-11 font-medium">Open reception →</a>
+        </section>
+      </div>
+      <div class="mt-5 grid md:grid-cols-3 gap-5 items-start">
+        <section class="rounded-xl border-hair border-sand-6 p-4">
+          <h3 class="font-medium">October so far</h3>
+          <dl class="mt-2 divide-y-hair divide-sand-6 num">
+            <div class="py-2 flex justify-between gap-3"><dt>Offers received</dt><dd class="font-semibold">268</dd></div>
+            <div class="py-2 flex justify-between gap-3"><dt>Accepted</dt><dd><span class="font-semibold">190</span> <span class="text-sand-11">of 268</span></dd></div>
+            <div class="py-2 flex justify-between gap-3"><dt>Unusable refused</dt><dd><span class="font-semibold">78</span> <span class="text-sand-11">before drop-off</span></dd></div>
+            <div class="py-2 flex justify-between gap-3"><dt>Items received</dt><dd><span class="font-semibold">186</span> <span class="text-sand-11">412 kg</span></dd></div>
+            <div class="py-2 flex justify-between gap-3"><dt>Items given out</dt><dd class="font-semibold">151</dd></div>
+            <div class="py-2 flex justify-between gap-3"><dt>Missed drop-offs</dt><dd><span class="font-semibold">4</span> <span class="text-sand-11">of 190 booked</span></dd></div>
+          </dl>
+        </section>
+        <section class="rounded-xl border-hair border-sand-6 p-4">
+          <h3 class="font-medium">Items received per week</h3>
+          <div class="mt-3 h-28 flex items-end gap-2" role="img" aria-label="Items received per week: 24, 29, 27, 33, 38, 42, 48, 58">
+            <span class="flex-1 flex flex-col justify-end items-center gap-1"><span class="text-meta text-sand-11 num">24</span><span class="w-full bg-grass-8 rounded-t-[2px] h-[41%]"></span></span>
+            <span class="flex-1 flex flex-col justify-end items-center gap-1"><span class="text-meta text-sand-11 num">29</span><span class="w-full bg-grass-8 rounded-t-[2px] h-[50%]"></span></span>
+            <span class="flex-1 flex flex-col justify-end items-center gap-1"><span class="text-meta text-sand-11 num">27</span><span class="w-full bg-grass-8 rounded-t-[2px] h-[47%]"></span></span>
+            <span class="flex-1 flex flex-col justify-end items-center gap-1"><span class="text-meta text-sand-11 num">33</span><span class="w-full bg-grass-8 rounded-t-[2px] h-[57%]"></span></span>
+            <span class="flex-1 flex flex-col justify-end items-center gap-1"><span class="text-meta text-sand-11 num">38</span><span class="w-full bg-grass-8 rounded-t-[2px] h-[66%]"></span></span>
+            <span class="flex-1 flex flex-col justify-end items-center gap-1"><span class="text-meta text-sand-11 num">42</span><span class="w-full bg-grass-8 rounded-t-[2px] h-[72%]"></span></span>
+            <span class="flex-1 flex flex-col justify-end items-center gap-1"><span class="text-meta text-sand-11 num">48</span><span class="w-full bg-grass-8 rounded-t-[2px] h-[83%]"></span></span>
+            <span class="flex-1 flex flex-col justify-end items-center gap-1"><span class="text-meta font-medium num">58</span><span class="w-full bg-grass-9 rounded-t-[2px] h-full"></span></span>
+          </div>
+          <div class="mt-2 flex justify-between text-meta text-sand-11 num"><span>1 Oct</span><span>This week</span></div>
+        </section>
+        <section class="rounded-xl border-hair border-sand-6 p-4">
+          <h3 class="font-medium">By category</h3>
+          <table class="w-full mt-2 num">
+            <thead><tr class="text-meta text-sand-11 text-left border-b-hair border-sand-6"><th class="py-1.5 font-medium">Category</th><th class="font-medium text-right">Offers</th><th class="font-medium text-right">Received</th></tr></thead>
+            <tbody class="divide-y-hair divide-sand-6">
+              <tr><td class="py-2">Clothes</td><td class="text-right">112</td><td class="text-right">71</td></tr>
+              <tr><td class="py-2">Food</td><td class="text-right">74</td><td class="text-right">57</td></tr>
+              <tr><td class="py-2">Care</td><td class="text-right">44</td><td class="text-right">37</td></tr>
+              <tr><td class="py-2">Shoes</td><td class="text-right">38</td><td class="text-right">21</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+  </div>
+</section>
+</body>
+</html>

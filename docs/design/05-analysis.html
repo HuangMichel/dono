@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dono — AI indicators</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="tokens.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="ui.css" />
+</head>
+<body class="bg-sand-2 text-sand-12 font-sans text-lead antialiased">
+<section class="border-b-hair border-sand-6">
+    <div class="hidden md:block">
+      <div class="max-w-2xl mx-auto px-6 py-10">
+        <h2 class="text-title font-semibold">Check your item details</h2>
+        <p class="mt-1 text-sand-11">Pasta 500 g, Food, 6 packs</p>
+        <div class="mt-6 rounded-2xl bg-grass-3 px-6 py-8 grid sm:grid-cols-[auto_1fr] gap-6 items-center">
+          <div class="text-center">
+            <p class="text-display font-semibold num text-grass-11">142</p>
+            <p class="text-meta text-grass-11">days left</p>
+          </div>
+          <div>
+            <p class="text-lead text-grass-11">Best before 15 Mar 2027</p>
+            <p class="mt-1 text-grass-11">Detected 15 Mar 2026, you corrected it</p>
+                      </div>
+        </div>
+        <div class="mt-6">
+          <div class="flex items-baseline justify-between"><p class="font-medium">Indicators</p><span class="text-meta text-sand-11">AI confidence <span class="num">64%</span></span></div>
+          <div class="mt-3 space-y-3">
+            <div><div class="flex justify-between"><span>Sealed likely</span><span class="num">93%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[93%] rounded-full bg-grass-9"></div></div></div>
+            <div><div class="flex justify-between"><span class="text-amber-11">Date readable partly</span><span class="num">55%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[55%] rounded-full bg-amber-9"></div></div></div>
+            <div><div class="flex justify-between"><span>Damaged unlikely</span><span class="num">4%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[4%] rounded-full bg-sand-9"></div></div></div>
+            <div><div class="flex justify-between"><span>Needs refrigeration unlikely</span><span class="num">2%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[2%] rounded-full bg-sand-9"></div></div></div>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button class="h-9 px-4 rounded-[18px] border-hair border-sand-7 font-medium">Correct details</button>
+                      </div>
+        </div>
+        <div class="mt-8"><button class="h-11 px-6 rounded-[22px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Find associations that need it</button></div>
+      </div>
+    </div>
+    <section class="mscreen md:hidden bg-sand-1">
+      <div class="pt-11 px-5 h-[88px] flex items-center">
+        <button aria-label="Back" class="-ml-[18px] w-11 h-11 grid place-items-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+      </div>
+      <div class="px-5">
+        <h2 class="text-title font-semibold">Check your item details</h2>
+        <p class="text-meta text-sand-11">Pasta 500 g, Food, 6 packs</p>
+      </div>
+      <div class="mx-5 mt-5 rounded-2xl bg-grass-3 p-5 text-center">
+        <p class="text-display font-semibold num text-grass-11">142</p>
+        <p class="text-meta text-grass-11">days left, best before 15 Mar 2027</p>
+      </div>
+      <div class="px-5 mt-6">
+        <div class="flex items-baseline justify-between"><p class="font-medium">Indicators</p><span class="text-meta text-sand-11">AI confidence <span class="num">64%</span></span></div>
+        <div class="mt-3 space-y-3">
+          <div><div class="flex justify-between text-meta"><span>Sealed likely</span><span class="num">93%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[93%] rounded-full bg-grass-9"></div></div></div>
+          <div><div class="flex justify-between text-meta"><span class="text-amber-11">Date readable partly</span><span class="num">55%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[55%] rounded-full bg-amber-9"></div></div></div>
+          <div><div class="flex justify-between text-meta"><span>Damaged unlikely</span><span class="num">4%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[4%] rounded-full bg-sand-9"></div></div></div>
+          <div><div class="flex justify-between text-meta"><span>Needs refrigeration unlikely</span><span class="num">2%</span></div><div class="mt-1 h-1.5 rounded-full bg-sand-3 overflow-hidden"><div class="h-full w-[2%] rounded-full bg-sand-9"></div></div></div>
+        </div>
+        <div class="mt-4 flex gap-2">
+          <button class="flex-1 h-10 rounded-[20px] border-hair border-sand-7 font-medium text-meta">Correct details</button>
+                  </div>
+      </div>
+      <div class="mt-auto p-5">
+        <button class="w-full h-12 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Find associations that need it</button>
+      </div>
+    </section>
+  </section>
+<section>
+    <div class="stategrid">
+
+      <figure>
+        <figcaption class="slabel">Correct the date</figcaption>
+        <section class="mscreen bg-sand-1">
+          <div class="pt-11 px-5 h-[88px]"></div>
+          <div class="px-5 flex items-center gap-4">
+            <div class="w-14 h-14 rounded-lg photo"></div>
+            <div><h2 class="text-title font-semibold">Pasta 500 g</h2><p class="text-meta text-sand-11">Food, 6 packs</p></div>
+          </div>
+          <div class="absolute inset-0 bg-sand-12/40"></div>
+          <div class="absolute inset-x-0 bottom-0 bg-sand-1 rounded-t-[24px] px-5 pt-5 pb-5">
+            <h3 class="text-title font-semibold">Check the date</h3>
+            <div class="mt-4 h-28 rounded-lg photo"></div>
+            <label class="block mt-4 text-meta text-sand-11" for="sd">Date on the label</label>
+            <input id="sd" value="15 Mar 2027" class="mt-1 w-full h-12 px-4 rounded-lg border-hair border-sand-7 bg-sand-1 num focus:outline-none focus:border-grass-8" />
+            <div class="mt-1 flex justify-between text-meta text-sand-11"><span>Detected: 15 Mar 2026</span><span class="num">142 days left</span></div>
+            <div class="mt-4 p-0.5 rounded-lg bg-sand-3 grid grid-cols-2" role="radiogroup" aria-label="Date type">
+              <button role="radio" aria-checked="true" class="h-10 rounded-[6px] bg-sand-1 border-hair border-sand-7 font-medium">Best before</button>
+              <button role="radio" aria-checked="false" class="h-10 rounded-[6px] text-sand-11">Use by</button>
+            </div>
+            <button class="mt-5 w-full h-12 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Save</button>
+          </div>
+        </section>
+      </figure>
+
+      <figure>
+        <figcaption class="slabel">Chilled food warning</figcaption>
+        <section class="mscreen bg-sand-1">
+          <div class="pt-11 px-5 h-[88px] flex items-center"><button aria-label="Back" class="-ml-[18px] w-11 h-11 grid place-items-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+          <div class="px-5 flex items-center gap-4">
+            <div class="w-14 h-14 rounded-lg photo"></div>
+            <div><h2 class="text-title font-semibold">Yogurt</h2><p class="text-meta text-sand-11">Food, 8 pots</p></div>
+          </div>
+          <ul class="mx-5 mt-6 rounded-xl bg-red-3 divide-y-hair divide-red-6">
+            <li class="px-4 py-3">
+              <div class="flex justify-between"><span class="font-medium text-red-11">Needs refrigeration</span><span class="text-red-11">Likely <span class="num text-sand-11">94%</span></span></div>
+              <p class="text-meta text-sand-11">Only room-temperature food is accepted from individuals</p>
+            </li>
+            <li class="px-4 py-3">
+              <div class="flex justify-between"><span class="font-medium text-red-11">Expired</span><span class="num text-sand-11">2 days ago</span></div>
+              <p class="text-meta text-sand-11 num">Use by 22 Oct 2026</p>
+            </li>
+          </ul>
+          <div class="mt-auto p-5"><button class="w-full h-12 rounded-[24px] bg-grass-9 hover:bg-grass-10 transition-colors duration-250 ease-out text-white font-semibold">Check the date</button></div>
+        </section>
+      </figure>
+
+      <figure>
+        <figcaption class="slabel">Medicine, pharmacies nearby</figcaption>
+        <section class="mscreen bg-sand-1">
+          <div class="pt-11 px-5 h-[88px] flex items-center"><button aria-label="Back" class="-ml-[18px] w-11 h-11 grid place-items-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+          <div class="px-5 flex items-center gap-4">
+            <div class="w-14 h-14 rounded-lg photo"></div>
+            <div><h2 class="text-title font-semibold">Ibuprofen 400 mg</h2><p class="text-meta text-sand-11">Care</p></div>
+          </div>
+          <div class="mx-5 mt-6 rounded-xl bg-red-3 px-4 py-3">
+            <div class="flex justify-between"><span class="font-medium text-red-11">Looks like a medicine</span><span class="num text-sand-11">96%</span></div>
+            <p class="text-meta text-sand-11">Medicines can't be donated. Pharmacies take them back.</p>
+          </div>
+          <h3 class="px-5 mt-6 mb-2 font-semibold">Pharmacies nearby</h3>
+          <ul class="mx-5 rounded-xl border-hair border-sand-6 divide-y-hair divide-sand-6">
+            <li class="px-4 py-3 flex items-center justify-between"><span><span class="block font-medium">Pharmacie Parmentier</span><span class="block text-meta text-sand-11 num">250 m, open until 20:00</span></span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="text-sand-9" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></li>
+            <li class="px-4 py-3 flex items-center justify-between"><span><span class="block font-medium">Pharmacie de la Roquette</span><span class="block text-meta text-sand-11 num">600 m, open until 19:30</span></span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="text-sand-9" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></li>
+          </ul>
+          <a class="mt-auto pb-8 text-center text-grass-11 font-medium">Not a medicine? Retake photo</a>
+        </section>
+      </figure>
+
+    </div>
+  </section>
+</body>
+</html>
