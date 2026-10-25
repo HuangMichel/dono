@@ -48,6 +48,12 @@ def create_app(
 
     application = FastAPI(title="Dono API", version="0.1.0", lifespan=lifespan)
     application.state.settings = config
+
+    @application.get("/health", tags=["operations"])
+    async def health() -> dict[str, str]:
+        """Process liveness only; does not claim downstream readiness."""
+        return {"status": "ok"}
+
     if config.app_origin:
         application.add_middleware(
             CORSMiddleware,
