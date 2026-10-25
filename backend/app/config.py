@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     app_origin: str = ""
     qr_signing_key: SecretStr = SecretStr("")
     geocoding_base_url: str = "https://data.geopf.fr/geocodage/"
-    photo_max_bytes: int = 5 * 1024 * 1024
+    photo_max_bytes: int = 4 * 1024 * 1024
     photo_max_count: int = 3
     photo_max_pixels: int = 20_000_000
     openai_timeout_seconds: float = Field(default=60, gt=0, le=60)
@@ -35,7 +35,7 @@ class Settings(BaseSettings):
             self.photo_max_count,
             self.photo_max_pixels,
             self.analysis_lease_seconds,
-        ) != (5242880, 3, 20_000_000, 120):
+        ) != (4194304, 3, 20_000_000, 120):
             raise ValueError(
                 "Changing photo or lease policy requires a matching database "
                 "migration"

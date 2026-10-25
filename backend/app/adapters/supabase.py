@@ -111,6 +111,7 @@ class Supabase:
                 "outside_reception_window": 422,
                 "invalid_qr": 422,
                 "photo_limit_reached": 422,
+                "upload_too_large": 413,
                 "photo_integrity_error": 500,
             }
             if error.get("code") == "23505" and any(
