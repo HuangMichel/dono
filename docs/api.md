@@ -1,17 +1,20 @@
 # Dono REST API contract
 
-Status: **FastAPI backend implemented**; all 64 catalog method/path combinations have routes and explicit response models. Tests and remaining live integration gates are recorded in [readiness](readiness.md). Python **FastAPI** owns `/api/v1` business routes; Next.js is the frontend. There are no Next.js business Route Handlers or background workers. See [backend](../backend/app/main.py) and [migrations](../supabase/migrations/). [AGENTS.md](../AGENTS.md), [working domain defaults](domain-model.md), [requirements](requirements.md), [use cases](features.md), [schema/RLS](databases.md) and [diagrams](architecture.md) form the same design.
+Status: **FastAPI backend implemented**; all baseline catalog method/path combinations have routes and explicit response models. Tests and remaining live integration gates are recorded in [readiness](readiness.md). Python **FastAPI** owns `/api/v1` business routes; Next.js is the frontend. There are no Next.js business Route Handlers or background workers. See [backend](../backend/app/main.py) and [migrations](../supabase/migrations/). [AGENTS.md](../AGENTS.md), [working domain defaults](domain-model.md), [requirements](requirements.md), [use cases](features.md), [schema/RLS](databases.md) and [diagrams](architecture.md) form the same design.
 
 ## Frontend integration boundary
 
-The committed frontend uses browser-local `DemoProvider` state and does not call this API. Its [demo decisions](requirements.md#current-frontend-decisions--2026-10-25) include operations and data shapes that differ from this implemented contract. In particular, unmatched posting and reception refusal have no API operations, and the local photo preview limit exceeds the backend upload limit. See [backend integration differences](requirements.md#backend-integration-differences). This merge adds no endpoints and does not change request or response models.
+The frontend calls FastAPI through a bearer-authenticated client for protected operations and an anonymous read helper for the public needs directory. It uses Supabase email/password authentication, provisions the donor profile, reads current memberships and renders empty/loading/error states from API responses. Runtime demo data, role switches and browser-local business persistence are removed.
+
+The connected screens follow the implemented separate donation/offer/booking contracts, three-photo limit and full-lot receipt/distribution commands. Public needs browsing uses the limited anonymous endpoint below. Company attribution and unmatched posted offers remain unsupported API gaps and have no simulated actions. Live deployment acceptance is recorded in [readiness](readiness.md).
 
 ## Authentication, permissions and HTTP conventions
 
-FastAPI verifies the Supabase bearer token's signature, algorithm, issuer, audience and expiry using the project's supported keys/Auth verification path. Decoding a JWT is insufficient. Google OAuth is the working sign-in default in Supabase; the app provisions its own donor-only profile through the bootstrap command below. No email, invite or messaging flow is required. Role checks read current enabled profiles and database memberships; editable OAuth metadata and stale role claims never grant authorization. [Supabase JWT verification](https://supabase.com/docs/guides/auth/jwts)
+FastAPI verifies the Supabase bearer token's signature, algorithm, issuer, audience and expiry using the project's supported keys/Auth verification path. Decoding a JWT is insufficient. The frontend sends signup/sign-in email and password directly to Supabase Auth. Once a session exists, the app provisions its own donor-only profile through the bootstrap command below. A signup awaiting confirmation cannot call protected endpoints. FastAPI accepts bearer tokens, never account passwords. Role checks read current enabled profiles and database memberships; editable user metadata and stale role claims never grant authorization. Account confirmation emails may be enabled in Supabase; no donation notification, invite or messaging flow is required. [Supabase JWT verification](https://supabase.com/docs/guides/auth/jwts)
 
 | Scope | Permission |
 |---|---|
+| V | Public visitor; only the explicit public needs projection, without a bearer token. |
 | S | Verified Auth subject; enabled existing profile, or no profile yet, for profile bootstrap only. |
 | U | Authenticated, enabled application profile. |
 | D | Donation owner, through its own item/offer/booking. |
@@ -22,7 +25,7 @@ FastAPI verifies the Supabase bearer token's signature, algorithm, issuer, audie
 | E | Donation owner or M whose readable offer explicitly whitelists this evidence/photo/request. |
 | G | Association registration applicant while pending, otherwise A. |
 
-Every operation, content request and idempotency replay reauthorizes. Foreign/private IDs return 404 without existence disclosure; a known disallowed collection/capability returns 403. Donors cannot read other donors' items. Staff use offer snapshots and whitelisted evidence; previous association A cannot read later corrections/requests made for B. Platform capability confers no global donation read. Normal reads use user-JWT RLS; privileged commands implement the explicit actor/tenant guards and locks in databases.md. A server credential is not a product permission.
+Every protected operation, content request and idempotency replay reauthorizes. Foreign/private IDs return 404 without existence disclosure; a known disallowed collection/capability returns 403. Donors cannot read other donors' items. Staff use offer snapshots and whitelisted evidence; previous association A cannot read later corrections/requests made for B. Platform capability confers no global donation read. Normal reads use user-JWT RLS; privileged commands implement the explicit actor/tenant guards and locks in databases.md. A server credential is not a product permission.
 
 JSON content type is application/json; photo upload is multipart/form-data. All responses use private, no-store caching, including QR, evidence, photos and derived lists. Production may proxy `/api/v1` to FastAPI on the same origin. Separate-origin local development uses an explicit CORS frontend allowlist, required methods and Authorization/Content-Type/Idempotency-Key headers. CORS is not auth. The business API does not implicitly trust frontend cookies; a future cookie mode requires a separate CSRF design. [FastAPI CORS](https://fastapi.tiangolo.com/tutorial/cors/)
 
@@ -197,6 +200,30 @@ type ExpiryCounts = {scope: "received_undistributed"; as_of: Instant; timezone: 
 
 expired_count/unknown_count/not_applicable_count alias their bucket counts; unreadable_count is a subset of unknown, not another band to add. The nine counts sum to scoped lot count. FIFO groups for unknown/NA and separate blocked stock are explicit; counts/FEFO do not join duplicate attempts/analyses. EX-T001–033 specify expected cases. Pure source/status GETs remain available even when a physical command would be restricted.
 
+## Public needs directory
+
+`GET /api/v1/public/needs` has scope V and requires no account. Query parameters are optional `location` town/postcode text, `category`, `limit` default 10 and maximum 50, and `cursor`. Blank location is treated as absent. A nonblank location must contain 3–200 characters after trimming and start with a letter or number. Invalid input returns `422 invalid_location` with `retryable: false` before contacting BAN. Use a town or full postcode, such as `Mulhouse` or `68100`; `68` is too short. The response uses `Page<PublicNeed>`:
+
+```ts
+type PublicNeed = {
+  id: UUID;
+  association: {id: UUID; name: string; display_address: string};
+  category: Category;
+  attributes: Record<string, unknown>;
+  seasons: string[];
+  target_quantity: Quantity;
+  available_quantity: Quantity;
+  unit: "item";
+  distance_km: number | null;
+};
+```
+
+Only active, in-season needs with positive remaining demand at approved, geocoded association sites are listed. Remaining demand uses the same receipt and live-reservation calculation as matching. Without location, the order is association name and stable IDs and distance is null. With location, BAN resolves the origin. Five-digit input filters by the exact postcode; other input filters by the canonical town name returned by BAN. The database applies locality and category predicates before pagination and orders matching rows by Haversine distance, association ID and need ID. No radius or travel-time estimate applies. Invalid filters/cursors fail validation; geocoding or database failures return an explicit error.
+
+Public search requests `type=municipality` from BAN and rejects other result types. This prevents a street named after another town from becoming the search origin. The service-only `dono_public_needs_in_location` RPC takes mutually exclusive `filter_city` and `filter_postcode` arguments. It reads the trailing postcode and municipality from the stored BAN address label. Town comparison uses the whole normalized municipality name, not street-name substrings, and allows a town to span multiple postcodes. An address without a parseable locality is excluded from location searches but remains eligible for blank browsing. Equal canonical town names in different areas can match; exact municipality-code identity would require structured locality fields and a verified backfill. The original RPC remains available for rollout compatibility; authenticated donation matching is unchanged.
+
+A restricted server RPC returns the public fields with bounded pagination. Anonymous and authenticated Data API roles gain no table or RPC grants. Source notes, personnel identities, raw operational budgets, donor records and photos remain private. This discovery endpoint does not establish item eligibility, reserve capacity or approve a donation. All donation creation, matching and offer commands retain their account and ownership checks. See FR-039 and UC-017.
+
 ## Account, registration and membership routes
 
 Paths below are relative to `/api/v1`. JSON schema notation uses the types above. POST returns 201 for new resources, 200 for actions; PATCH/PUT return 200. Every response is the stated Single or Page wrapper.
@@ -287,6 +314,7 @@ At exact deadlines, the action loses its live guard. Pending review holds nothin
 |---|---|---|---|---|
 | GET /offers/{offerId}/slots | D | pagination | Page<SlotOption>, own live approved offer; credit its own need/storage hold, future start ≤7 days, quota quantity/place and known strict date on slot local day checked. | FR-006, FR-023, FR-034; slots, intake_quotas, donation_offers |
 | POST /offers/{offerId}/bookings | D | `{expected_offer_revision, slot_id: UUID}` | 201 Booking; one per offer, target FK checks, lock/recheck selected quota/place; freeze address/timezone/category/date and receivable_until=end+30m. | FR-023, FR-034, FR-035; bookings, slots, intake_quotas, offer_events |
+| GET /offers/{offerId}/booking | O | none | Single<Booking>; restores the appointment for an authorized offer after reload or a lost booking response; 404 when absent/inaccessible. | FR-023, FR-025; bookings |
 | GET /bookings/{bookingId} | O via booking | none | Booking; history across attempts, effective no_show at cutoff. | FR-025, FR-036; bookings |
 | GET /bookings/{bookingId}/qr | D | none | QR, only live booked appointment; valid_until=receivable_until; regenerated deterministic signed data, no QR blob in ledger. | FR-023; bookings |
 | POST /bookings/{bookingId}/cancellation | D or M target | `{expected_revision, reason: string}` | `{booking: Booking, offer: Offer}`; booked→cancelled, offer→cancelled, item ready; release every unreceived hold. No in-place rescheduling. | FR-035, FR-036; bookings, donation_offers, offer_events |
@@ -302,6 +330,8 @@ At exact deadlines, the action loses its live guard. Pending review holds nothin
 
 QR resolution never consumes it. Receipt authenticates again and checks current membership/tenant/nonce/state and the half-open time window. A typed signed payload is the camera fallback; no unsigned ID bypass. Terminal cancellation/no-show/receipt invalidates reception even if the signature still verifies. A delivery mismatch is cancelled before any receipt; no partial credit or late override.
 
+New photo uploads accept JPEG/PNG/WebP files up to 4 MiB (4,194,304 bytes), with at most three photos per donation and 20 megapixels per image. The upload-size limit applies in the browser, FastAPI and the guarded database command. Existing larger photos are preserved; see the [Vercel deployment prerequisite](setup.md#1-prepare-and-apply-the-database-update).
+
 ## Pagination, errors and unavailable policy
 
 Collections use opaque cursor keyset pagination: limit 1–100, default 25; canonical filter/sort/scope are bound into the cursor. Invalid/tampered cursors or altered filters are 422. Default sort created_at descending then ID descending; composite-PK config uses its full key ascending, chronological slots/arrivals use starts_at then ID, FEFO uses expiry-v1 group, effective date where applicable, receipt UTC time and donation UUID; unknown/NA FIFO and blocked group are explicit. Matches use distance, association ID, need ID. Revalidate every page; data may change between pages, so no frozen snapshot is promised. Expiry-dependent cursors additionally bind expiry-v1, timezone and local reference_date; a local-day change requires 422 stale_cursor and a fresh first page. Normalize/order the scoped metadata in Python before keyset pagination, not only the current page, so partial/PAO dates share the global FEFO order. Counts use the same scope/date; base64 payloads are never loaded for sorting. as_of is a response reference instant. Page meta.policy_version names the operational DEC profile; ExpiryView/expiry-counts use the separately versioned expiry-v1 policy. Computed filter/budget reads must use the same predicate across the page and counts.
@@ -313,7 +343,7 @@ Collections use opaque cursor keyset pagination: limit 1–100, default 25; cano
 | 404 | not_found, including foreign resources; do not disclose tenant/item existence. |
 | 409 | stale_revision, active_offer_exists, invalid_transition, deadline_elapsed, demand_exhausted, storage_exhausted, intake_quota_exhausted, slot_full, configuration_below_commitment, last_admin_required, admin_recovery_not_allowed, duplicate_identifier, already_received, already_distributed, idempotency_conflict, request_in_progress, date_context_stale, intake_date_restriction, date_clarification_required. |
 | 413 / 415 | upload_too_large / unsupported_media_type, before any AI call. |
-| 422 | validation_error, invalid_cursor, stale_cursor, invalid_qr, ineligible_item, outside_reception_window. Structured details use safe field paths/codes. |
+| 422 | validation_error, invalid_location, invalid_cursor, stale_cursor, invalid_qr, ineligible_item, outside_reception_window. Structured details use safe field paths/codes. |
 | 429 | rate_limited; Retry-After when known; deployment limits remain to configure. |
 | 500 | photo_integrity_error for an authorized photo with missing/corrupt content; no successful empty image. |
 | 502 / 503 / 504 | provider_invalid_output / provider_unavailable / provider_timeout; no fabricated result. Geocoding uses geocoding_unavailable. |
@@ -405,7 +435,7 @@ The actual response contains the complete Analysis, unchanged extracted evidence
 
 Protected tests must cover every case in UC-001–UC-012/UC-015/UC-016, cross-tenant direct reads/RPC/private-photo, one active offer, two independent budget conflicts, stale-row expiry without a scheduler, cancellation/re-offering, last-quota/place contention, duplicate receipt/distribution, revocation with a stale JWT, concurrent last-admin changes and delayed analysis after human edits/offer. See [handoff](handoff.md) for order and remaining policy decisions.
 
-This contract specifies full-lot MVP behavior. No partials, direct rescheduling, arbitrary platform reassignment, model acceptance, transport, route optimization, email or messaging routes exist. Live OpenAI/real-photo evaluation and connected frontend acceptance remain release gates; document/diagram validation does not execute API or RLS behavior.
+This contract specifies full-lot MVP behavior. No partials, direct rescheduling, arbitrary platform reassignment, model acceptance, transport, route optimization, donation notification email or messaging routes exist. Account authentication goes directly to Supabase. Live OpenAI/real-photo evaluation and connected frontend acceptance remain release gates; document/diagram validation does not execute API or RLS behavior.
 
 ### Representative expiry-v1 read projection
 

@@ -23,14 +23,20 @@ Donor pages (4–8) carry their flow states below the main screen: Home with tex
 
 Static design artifacts: associations, donors, dates, quantities and indicators are fictional; no analysis, matching, auth, storage or reception behavior is claimed.
 
+## Runtime integration note
+
+The chosen mockups remain the layout reference; removing demo records does not remove their screen structure. Runtime authentication uses email/password signup and sign-in; social-login or password-recovery examples in the mockups are not implemented actions. The connected frontend uses the implemented API described in [the current requirements](../requirements.md#connected-frontend--2026-10-25). In particular it supports three uploaded photos, full-lot reception/distribution and separate offers. The partial receipt, sample posted-offer and company-attribution notes below are historical designs, not current backend capabilities.
+
+The 2026-10-25 restoration brings back item/label photo panels and previews, donor indicator and matching layouts, donation rows, the Paris booking calendar and separate QR pass, dashboard previews, the review queue and detail split, reception columns, and inline stock distribution. Empty states use real API results. Runtime sample records and unsupported mockup actions remain absent. See [verification and limits](../readiness.md#design-restoration-2026-10-25).
+
+A second 2026-10-25 pass restores the remaining structures: the My donations table with status filters, search and evidence rows; "N associations need this" with the "Why these associations?" panel and redirect points on the no-match state; dashboard KPI numbers counted on the client, the medicine-flag banner and the active-needs panel; the slots month calendar with day dots and day panel; all-category capacity meters; the images gallery grid with indicator chips, expiry-bucket and FEFO panels; the admin verification table; the needs two-column layout; review offer ages, the donor-corrected-date panel and the reception expected count.
+
 ## Confirmed flow rules
 
 A donation contains one product type. It may contain several identical units with the same category, matching attributes and expiry facts. Mixed descriptions create separate donations.
 
 Booking follows a staff approval. Page 08 shows date/time selection and booking confirmation before the distinct QR pass state. If QR retrieval fails after booking, the appointment remains saved and the donor retries QR retrieval. Appointment times use Europe/Paris.
 
-At reception, staff adjust the actual quantity before one confirmation records the receipt and stock movement together. The quantity must be positive and cannot exceed the original offered quantity. Keep both quantities in the receipt history. No remainder stays pending and there is no second receipt. Zero quantities and no-shows remain on standby.
+Historical design (mockup 15): at reception, staff adjusted the actual quantity before one confirmation recorded the receipt and stock movement together, with no pending remainder. The connected API records the full offered quantity in one confirmation; see the full-lot rule in [DESIGN.md](../../DESIGN.md).
 
-Page 18 lets an authenticated donor offer on behalf of a named company. The same unopened, non-perishable, room-temperature food rules apply. Cold/frozen donations, cold storage, tax receipts and company verification are deferred.
-
-The current frontend uses page 19 for explicitly posted unmatched items that associations can browse. The donor chooses Post offer. Only those posts appear, with item facts and labelled sample illustrations. Uploaded photo previews remain temporary. Public visitor discovery and claiming remain unresolved. Addressed offers stay in their review queue. Medicine-specific workflow changes remain on standby; existing warning references are unchanged.
+Page 18 (company offers) and page 19 (posted unmatched offers) are future designs, not current backend capabilities. No donor "Post offer" action and no company-name attribution exist in the connected frontend; both surfaces show explicit unavailable states. When the API gains support, the mockups remain the reference for these screens. Public visitor discovery and claiming remain unresolved. Addressed offers stay in their review queue. Medicine-specific workflow changes remain on standby; existing warning references are unchanged.

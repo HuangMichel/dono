@@ -9,7 +9,7 @@ Guidance for coding agents working on **Dono** — a hackathon MVP (≤ 40 h) th
 3. **Matching is deterministic code**: need + capacity + season + distance (Haversine). No model in the matching path.
 4. **Medicines are never donatable.** If the "looks like a medicine" indicator is high, show a warning and point to a pharmacy.
 5. **Food from individuals** is limited to non-perishable, room-temperature products. Chilled/frozen items get a warning indicator.
-6. **No transport, no messaging channels** (no pickups, no Telegram, no email) in the MVP. All status lives in the app.
+6. **No transport, no messaging channels** (no pickups, no Telegram, no donation notification emails) in the MVP. All donation status lives in the app. Authentication uses Supabase email/password; account confirmation emails are allowed when enabled in Supabase.
 
 ## Stack
 
@@ -44,7 +44,7 @@ backend/               FastAPI application
   tests/               Python unit, API and concurrency checks
 supabase/
   migrations/          schema, named enum types, grants and RLS policies
-  seed.sql             demo associations, needs and redirect points
+  # No runtime seed data; local database seeding is disabled.
 tests/fixtures/photos/ shared analysis evaluation set (not created)
 docs/architecture/     editable Archify sources, standalone HTML and current evidence
 ```
@@ -85,7 +85,7 @@ Roles: `donor`, `assoc_admin`, `assoc_staff`, `platform_admin`. Every table touc
 
 ## Commands
 
-> The FastAPI backend and browser-local frontend demo are implemented in separate directories. The frontend is not connected to the API yet. See docs/requirements.md for the contract differences retained by this merge.
+> The Next.js frontend calls the FastAPI backend through authenticated API requests. See docs/setup.md for environment and Vercel setup and docs/readiness.md for verification limits.
 
 ```sh
 # From frontend/:

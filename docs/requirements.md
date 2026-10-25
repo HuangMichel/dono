@@ -22,9 +22,41 @@ Requirement IDs are stable: `BR` = binding business rule, `FR` = functional requ
 
 Priority: **M** = required MVP baseline; **S1–S4** = optional MVP stretch, cut in that order; **P** = post-MVP. **Derived** means a necessary safeguard or explicit documentation recommendation, rather than a behavior already specified in the sources. An open decision remains open even when its surrounding capability is M.
 
-## Current frontend decisions — 2026-10-25
+## Connected frontend — 2026-10-25
 
-The committed frontend implementation is a browser-local demo, separate from the implemented backend. The user's latest frontend requests override earlier mockup controls and the FEFO presentation requirement for this demo:
+The current implementation removes runtime demo records and simulated commands. Supabase email/password authentication supplies the bearer identity; the frontend provisions a donor profile and reads association memberships only after a session exists. FastAPI owns all business data and transitions. Browser storage is used by the authentication SDK, not as a donation database.
+
+Connected workflows use separate donation/offer/booking identities, three images total, server-computed balances and dates, full-lot receipt/distribution and signed QR retrieval. Public needs browsing is available without an account. Unmatched-post and company-attribution designs remain product/API gaps, with explicit unavailable states. Full-lot and expiry behavior follows the implemented backend contract; earlier demo-specific variants below are historical.
+
+All collection views handle API pagination and empty/error states. Only current active association admins see configuration controls. Only human staff can submit decisions; original analysis remains evidence.
+
+### Restored console and donor layouts — 2026-10-25, second pass
+
+The connected frontend restores the chosen mockup structures within the API contract, with no demo records:
+
+- Shared tables use the common DataTable with 10 rows per page by default; search and sorting run over the loaded result set before client pagination. My donations shows its search beside status filters (All, Drafts, Offered, Received, Withdrawn), sortable Item/Created/Status/Next-step columns, and per-row evidence with the staff decision, its timestamp, the staff note from offer events, actions and offer history.
+- The association dashboard action cards carry client-counted numbers (waiting offers, drop-offs today, uncovered needs, expiring within 30 days) computed from loaded pages (`limit=100`, shown with `+` when more remain), a medicine-flag banner from the first loaded pending offers' evidence, and an active-needs progress panel separating received, reserved and still-needed quantities.
+- Slots presents the month calendar with open/busy/full/closed day dots and a per-day panel listing that date's drop-offs and appointment times; admin slot and site forms remain. Capacity lists every category meter at once, with storage and daily intake as separate lists. Images shows the photo gallery grid with category and indicator filter chips plus expiry-bucket and FEFO side panels. Admin approvals use the verification table with a details column and manual-verification confirmation.
+- Donor matching shows "N associations need this" with the item/expiry subtitle, a "Why these associations?" panel from the returned match budgets, and the no-match state lists redirect points from `GET /redirect-points` (FR-012) with a "Scan another item" continuation. The review queue shows each offer's age, and the review evidence panel highlights a donor-corrected printed date against the AI-detected date. Reception heads the day's list with its expected count.
+- Counts and ages are computed in frontend code from API results; the API has no aggregate endpoint, so totals cover the loaded pages and say so.
+
+### Item camera capture
+
+Signed-in donors can take an item photo or label close-up from the photo step. The camera screen prefers the rear camera, shows a live preview, and lets the donor capture, retake or use a photo. Using a photo adds it to the same local selection as a file upload. It does not upload or start analysis by itself. Existing file selection, replacement and removal remain available.
+
+Camera access requests video only. Closing the screen or reviewing a capture stops the camera, including when a permission request finishes after closure. Permission denial, a missing camera or an unsupported browser leaves a file-selection fallback. Live camera access requires HTTPS or localhost. Captured JPEG files follow the existing three-photo total and 4 MiB per-photo limits, including already saved photos.
+
+## Public needs and account boundary
+
+Visitors can browse and inspect active, in-season needs from approved associations without signing up. The directory shows only public need criteria, target and remaining quantities, and association name and drop-off address. Remaining demand excludes received items and live reservations. It does not promise that a particular item can be accepted or that a drop-off slot is available.
+
+Town or postcode is optional. A blank search lists all eligible needs in the selected category without a distance. A town search returns associations with the canonical town name resolved by BAN. A full five-digit postcode search returns associations in that postcode. Apply the location and category filters before pagination, then order matching results by straight-line distance. This public-directory rule replaces distance-only searching; authenticated item matching still uses its existing distance-ranking rules. Nonblank searches must contain 3–200 characters after trimming and start with a letter or number. Invalid input shows a correction message, not a service-outage message. The form suggests a town or full postcode, such as `Mulhouse` or `68100`. Failed geocoding shows an error, never invented coordinates. Search and category changes reset pagination and item selection. The list loads ten needs at a time.
+
+Choosing **Offer an item** requires signup or sign-in before donation preparation and photo upload. Keep the selected need, category and search location through authentication. Recheck the selected need through authenticated matching before sending an offer. Staff retain the decision; browsing and signup reserve nothing.
+
+## Historical demo decisions — 2026-10-25
+
+The former frontend implementation was a browser-local demo, separate from the backend. These notes record the earlier design and do not describe the current runtime. The user's latest frontend requests override earlier mockup controls and the FEFO presentation requirement for this demo. The second 2026-10-25 restoration made the shared-table, My-donations-filters, dashboard-KPI and capacity-threshold decisions below current UI again, implemented against the real API; the remaining notes stay historical:
 
 - Shared tables show 10 rows per page by default. Search and sorting use the full result set before pagination and reset the page. Single-row selection survives page changes. My donations places search beside its status filters, with wrapping on narrow screens. Nearby needs shows up to 10 sample needs per page.
 - Location on Nearby needs is optional. Empty or whitespace-only input shows all samples within the selected category. Nonempty input retains the samples and explains the absence of distance filtering. Search and category changes reset pagination and item selection. Helper text does not shift the Location field, Search button or filters.
@@ -41,23 +73,23 @@ The committed frontend implementation is a browser-local demo, separate from the
 - Open demo tabs on the same browser origin receive saved posts and withdrawals without reloading. Each tab retains its selected role. An action refreshes saved data before applying its command, so a stale tab cannot erase an earlier saved post. Unsaved local changes remain intact if another tab changes the browser copy; replacement requires the explicit retry described in the storage warning. This demo does not synchronize across browsers or devices, or guarantee atomic simultaneous writes.
 - Staff can refuse a booked donation before receipt. A required reason and explicit confirmation record the human decision. The donation becomes terminally refused; offered quantity, original AI evidence, original approval attribution and booking history remain. No receipt or stock movement is created. The demo releases the provisional need/capacity hold and slot allocation. Donors see the reason; a refused booking cannot show an active QR, be received or be rebooked.
 
-Reception refusal and unmatched-offer posting are demo-only extensions with no corresponding backend operations. Backend reservation, cancellation and no-show behavior is defined in [domain-model.md](domain-model.md). The merge preserves both branch behaviors and does not resolve the differences below.
+Reception refusal and unmatched-offer posting were demo-only extensions with no corresponding backend operations. Backend reservation, cancellation and no-show behavior is defined in [domain-model.md](domain-model.md). The connected frontend uses that contract; the unsupported product extensions remain open.
 
 ## Backend integration differences
 
-These are source differences, not new product decisions. Retain the frontend decisions and backend implementation until their intended behavior is reconciled before wiring the affected flows.
+These differences describe the replaced demo and the API baseline. The connected implementation uses the API baseline where supported; unsupported product behaviors remain open and are not simulated.
 
-| Area | Committed frontend | Implemented backend / integration work |
+| Area | Historical demo | Current API integration |
 |---|---|---|
-| Identity and persistence | Demo personas and browser-local state. | Supabase bearer identity, profile bootstrap and membership checks. Add an authenticated API client. |
-| Item and offer identity | `Donation` combines item facts, recipient and decision/status. | Separate reusable donation, recipient offer, booking and inventory lifecycles. Map DTOs and actions explicitly. |
-| Photos | Six local item views plus one label. | Three uploaded images total, 5 MiB each and 20 megapixels; authenticated content routes and private base64 persistence. |
-| Reception and stock | Quantity correction at receipt and partial distribution. | Full-lot reception and distribution. Reconcile quantity behavior before connecting these actions. |
+| Identity and persistence | Demo personas and browser-local state. | Supabase bearer identity, profile bootstrap and membership checks through an authenticated API client. |
+| Item and offer identity | `Donation` combines item facts, recipient and decision/status. | Separate reusable donation, recipient offer, booking and inventory lifecycles with explicit DTOs and actions. |
+| Photos | Six local item views plus one label. | Three uploaded images total, 4 MiB each and 20 megapixels; authenticated content routes and private base64 persistence. |
+| Reception and stock | Quantity correction at receipt and partial distribution. | Connected actions require full-lot reception and distribution. Partial-quantity behavior remains unsupported. |
 | Posting and reception refusal | Explicit unmatched posts and terminal refusal before receipt. | No matching publication or reception-refusal endpoint. Do not map either to unrelated commands. |
 | Company attribution | Existing donor acts for a named company; no shared company account. | Closed donation DTOs have no `donor_kind` or `company_name`. Preserve AMB-022 as an integration gap. |
-| Need criteria | Freeze category, unit, attributes and seasons after commitments/receipts. | Backend permits criteria changes while preserving frozen prior offers, including season changes. Reconcile AMB-024 before exposing edits. |
-| Packaged goods and PAO | Unopened food/para; PAO is label evidence only. | Backend represents opening facts and computes PAO constraints. Resolve the policy difference before mapping these fields. |
-| Expiry presentation | FEFO panels removed for the demo. | Expiry buckets and FEFO reads remain implemented and required by the backend baseline. Resolve the connected UI scope. |
+| Need criteria | Freeze category, unit, attributes and seasons after commitments/receipts. | The connected editor follows backend validation and preserves frozen prior offers. The stricter historical policy in AMB-024 remains a product gap. |
+| Packaged goods and PAO | Unopened food/para; PAO is label evidence only. | The connected form represents backend opening facts and PAO constraints. The stricter historical packaged-goods policy remains a product gap. |
+| Expiry presentation | FEFO panels removed for the demo. | Connected stock views use server-computed expiry buckets and FEFO ordering required by the backend baseline. |
 
 One donation still represents a single homogeneous product lot. Neither branch's tests establish the connected donor-to-staff journey.
 
@@ -71,7 +103,7 @@ The MVP supports clothes, shoes, non-perishable room-temperature food, parapharm
 
 The required vertical slice is: authentication and association approval → needs/storage/dated intake quotas/slots → photo analysis and corrections → matching and offer → staff review → booking/QR → reception, stock and distribution → expiry buckets and distribute-first list. All donation status is visible inside the application.
 
-Transport, pickups, vehicle routing, delivery assignment, email and messaging channels are outside the MVP. A straight-line distance used for matching is not a travel route. A drop-off appointment is not a transport service. Recipients of redistributed goods are beneficiaries, not MVP application users.
+Transport, pickups, vehicle routing, delivery assignment, donation notification emails and messaging channels are outside the MVP. Supabase account confirmation emails are allowed when enabled. A straight-line distance used for matching is not a travel route. A drop-off appointment is not a transport service. Recipients of redistributed goods are beneficiaries, not MVP application users.
 
 Success is demonstrated by completing this flow with isolated donor and association accounts while preserving human decisions, original indicators and deterministic calculations. No conversion, accuracy, latency, kilograms or financial targets are specified by the sources.
 
@@ -79,6 +111,7 @@ Success is demonstrated by completing this flow with isolated donor and associat
 
 | Persona / actor | Need and permitted responsibility |
 |---|---|
+| Public visitor | Browse public needs and association drop-off details; sign up or sign in to offer an item. No private records or commands. |
 | Individual donor (`donor`) | Photograph an item, understand indicators, correct facts/category, find a suitable association, offer, follow status and book their own drop-off. |
 | Association coordinator (`assoc_admin`) | Prepare the association's needs, capacity and slots; review donations and oversee reception and stock. |
 | Association volunteer (`assoc_staff`) | Review offers, receive booked donations and record distribution for an association to which they belong. Configuration and membership management are reserved to assoc_admin (DEC-010). |
@@ -114,7 +147,7 @@ The working permission profile resolves the earlier TBD entries. Every associati
 | BR-003 | M | Match with deterministic need + capacity + season + Haversine distance. No model call, LLM ranking or model-authored explanation is part of the matching path. | AGENTS §3 |
 | BR-004 | M | Medicines cannot be donated. A high medicine indicator produces a warning and pharmacy redirection, never a model-issued refusal. Confirmed medicines cannot proceed through a staff approval override. Uncertain-item handling follows analysis-v1 (AMB-007 working default). | AGENTS §4 |
 | BR-005 | M | Individual food donations are limited to non-perishable products stored at room temperature. Chilled/frozen items show a warning indicator and are outside eligible food scope; precise clarification/acknowledgement handling follows analysis-v1. | AGENTS §5 |
-| BR-006 | M | No transport, pickups, vehicle routing, email, chat, Telegram or other messaging channel is part of the MVP. Donation status and appointment information stay in the app. | AGENTS §6; current request |
+| BR-006 | M | No transport, pickups, vehicle routing, donation notification emails, chat, Telegram or other messaging channel is part of the MVP. Donation status and appointment information stay in the app. Supabase account confirmation emails are allowed when enabled. | AGENTS §6; current request |
 
 ## Functional requirements
 
@@ -122,7 +155,7 @@ The working permission profile resolves the earlier TBD entries. Every associati
 
 | ID | Priority | Requirement | Basis |
 |---|---|---|---|
-| FR-001 | M | Authenticate verified Supabase subjects and enforce donor ownership, active enabled membership and protected platform capability. No self-editable role claims. Raw current donation facts are owner-only; association reads are scoped to their offer snapshots/evidence. Enforce the same boundaries in RLS and privileged command guards. | AGENTS; derived security safeguard |
+| FR-001 | M | Provide Supabase email/password signup and sign-in; signup requires at least eight password characters. Wait for an authenticated session before profile bootstrap, including when email confirmation is required. Authenticate verified Supabase subjects and enforce donor ownership, active enabled membership and protected platform capability. No self-editable role claims. Raw current donation facts are owner-only; association reads are scoped to their offer snapshots/evidence. Enforce the same boundaries in RLS and privileged command guards. | Current request; AGENTS; derived security safeguard |
 | FR-002 | M | Register a pending association with the verified applicant and an inactive initial-admin membership atomically. Manual platform approval activates that exact applicant admin in the same transaction. Validate/normalize RNA/SIRET syntax and uniqueness under the one-site MVP profile; pending associations receive no offers. | README; derived approval gate |
 | FR-003 | M | Maintain confirmed item demand, category/attribute criteria, explicit season rules and a staff-declared storage cost per item. Requested item quantities are distinct from storage places and dated intake quotas (DEC-004/009). | README; AGENTS matching rule |
 | FR-004 | M | Accept free-text needs and return an editable AI-structured draft for staff confirmation before saving. Parse stated quantities; do not invent or calculate them with AI. The form remains available if parsing fails. | README; derived confirmation safeguard |
@@ -178,6 +211,7 @@ The working permission profile resolves the earlier TBD entries. Every associati
 | FR-036 | M | Keep separate item, offer, booking and derived inventory states with audited transitions. Preserve prior decision and snapshots after cancellation; allow recovery by a new offer/booking until physical transfer. No partial lots/reversal in MVP. | Domain review 4; DEC-001/005/012 |
 | FR-037 | M | Define trusted profile creation, pending initial-admin bootstrap, atomic platform activation, admin-only member grants/role changes/revocation/transfer, last-enabled-admin protection and constrained orphan recovery. Current database permissions override stale JWT claims. | Domain review 5; DEC-008/010/011 |
 | FR-038 | M | Separate AI evidence attachment from working-fact seeding, use captured facts revisions/human origin, preserve all originals and late-response provenance, and allow acknowledged manual review of complete validated human facts when analysis is pending/unavailable. | Domain review 6; DEC-006/007 |
+| FR-039 | M | Allow unauthenticated browsing of a limited public needs directory, optional town/postcode search and category filtering. Require an authenticated application account to prepare or send an offer. Preserve selected need intent through authentication and revalidate it through matching; never grant public access to private association, donor or evidence records. | Current user request, 2026-10-25 |
 
 ### Optional and post-MVP requirements
 
@@ -245,7 +279,7 @@ Entries marked working profile are now concretely defined by the proposed DEC de
 | ID | Open question / source gap | Needed before | Suggested owner |
 |---|---|---|---|
 | AMB-001 | **Working profile defined by DEC-010:** admins configure/manage membership; staff review/receive/distribute; last-admin protection, transfer, revocation and constrained original-applicant recovery are specified. Broader platform powers and invitations are outside MVP. | Implement/verify working profile; review later extensions | Product owner |
-| AMB-002 | **Working onboarding defined by DEC-008/010/011:** Google OAuth, trusted donor-profile provisioning, at least one syntactically valid unique RNA/SIRET, pending inactive applicant admin, atomic manual platform approval/activation. Provider credentials and migration setup remain deployment work; no email flow. Registration rejection/resubmission UI and multi-site support are deferred. | Implement/verify working profile; review later extensions | Product + technical owner |
+| AMB-002 | **Working onboarding defined by DEC-008/010/011:** email/password authentication, trusted donor-profile provisioning, at least one syntactically valid unique RNA/SIRET, pending inactive applicant admin, atomic manual platform approval/activation. Hosted Email settings, optional confirmation delivery and migration setup remain deployment work. Registration rejection/resubmission UI and multi-site support are deferred. | Verify hosted signup and profile; review later extensions | Product + technical owner |
 | AMB-003 | Does “1–2 photos + label close-up” mean two or three total? Which MIME types, byte limits, dimensions and replacement behavior are supported? | Upload configuration | Technical owner |
 | AMB-004 | **Working correction/reanalysis policy defined by DEC-006/007:** edit only with no active offer before transfer; freeze attempt snapshots; attach missing basis independently from seeding; no mandatory same-category reanalysis; acknowledged manual fallback. In-flight results never replace human facts. Post-receipt stock-fact correction/returns remain outside MVP. | Implement/verify working profile; review later extensions | Product owner |
 | AMB-005 | **Working default expiry-v1:** exclusive buckets including today and exactly 90; local calendar days, nullable unknown/NA and single-count metrics. See expiry-rules.md and EX-T001–010/028–029. | Implement/verify the versioned defaults; review later extensions | Product owner with association staff |
@@ -265,7 +299,7 @@ Entries marked working profile are now concretely defined by the proposed DEC de
 | AMB-019 | No supported device matrix, accessibility conformance target, model/cost budget, response-time target or uptime target is specified. Do not invent an SLA or accuracy claim. | Performance planning / deployment | Product + technical owner |
 | AMB-020 | The pre-review README labeled advanced metrics and formal impact reporting MVP. The reviewed README now aligns with proposed post-MVP deferral (FR-030); confirm if a simple measured counter must instead be included. This wording alignment does not resolve the product choice. No estimated factors are authorized. | Final MVP scope review | Product owner |
 | AMB-021 | **Service selection resolved:** user chooses the government BAN service; use the official IGN Géoplateforme address geocoder at https://data.geopf.fr/geocodage/. AGENTS and diagrams now name this explicitly. Verify adapter parameters, coordinate ordering, limits and failure behavior during integration. DEC-009 defines distance ordering/no radius and request-scoped origin; retention/privacy notice remains AMB-015. Evidence is linked in setup.md. | Adapter integration verification remains | Technical owner |
-| AMB-022 | **Company scope resolved:** existing donor workflow with company-name attribution, identical food/packaging restrictions, no company verification, shared accounts, cold-chain handling or tax receipts. The frontend demo now permits explicit unmatched posts for association browsing. Production publication, public visitor access and association claims remain unresolved. | Company implementation; production publication and claim contract | Product + technical owner |
+| AMB-022 | **Company scope resolved:** existing donor workflow with company-name attribution, identical food/packaging restrictions, no company verification, shared accounts, cold-chain handling or tax receipts. The frontend demo now permits explicit unmatched posts for association browsing. Production publication, public visitor access to unmatched donor posts and association claims remain unresolved. Public browsing of association needs is separately resolved by FR-039. | Company implementation; production publication and claim contract | Product + technical owner |
 | AMB-023 | **Donation grouping resolved:** one product type per donation; identical units share category, matching attributes and expiry facts. Split mixed groups before offering. | Capture/validation implementation | Technical owner |
 | AMB-024 | **Need editing resolved:** freeze category/unit/attributes/seasons once commitments or receipts reference the need. Close it and create another for changed criteria. Old fulfillment never counts for the new need. | Need guards and concurrent-edit tests | Technical owner |
 

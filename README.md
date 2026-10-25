@@ -2,7 +2,7 @@
 
 **Scan before you donate.** Dono helps individuals offer usable goods to associations that need them and have space. AI supplies indicators; association personnel make the donation decision.
 
-This repository now includes a FastAPI backend, Supabase PostgreSQL migrations/RLS and OpenAI Structured Outputs integration. All 64 documented REST method/path combinations are registered. The Next.js frontend in [frontend/](frontend/) is a browser-local demo and is not connected to the backend yet. The merge preserves both implementations; [contract differences](docs/requirements.md#backend-integration-differences) need resolution before API wiring. The total product scope remains a **40-hour hackathon MVP**; [readiness](docs/readiness.md) distinguishes executed backend checks from remaining live-provider and photo-evaluation gates.
+This repository includes a Next.js frontend connected to FastAPI, Supabase Auth/PostgreSQL and OpenAI Structured Outputs. Runtime demo records and simulated actions have been removed. Visitors browse nearby needs without an account. Donors sign up or sign in with email and password when they choose to offer an item; business records come from the API. See [setup](docs/setup.md) for local and Vercel configuration and [readiness](docs/readiness.md) for the remaining validation gates.
 
 ## Product and scope
 
@@ -16,7 +16,7 @@ The five categories are clothes, shoes, non-perishable room-temperature food, pa
 - Donor category/attribute corrections remain separate from immutable original AI extraction and indicators. Display their provenance and any category mismatch.
 - Code computes expiry, counts and distance. Days left, expired flags, buckets and FEFO are computed at read time and never stored.
 - Matching uses need, capacity, season and Haversine distance deterministically, without a model.
-- All status stays in the app. The MVP contains no transport, pickups, route optimization, email or messaging channels.
+- All donation status stays in the app. The MVP contains no transport, pickups, route optimization, donation notification emails or messaging channels. Supabase account confirmation emails are allowed when enabled.
 
 | Actor | Responsibility |
 |---|---|
@@ -25,7 +25,7 @@ The five categories are clothes, shoes, non-perishable room-temperature food, pa
 | Association staff | Review, reception and stock within active membership; admins alone configure intake/members. |
 | Platform admin | Manual association approval and constrained orphan-admin recovery; no general donation access or donation decisions. |
 
-Roles can coexist through a protected platform capability and association memberships under the proposed schema. The working Google OAuth/profile bootstrap, atomic applicant-admin activation, membership grants/transfer/revocation, last-admin protection and restricted recovery are defined in [domain-model.md](docs/domain-model.md).
+Roles can coexist through a protected platform capability and association memberships under the proposed schema. Email/password authentication and profile bootstrap, atomic applicant-admin activation, membership grants/transfer/revocation, last-admin protection and restricted recovery are defined in [domain-model.md](docs/domain-model.md).
 
 ## MVP priorities
 
@@ -93,7 +93,7 @@ Closed vocabularies such as roles, unit, category and state use named PostgreSQL
 
 The API uses `/api/v1/account/profile` and `/api/v1/account/memberships` for the signed-in user. All business routes belong to FastAPI; Next.js renders the frontend.
 
-## Run the frontend demo
+## Run the frontend
 
 ```sh
 cd frontend
@@ -101,7 +101,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open `http://localhost:3000` and choose a demo persona on `/login`. Data and actions stay in browser-local storage. No service credentials are required for the demo. See [frontend setup and limits](frontend/README.md). The backend runs separately; starting both servers does not connect them.
+Open `http://127.0.0.1:3000`. Configure the public Supabase URL/key and FastAPI base URL first, then open `/needs` to browse without an account. Choose **Offer an item** to create an account or sign in with email and password. The app starts without seeded business records. See [frontend setup](frontend/README.md) and the [deployment commands](docs/setup.md#vercel) for Next.js and FastAPI as two Vercel projects, with Supabase for Auth and PostgreSQL.
 
 ## Run the backend
 
