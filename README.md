@@ -2,7 +2,7 @@
 
 **Scan before you donate.** Dono helps individuals offer usable goods to associations that need them and have space. AI supplies indicators; association personnel make the donation decision.
 
-This repository is a **pre-implementation design baseline** for a hackathon MVP with a total effort budget of **40 hours**. It contains specifications and interactive diagrams. There is no application scaffold, frontend/package.json, backend/pyproject.toml, database migration, running API or photo evaluation set yet. Diagram validation does not verify application behavior.
+This repository contains the specifications, interactive diagrams and a **frontend-only demo** for the hackathon MVP. The Next.js app in [frontend/](frontend/) uses clearly labelled dummy data stored in the browser. No backend, API, database migrations, authentication service or live AI integration is implemented. The 40-hour allocation remains a planning estimate, not a measured delivery time.
 
 ## Product and scope
 
@@ -46,7 +46,7 @@ Bucket boundaries, PAO, timezone, matching policy, capacity units/reservations, 
 | Optional indicators | TypeSafe Jev / hybrid behind `ANALYSIS_PROVIDER`; Jev does no OCR/date/number extraction. |
 | Geocoding | Government BAN address data through IGN Géoplateforme, `https://data.geopf.fr/geocodage/`. Backend geocoding only; no routing service. |
 
-No dependency versions are selected. Next.js is the frontend; FastAPI is a separate Python backend. Check the future frontend/package.json and backend/pyproject.toml, pin compatible versions and commit both lockfiles; prefer releases at least seven days old.
+Frontend dependencies are pinned in [frontend/package.json](frontend/package.json), with a pnpm lockfile. Next.js provides the interface; the planned FastAPI backend remains separate and unimplemented. Check existing manifests before adding dependencies and prefer releases at least seven days old.
 
 ## Documentation
 
@@ -85,22 +85,14 @@ Closed vocabularies such as roles, unit, category and state use named PostgreSQL
 
 The API uses `/api/v1/account/profile` and `/api/v1/account/memberships` for the signed-in user. All business routes belong to FastAPI; Next.js renders the frontend.
 
-## Planned quickstart
-
-Today you can read the documents and open the diagrams. Neither toolchain nor migrations exists. The root [.env.example](.env.example) separates public frontend settings from FastAPI-only secrets; populate the two future app environments selectively, never copy backend secrets into the frontend.
-
-After scaffolding, package configuration, policy decisions and reviewed Supabase provisioning, the intended commands are:
+## Run the frontend demo
 
 ```sh
-# Future frontend/ directory only; not runnable in this repository today.
-pnpm install
+cd frontend
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-```sh
-# Future backend/ directory only; pyproject/app entry point do not exist yet.
-uv sync
-uv run uvicorn app.main:app --reload
-```
+Open `http://localhost:3000`. Choose a demo persona on `/login`. Use the donor, association and platform views to exercise the local workflow. The demo banner resets the browser data. No environment variables or service accounts are required.
 
-The actual origins/ports and migration procedure will be documented after configuration. Planned frontend checks are pnpm lint/typecheck/test; planned backend checks are Ruff, mypy and pytest. None ran here. [Setup](docs/setup.md) lists prerequisites, environment boundaries and future RLS, concurrency, expiry and photo-set verification.
+[Frontend setup and demo limits](frontend/README.md) describes the screens, checks and simulated behavior. The root [.env.example](.env.example) remains a reference for future service integration; never copy backend secrets into the frontend. [Setup](docs/setup.md) retains the planned backend and infrastructure work.

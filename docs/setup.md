@@ -1,6 +1,6 @@
 # Dono local setup plan
 
-Status: **design only**. Next.js is the frontend and Python FastAPI owns every business API operation. Neither frontend/package.json nor backend/pyproject.toml exists; no app entry point, migrations, seed or test/photo fixtures exist. Commands below are planned, unverified project instructions. Read [AGENTS.md](../AGENTS.md) and the [decision register](requirements.md#ambiguities-and-decisions-required) first.
+Status: **frontend demo available; service integration remains planned**. Run the browser-local dummy-data app using [frontend/README.md](../frontend/README.md). It needs no secrets, API or database. Python FastAPI will own every business API operation; no backend, migrations, live authentication or photo evaluation set exists. The service setup instructions below remain proposals. Read [AGENTS.md](../AGENTS.md) and the [decision register](requirements.md#ambiguities-and-decisions-required) before implementing them.
 
 ## Review the design today
 
@@ -10,7 +10,7 @@ The root [.env.example](../.env.example) contains blank placeholders only. It is
 
 ## Future toolchains and boundaries
 
-Choose compatible supported Node.js LTS/pnpm versions for the frontend and supported Python/uv versions for FastAPI/Pydantic. Pin them in the future manifests and commit pnpm/uv lockfiles. Check existing manifests before adding dependencies and prefer versions at least seven days old. No versions or dependencies are installed by this task.
+The frontend manifest and pnpm lockfile now pin the installed UI dependencies. Choose supported Python/uv versions when the FastAPI project is authorized. Check existing manifests before adding dependencies and prefer versions at least seven days old. Backend tooling remains uninstalled.
 
 The frontend displays donor, association and platform views and establishes/refreshes Supabase Auth sessions under the agreed no-email sign-in method. It sends the user's access token to FastAPI using Authorization: Bearer. FastAPI verifies it and resolves current permissions; an app API key is not a user's identity. Provider calls, file validation, matching, expiry and transaction commands live in Python. Next.js business Route Handlers/server actions are not part of the revised backend. See [JWT verification](https://supabase.com/docs/guides/auth/jwts).
 

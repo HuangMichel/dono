@@ -83,14 +83,15 @@ Roles: `donor`, `assoc_admin`, `assoc_staff`, `platform_admin`. Every table touc
 
 ## Commands
 
-> Neither frontend/package.json nor backend/pyproject.toml exists. Every command below is planned and unverified; update once the respective tool configuration and scripts exist.
+> The frontend demo is scaffolded, with scripts in frontend/package.json. Backend commands remain planned: backend/pyproject.toml and the API do not exist.
 
 ```sh
-# From the future frontend/ directory:
+# From frontend/:
 pnpm dev
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm build
 # From the future backend/ directory, after uv/pyproject setup:
 uv run uvicorn app.main:app --reload
 uv run ruff check .
@@ -100,7 +101,7 @@ uv run pytest
 
 ## Verification before finishing a task
 
-1. Once scaffolded, frontend lint/typecheck/tests and backend Ruff/mypy/pytest pass; neither toolchain currently exists.
+1. Run frontend lint/typecheck/tests/build for frontend changes. Backend Ruff/mypy/pytest remain future checks; the backend is not scaffolded.
 2. Unit tests cover `backend/app/domain/expiry.py` (boundaries: today, expired, unreadable date) and `backend/app/domain/matching.py` (capacity full, season, distance ordering).
 3. Analysis changes are checked against the photo test set (`tests/fixtures/photos/`, 25–35 images including medicines and para products).
 4. No UI path shows an AI-made approve/refuse decision.

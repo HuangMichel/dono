@@ -23,6 +23,7 @@ next-env.d.ts
 # Test output and local logs.
 coverage/
 playwright-report/
+.playwright-mcp/
 test-results/
 *.log
 

@@ -6,6 +6,16 @@ Status: proposed delivery specification for a ≤40-hour hackathon MVP. The [req
 
 ## Feature catalog
 
+For the current frontend demo, the [2026-10-25 decisions](requirements.md#current-frontend-decisions--2026-10-25) add multiple local photo previews, staff refusal before receipt and explicit posting when no association matches. They also remove duplicate category filters and FEFO panels. These override the corresponding presentation and lifecycle baseline below only within the frontend demo. No backend operation is implemented.
+
+Unmatched posting has these demo acceptance criteria:
+
+- A donor can post their valid analyzed draft when there are no eligible matches. Existing medicine and chilled-food warnings block posting.
+- Posting once or reloading produces one available listing. A stale or unauthorized command cannot publish or withdraw another donor's item.
+- My donations distinguishes Posted from Drafts and Waiting for review. Offers nearby shows only explicitly posted items to the association persona, without private donor details or invented distances.
+- A post assigns no association or need and has no decision, reservation, booking, QR or stock effect. Existing addressed offers keep their staff-review flow.
+- The donor can withdraw the post. The listing disappears and the preserved draft becomes editable. Claiming and automatic assignment remain unavailable.
+
 | ID | Feature | Priority | Minimum deliverable / boundary |
 |---|---|---|---|
 | FEAT-001 | Identity, roles and association approval | M | Donor/staff isolation and platform approval of RNA/SIRET association registrations. No general platform access to donation decisions. |

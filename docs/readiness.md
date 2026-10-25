@@ -1,31 +1,37 @@
 # Dono readiness report
 
-**Design revision: Next.js frontend + Python FastAPI backend.** No application, migrations or dependencies were implemented. Remaining product-policy decisions still block an unconditional schema/API freeze.
+Updated 2026-10-25. Specification reconciliation and source recovery are complete. Diagram browser validation and current ERD rendering remain incomplete. This repository still contains a design baseline, not a runnable application.
 
-## Changes in this revision
+## Confirmed changes
 
-- Updated [AGENTS.md](../AGENTS.md), [README](../README.md), [setup](setup.md), [requirements](requirements.md), [features](features.md), [architecture](architecture.md), [database design](databases.md), [API](api.md), [handoff](handoff.md) and [.env.example](../.env.example) to the requested frontend/backend split. The six binding product rules are preserved.
-- Replaced generic text on closed database vocabularies with 18 named PostgreSQL enum types; allowed labels appear at each affected table column and in the [catalog](databases.md#enumerated-types). Unit/season labels remain provisional under AMB-008/009.
-- Kept `attributes` for validated item facts and need criteria, with [examples and boundaries](databases.md#what-attributes-means). Original AI extraction, human edits and technical provenance remain separate.
-- Kept private Storage for image bytes and database references/digests. [The photo rationale](databases.md#why-photos-use-storage-instead-of-base64-database-text) explains base64 overhead and the bytea alternative if database-only persistence is later chosen explicitly.
-- Selected the government BAN address service through IGN Géoplateforme. AMB-021 service selection is resolved; adapter verification and AMB-009/016 privacy/radius questions remain.
-- Replaced /me with GET/PATCH `/account/profile` and GET `/account/memberships`, bringing the catalog to 42 business operations. FastAPI bearer verification, CORS, error normalization, static-path ordering and authenticated private-image fetches are documented.
-- Regenerated six affected [interactive diagrams](architecture.md#interactive-diagrams); retained the lifecycle source/semantics. Retained editable sources and current evidence; removed only unused historical JSON reports under the user's cleanup choice. Standalone HTML and image captures remain.
+- Company donations remain in the existing donor workflow with company-name attribution. The smaller scope excludes company verification, shared accounts, chilled/frozen handling and tax receipts.
+- Packaged food and hygiene products must be unopened. Printed PAO remains label evidence, with no opening-date input or after-opening expiry calculation.
+- Local dates, expiry and appointments use `Europe/Paris`; instants are stored/exchanged in UTC.
+- One donation contains one product type and identical units with the same matching attributes and expiry facts.
+- Need criteria freeze once approved/booked commitments or receipts reference the need. Changed criteria require a new need.
+- Staff approve the offer before slot selection. The app creates the booking before generating its QR.
+- Staff can reduce the quantity before one full reception. Quantity correction, audit, receipt, stock and status commit together, without a pending remainder or second receipt.
+- AI wording uses indicators and uncertainty. Staff explicitly confirm unopened packaging; AI probabilities do not complete that confirmation.
+- Seven diagram sources are restored and no longer ignored by Git. See [source and diagram evidence](architecture.md#validation-evidence).
 
 ## Verification
 
-The database dictionary and ERD cover 16 application tables, 153 columns and 30 FK roles, plus the separate managed Auth key stub. The six revised diagrams pass Archify validation, delivery, strict artifact and Chrome browser checks; the unchanged lifecycle retains matching passing evidence. Current system/ERD captures were inspected for readable labels, frontend/backend separation and enum types. The dense ERD has 25 documented composition warnings; no fields or relationships were removed to conceal them.
+| Check | Evidence and result |
+| --- | --- |
+| Independent business review | No remaining contradictions found in the changed contracts and mockups after correcting audit attribution and company photo prerequisites. |
+| Requirement traceability | 8 business, 33 functional and 10 non-functional requirements map to the feature matrix; 22 features, 15 use cases and 76 acceptance criteria have unique definitions. |
+| API examples | All 15 JSON examples parse. |
+| Documentation links | No broken local file or heading links across 12 Markdown files. All seven restored diagram sources parse as JSON. |
+| Mockup source checks | Changed HTML structure, IDs, local links, booking/reception order and company prerequisites checked. No browser rendering claimed. |
+| Database/ERD source | Revised dictionary and recovered source contain 16 application tables and 154 columns. Existing ERD HTML remains a historical 153-column view. |
+| Six supported diagram views | Static validation, delivery and strict artifact checks passed in a temporary mirror. Browser checks failed because Chrome communication ended before connection. |
+| Final-path diagram provenance | Copied HTML/evidence bytes match the temporary outputs. Strict workspace checks fail because delivery identity belongs to the temporary path/inode; receipts were not rewritten. |
+| Runtime application checks | Not run: no frontend/backend project, migrations, services or photo fixtures exist. |
 
-Documentation checks cover links/anchors, requirement/use-case/acceptance IDs and traceability, JSON examples, route uniqueness, enum/dictionary/ERD consistency, blank environment assignments, ignore behavior, current receipt hashes and cleanup dependencies. Final counts and exact evidence paths are recorded in [architecture.md](architecture.md#validation-evidence) and [handoff](handoff.md#consistency-audit).
+The installed Archify version lacks ERD support. No current ERD render or visual acceptance is claimed. Historical screenshots and earlier reported receipts do not establish current validation. Detailed gate results and regeneration commands are in [architecture.md](architecture.md#validation-evidence).
 
-Verified design invariants remain: staff-only donation decisions; donor/active-membership isolation; immutable original AI evidence despite category edits; deterministic need/capacity/season/Haversine matching; read-time expiry/FEFO without stored derivatives; medicine exclusion; eligible individual-food scope; atomic booking/reception/stock intent; no transport, routing, email or messaging. These are design checks, not working runtime controls.
+## Remaining work
 
-Cleanup result: **62 unused historical JSON reports removed; 38 JSON files retained**, including all seven editable sources, seven current HTML delivery receipts, current finalize/browser evidence and the three linked capture receipts. No standalone HTML or PNG file was deleted.
+Medicine refinements and approval reservation/release rules remain on standby. Other open product policies stay in the [decision register](requirements.md#ambiguities-and-decisions-required), including auth/bootstrap, analysis-basis recovery, expiry boundaries, matching and QR exceptions. Public claiming and stock disposal are separate unresolved proposals.
 
-## Remaining decisions and implementation order
-
-The [24-finding audit](handoff.md#consistency-audit) records resolved wording/technical choices and open questions. Main blockers remain auth without email and trusted membership bootstrap; upload/category schemas and analysis-basis recovery; expiry edges/timezone/PAO/intake policy; units/reservations/matching/privacy; booking exceptions and changes to booked address/hours/timezone; QR lifetime/no-shows/partials; retention and operational/model budgets.
-
-Resolve dependent policies → pin/scaffold frontend and FastAPI tooling → auth/RLS/private Storage → needs/capacity/slots → validated analysis/evidence/corrections → Python expiry and deterministic matching/offers → human review/holds → booking/QR → reception/stock/distribution → basic gallery/expiry views → complete isolation, race, photo and browser verification.
-
-Retain the [40-hour allocation](handoff.md#recommended-milestones-and-implementation-order), accounting for two toolchains within the existing budget; re-estimate at scaffolding rather than assuming the stack change is free. Optional cuts remain Jev → comparison → timeline → agreement. Frontend pnpm checks, backend Ruff/mypy/pytest, database/API concurrency tests and the 25–35-photo evaluation were not run: neither application nor its fixtures exists.
+Before implementation, re-estimate the [required flow](features.md#delivery-priorities-and-forty-hour-budget). The illustrative 40-hour allocation contains no optional work to remove. Use the [handoff](handoff.md) for current limitations and next steps.
