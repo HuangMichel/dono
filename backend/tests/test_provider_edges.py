@@ -63,7 +63,9 @@ async def test_need_parsing_failure_never_saves_a_need(case: str, code: str) -> 
         parts = (
             [{"type": "refusal"}]
             if case == "refusal"
-            else [part, part] if case == "multiple" else [part]
+            else [part, part]
+            if case == "multiple"
+            else [part]
         )
         return httpx.Response(
             200,
