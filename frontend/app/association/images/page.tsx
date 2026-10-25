@@ -1,7 +1,12 @@
 "use client";
+import { formatCount, indicatorLabel } from "@/lib/ui-text";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  associationGallery,
+  filterGalleryDonations,
+} from "@/lib/association-gallery";
 import { useDemo } from "@/lib/demo-context";
 import {
   CATEGORY_LABELS,
@@ -10,12 +15,18 @@ import {
   STATUS_LABELS,
   getInventory,
 } from "@/lib/demo-store";
-import { Button, Card, Chip, EmptyState, SelectField } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardActions,
+  Chip,
+  EmptyState,
+  SelectField,
+} from "@/components/ui";
 import { ConsoleTitle } from "@/components/association/shell";
 import {
   Evidence,
   dateLabel,
-  indicatorLabels,
   instant,
   itemName,
   probabilityLabel,
@@ -27,30 +38,21 @@ export default function ImagesPage() {
   const [indicator, setIndicator] = useState("");
   const [level, setLevel] = useState("");
   const [selected, setSelected] = useState("");
-  const scoped = state.donations.filter(
-    (d) => d.association_id === DEMO_ASSOCIATION_ID && d.status !== "draft",
+  const gallery = useMemo(
+    () =>
+      associationGallery(
+        {
+          donations: state.donations,
+          analyses: state.analyses,
+          photos: state.photos,
+          expiry_facts: state.expiry_facts,
+        },
+        DEMO_ASSOCIATION_ID,
+      ),
+    [state.donations, state.analyses, state.photos, state.expiry_facts],
   );
-  const keys = [
-    ...new Set(
-      state.analyses
-        .filter((a) => scoped.some((d) => d.basis_analysis_id === a.id))
-        .flatMap((a) => a.indicators.map((i) => i.key)),
-    ),
-  ];
-  const donations = scoped.filter((d) => {
-    const a = state.analyses.find((a) => a.id === d.basis_analysis_id);
-    return (
-      (category === "all" || d.category === category) &&
-      (!indicator ||
-        a?.indicators.some(
-          (i) => i.key === indicator && (!level || i.level === level),
-        )) &&
-      (!level ||
-        a?.indicators.some(
-          (i) => (!indicator || i.key === indicator) && i.level === level,
-        ))
-    );
-  });
+  const { keys, analysisById, photoByDonationId, expiryByDonationId } = gallery;
+  const donations = filterGalleryDonations(gallery, category, indicator, level);
   const detail = donations.find((d) => d.id === selected);
   const stock = getInventory(state).filter(
     (i) =>
@@ -58,13 +60,11 @@ export default function ImagesPage() {
       Number(i.remaining_quantity) > 0,
   );
   const unknownDates = stock.filter(
-    (i) =>
-      !state.expiry_facts.find((f) => f.donation_id === i.donation.id)
-        ?.expiry_date,
+    (i) => !expiryByDonationId.get(i.donation.id)?.expiry_date,
   ).length;
   return (
     <>
-      <ConsoleTitle title="Images" detail={`${donations.length} items`} />
+      <ConsoleTitle title="Images" detail={formatCount(donations.length)} />
       <div className="console-actions" style={{ marginBottom: 16 }}>
         <div
           className="console-filter-strip console-category-tabs"
@@ -73,10 +73,10 @@ export default function ImagesPage() {
           {[
             ["all", "All"],
             ["food", "Food"],
-            ["para", "Care"],
+            ["para", "Hygiene & care"],
             ["clothes", "Clothes"],
             ["shoes", "Shoes"],
-            ["furniture", "Furniture"],
+            ["furniture", "Small furniture"],
           ].map(([key, label]) => (
             <Button
               size="sm"
@@ -97,7 +97,7 @@ export default function ImagesPage() {
             aria-pressed={indicator === key}
             onClick={() => setIndicator(indicator === key ? "" : key)}
           >
-            {indicatorLabels[key] ?? key.replaceAll("_", " ")}
+            {indicatorLabel(key)}
           </Button>
         ))}
         <SelectField
@@ -114,14 +114,13 @@ export default function ImagesPage() {
       <div className="console-gallery-layout">
         <div className="console-gallery-grid">
           {donations.map((d) => {
-            const photo = state.photos.find((p) => p.donation_id === d.id);
-            const analysis = state.analyses.find(
-              (a) => a.id === d.basis_analysis_id,
-            );
+            const photo = photoByDonationId.get(d.id);
+            const analysis =
+              d.basis_analysis_id === null
+                ? undefined
+                : analysisById.get(d.basis_analysis_id);
             const indicator = analysis?.indicators[0];
-            const facts = state.expiry_facts.find(
-              (f) => f.donation_id === d.id,
-            );
+            const facts = expiryByDonationId.get(d.id);
             return (
               <Card key={d.id}>
                 <div className="console-gallery-image">
@@ -145,15 +144,14 @@ export default function ImagesPage() {
                         indicator.level === "high" ? "danger" : "warning"
                       }
                     >
-                      {indicatorLabels[indicator.key] ??
-                        indicator.key.replaceAll("_", " ")}
+                      {indicatorLabel(indicator.key)}
                       {indicator.probability !== undefined
                         ? ` ${probabilityLabel(indicator.probability)}`
                         : ""}
                     </Chip>
                   )}
                 </div>
-                <div className="console-gallery-caption">
+                <div className="console-gallery-caption card-action-content">
                   <h2>
                     {itemName(d)} ×{d.quantity}
                   </h2>
@@ -169,14 +167,16 @@ export default function ImagesPage() {
                       {d.decided_at ? `, ${instant(d.decided_at)}` : ""}
                     </p>
                   )}
-                  <Button
-                    variant="soft"
-                    size="sm"
-                    aria-pressed={selected === d.id}
-                    onClick={() => setSelected(d.id)}
-                  >
-                    Inspect
-                  </Button>
+                  <CardActions>
+                    <Button
+                      variant="soft"
+                      size="sm"
+                      aria-pressed={selected === d.id}
+                      onClick={() => setSelected(d.id)}
+                    >
+                      Inspect
+                    </Button>
+                  </CardActions>
                 </div>
               </Card>
             );
@@ -205,7 +205,7 @@ export default function ImagesPage() {
             <>
               <Card className="console-panel">
                 <div className="console-title">
-                  <h2>Expiry buckets</h2>
+                  <h2>Expiry groups</h2>
                   <Chip variant="caution">Policy pending</Chip>
                 </div>
                 <dl>
@@ -222,7 +222,7 @@ export default function ImagesPage() {
                     </div>
                   ))}
                   <div>
-                    <dt>No source date</dt>
+                    <dt>Date not available</dt>
                     <dd>{unknownDates}</dd>
                   </div>
                 </dl>
@@ -231,7 +231,7 @@ export default function ImagesPage() {
                 </p>
               </Card>
               <Card variant="subtle" className="console-panel">
-                <h2>Quality</h2>
+                <h2>Quality metrics</h2>
                 <dl>
                   <div>
                     <dt>Average shelf life</dt>

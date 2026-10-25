@@ -9,6 +9,11 @@ describe("capacity usage", () => {
     [80, 5, 100, 85, "warning"],
     [85, 0.001, 100, 85.001, "danger"],
     [90, 10, 100, 100, "danger"],
+    [0.017, 0, 0.02, 85, "warning"],
+    [0.012, 0, 0.02, 60, "success"],
+    [0.013, 0.004, 0.02, 85, "warning"],
+    [0.012, 0.001, 0.02, 65, "warning"],
+    [0.017, 0.001, 0.02, 90, "danger"],
   ] as const)(
     "classifies stock %s + reserved %s against limit %s",
     (stock, reserved, limit, percentage, tone) => {
@@ -35,6 +40,21 @@ describe("capacity usage", () => {
       expect(usage.percentage).toBeNull();
       expect(usage.tone).toBe("neutral");
       expect(Number.isFinite(usage.used)).toBe(true);
+    },
+  );
+  it.each([
+    [0, Number.NaN, 10],
+    [0, -1, 10],
+    [0, 0, Number.POSITIVE_INFINITY],
+    [0, 0, -1],
+  ])(
+    "keeps invalid reservations or limits unavailable",
+    (stock, reserved, limit) => {
+      expect(capacityUsage(stock, reserved, limit)).toMatchObject({
+        percentage: null,
+        tone: "neutral",
+        paused: false,
+      });
     },
   );
   it.each([Number.NaN, Number.POSITIVE_INFINITY, -1])(

@@ -1,17 +1,24 @@
 "use client";
+import { enumLabel } from "@/lib/ui-text";
 import { DataTable } from "@/components/ui/data-table";
 
 import { Button, Chip, Field, SelectField } from "@/components/ui";
 
 import { useRef, useState, type FormEvent } from "react";
-import type { Category, Need, NeedDraft, Season } from "@/lib/contracts";
+import type {
+  Category,
+  Need,
+  NeedInput,
+  NeedDraft,
+  Season,
+} from "@/lib/contracts";
 import { useDemo } from "@/lib/demo-context";
 import { NeedVoiceInput } from "@/components/association/need-voice-input";
 import {
   CATEGORY_LABELS,
   DEMO_ASSOCIATION_ID,
-  DEMO_STAFF_ID,
-  getNeed,
+  isNeedCriteriaLocked,
+  getNeeds,
 } from "@/lib/demo-store";
 import {
   CategorySelect,
@@ -32,16 +39,8 @@ export default function NeedsPage() {
   const [draftSource, setDraftSource] = useState<string | null>(null);
   const [voiceStatusVersion, setVoiceStatusVersion] = useState(0);
   const formTitle = useRef<HTMLHeadingElement>(null);
-  const needs = state.needs.filter(
-    (n) => n.association_id === DEMO_ASSOCIATION_ID,
-  );
-  const locked =
-    editing &&
-    state.donations.some(
-      (d) =>
-        d.need_id === editing.id &&
-        ["approved", "booked", "received", "distributed"].includes(d.status),
-    );
+  const needs = getNeeds(state, DEMO_ASSOCIATION_ID);
+  const locked = editing ? isNeedCriteriaLocked(state, editing.id) : false;
   function resetForm() {
     setVoiceStatusVersion((current) => current + 1);
     setEditing(null);
@@ -95,10 +94,7 @@ export default function NeedsPage() {
         Number(target) > 999999999
       )
         throw new Error("Enter an item and a positive whole-number target.");
-      const now = new Date().toISOString();
-      const need: Need = {
-        id: editing?.id ?? crypto.randomUUID(),
-        association_id: DEMO_ASSOCIATION_ID,
+      const input: NeedInput = {
         category,
         attributes:
           locked && editing
@@ -117,13 +113,16 @@ export default function NeedsPage() {
         unit: "item",
         active: editing?.active ?? true,
         source_text: editing?.source_text ?? draftSource,
-        created_by: editing?.created_by ?? DEMO_STAFF_ID,
-        revision: editing?.revision ?? "1",
-        created_at: editing?.created_at ?? now,
-        updated_at: now,
-        computed: { pending_hold: "0", fulfilled: "0", available: target },
       };
-      dispatch({ type: "need", need, expected_revision: editing?.revision });
+      dispatch(
+        editing
+          ? {
+              type: "need",
+              id: editing.id,
+              patch: { ...input, expected_revision: editing.revision },
+            }
+          : { type: "need", id: crypto.randomUUID(), input },
+      );
       setError(false);
       setFeedback(
         editing ? "Need updated in the demo." : "Need published in the demo.",
@@ -140,8 +139,8 @@ export default function NeedsPage() {
     try {
       dispatch({
         type: "need",
-        need: { ...need, active: !need.active },
-        expected_revision: need.revision,
+        id: need.id,
+        patch: { active: !need.active, expected_revision: need.revision },
       });
       // Rebase only our successful status change. Preserve the unsaved form values
       // and do not mask an edit that was already stale before this action.
@@ -200,25 +199,33 @@ export default function NeedsPage() {
                   String(
                     need.attributes.type ?? need.attributes.product ?? "Item",
                   ),
-                cell: (need) => (
-                  <>
-                    <strong>
-                      {String(
-                        need.attributes.type ??
-                          need.attributes.product ??
-                          "Item",
+                cell: (need) => {
+                  const size = need.attributes.size
+                    ? `Size ${need.attributes.size}`
+                    : ["clothes", "shoes"].includes(need.category)
+                      ? "Size not specified"
+                      : null;
+                  const description = [
+                    size,
+                    need.seasons?.map(enumLabel).join(", "),
+                  ]
+                    .filter(Boolean)
+                    .join(", ");
+                  return (
+                    <>
+                      <strong>
+                        {String(
+                          need.attributes.type ??
+                            need.attributes.product ??
+                            "Item",
+                        )}
+                      </strong>
+                      {description && (
+                        <p className="console-meta">{description}</p>
                       )}
-                    </strong>
-                    <p className="console-meta">
-                      {need.attributes.size
-                        ? `Size ${need.attributes.size}`
-                        : "All sizes"}
-                      {need.seasons?.length
-                        ? `, ${need.seasons.join(", ")}`
-                        : ""}
-                    </p>
-                  </>
-                ),
+                    </>
+                  );
+                },
               },
               {
                 id: "category",
@@ -232,10 +239,9 @@ export default function NeedsPage() {
                 sortValue: (need) => Number(need.target_quantity),
                 cell: (need) => (
                   <>
-                    {getNeed(state, need).computed.fulfilled} /{" "}
-                    {need.target_quantity}
+                    {need.computed.fulfilled} / {need.target_quantity}
                     <p className="console-meta">
-                      {getNeed(state, need).computed.pending_hold} reserved
+                      {need.computed.pending_hold} reserved
                     </p>
                   </>
                 ),
@@ -274,7 +280,7 @@ export default function NeedsPage() {
           </h2>
           {draftSource !== null && (
             <div className="need-draft-review">
-              <Chip variant="caution">Sample fixture, not live AI</Chip>
+              <Chip variant="caution">Sample draft, not live AI</Chip>
               <p className="console-meta">
                 Review every field. Nothing is published until you confirm and
                 submit.
@@ -318,7 +324,9 @@ export default function NeedsPage() {
             >
               <option value="">All seasons</option>
               {["spring", "summer", "autumn", "winter"].map((s) => (
-                <option key={s}>{s}</option>
+                <option key={s} value={s}>
+                  {enumLabel(s)}
+                </option>
               ))}
             </SelectField>
           </fieldset>

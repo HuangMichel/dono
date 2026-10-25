@@ -1,3 +1,7 @@
+import { addQuantity, preciseQuantity } from "../../lib/quantity";
+
+export const CAPACITY_THRESHOLDS = { warning: 60, danger: 85 } as const;
+
 type CapacityUsage = {
   used: number;
   limit: number;
@@ -11,12 +15,24 @@ export function capacityUsage(
   reserved: number,
   limit: number,
 ): CapacityUsage {
-  const used = stock + reserved;
-  const percentage = limit > 0 ? (used / limit) * 100 : null;
+  const used = addQuantity(stock, reserved);
+  const normalizedLimit = preciseQuantity(limit);
+  // The quantity contract has three decimal places. Compare integer
+  // thousandths so exact thresholds do not inherit binary division residue.
+  const usedThousandths = Math.round(used * 1000);
+  const limitThousandths = Math.round(normalizedLimit * 1000);
+  const percentage =
+    normalizedLimit > 0 ? (usedThousandths * 100) / limitThousandths : null;
   if (
-    ![stock, reserved, limit, used].every(
-      (value) => Number.isFinite(value) && value >= 0,
-    ) ||
+    ![
+      stock,
+      reserved,
+      limit,
+      used,
+      normalizedLimit,
+      usedThousandths,
+      limitThousandths,
+    ].every((value) => Number.isFinite(value) && value >= 0) ||
     (percentage !== null && !Number.isFinite(percentage))
   ) {
     return {
@@ -27,16 +43,22 @@ export function capacityUsage(
       paused: false,
     };
   }
-  if (limit === 0)
-    return { used, limit, percentage: null, tone: "neutral", paused: true };
+  if (normalizedLimit === 0)
+    return {
+      used,
+      limit: normalizedLimit,
+      percentage: null,
+      tone: "neutral",
+      paused: true,
+    };
   return {
     used,
-    limit,
+    limit: normalizedLimit,
     percentage,
     tone:
-      percentage !== null && percentage > 85
+      usedThousandths * 100 > limitThousandths * CAPACITY_THRESHOLDS.danger
         ? "danger"
-        : percentage !== null && percentage > 60
+        : usedThousandths * 100 > limitThousandths * CAPACITY_THRESHOLDS.warning
           ? "warning"
           : "success",
     paused: false,

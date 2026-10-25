@@ -1,8 +1,16 @@
 "use client";
+import { formatCount } from "@/lib/ui-text";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PublicShell, DemoTools } from "@/components/public-shell";
-import { Button, Card, Field, PageHeading, LinkButton } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardActions,
+  Field,
+  PageHeading,
+  LinkButton,
+} from "@/components/ui";
 import { useDemo } from "@/lib/demo-context";
 import { requiredFieldError } from "@/lib/field-validation";
 export default function Company() {
@@ -106,7 +114,7 @@ export default function Company() {
             </p>
           </section>
           <section className="company-preview">
-            <h2>Review the structure before continuing</h2>
+            <h2>Review your offer details</h2>
             <dl className="facts-list">
               <div>
                 <dt>Product</dt>
@@ -114,7 +122,7 @@ export default function Company() {
               </div>
               <div>
                 <dt>Quantity</dt>
-                <dd>{quantity || "0"} units</dd>
+                <dd>{formatCount(quantity || "0", "unit")}</dd>
               </div>
               <div>
                 <dt>Food requirements</dt>
@@ -131,15 +139,17 @@ export default function Company() {
             <p className="meta muted">
               Review the analysis before matching and sending an offer.
             </p>
-            {state.role === "donor" ? (
-              <Button size="app" className="full">
-                Continue to photos and analysis
-              </Button>
-            ) : (
-              <LinkButton href="/login" size="app">
-                Choose donor demo role
-              </LinkButton>
-            )}
+            <CardActions>
+              {state.role === "donor" ? (
+                <Button size="app" className="full">
+                  Continue to photos and analysis
+                </Button>
+              ) : (
+                <LinkButton href="/login" size="app">
+                  Choose donor demo role
+                </LinkButton>
+              )}
+            </CardActions>
           </Card>
           <DemoTools>
             <p className="meta muted">

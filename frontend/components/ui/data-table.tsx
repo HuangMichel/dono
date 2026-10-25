@@ -3,6 +3,7 @@
 import {
   Fragment,
   useId,
+  useMemo,
   useState,
   type ReactNode,
   type MouseEvent,
@@ -15,6 +16,8 @@ import {
   type SortDirection,
   type SortValue,
 } from "./data-table-model";
+import { paginateItems } from "./pagination-model";
+import { Pagination } from "./pagination";
 import "./data-table.css";
 
 export type DataColumn<T> = {
@@ -30,12 +33,14 @@ export function DataTable<T>({
   getRowLabel,
   searchText,
   searchLabel,
+  filters,
   emptyMessage = "No results match your search.",
   renderDetails,
   renderMobileRow,
   rowClassName,
   selectedRowId,
   onSelectionChange,
+  pageSize = 10,
 }: {
   rows: T[];
   columns: DataColumn<T>[];
@@ -43,13 +48,16 @@ export function DataTable<T>({
   getRowLabel: (row: T) => string;
   searchText: (row: T) => string;
   searchLabel: string;
+  filters?: ReactNode;
   emptyMessage?: string;
   renderDetails?: (row: T) => ReactNode;
   renderMobileRow?: (row: T) => ReactNode;
   rowClassName?: (row: T) => string;
   selectedRowId?: string | null;
   onSelectionChange?: (id: string | null) => void;
+  pageSize?: number;
 }) {
+  const [requestedPage, setRequestedPage] = useState(1);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<{
     id: string;
@@ -58,13 +66,16 @@ export function DataTable<T>({
   const [internalSelected, setInternalSelected] = useState<string | null>(null);
   const selected =
     selectedRowId !== undefined ? selectedRowId : internalSelected;
-  const visible = filterAndSortRows(
-    rows,
-    query,
-    searchText,
-    columns.find((column) => column.id === sort?.id)?.sortValue,
-    sort?.direction,
+  const sortValue = columns.find((column) => column.id === sort?.id)?.sortValue;
+  const sortDirection = sort?.direction;
+  const filtered = useMemo(
+    () => filterAndSortRows(rows, query, searchText, sortValue, sortDirection),
+    [rows, query, searchText, sortValue, sortDirection],
   );
+  const pagination = paginateItems(filtered, requestedPage, pageSize);
+  // Retain the last valid page when records disappear, including after refresh.
+  if (requestedPage !== pagination.page) setRequestedPage(pagination.page);
+  const visible = pagination.items;
   const selectionHintId = useId();
   // Keep the selected ID while filtering or sorting; removed rows do not count.
   const currentSelection = rows.some((row) => getRowId(row) === selected)
@@ -98,6 +109,7 @@ export function DataTable<T>({
     toggle(id);
   }
   function changeSort(id: string) {
+    setRequestedPage(1);
     setSort((previous) => ({
       id,
       direction:
@@ -110,19 +122,25 @@ export function DataTable<T>({
     <div
       className={`data-table ${renderMobileRow ? "data-table-responsive-list" : ""} ${renderDetails ? "data-table-with-details" : ""}`}
     >
-      <label className="field-label data-table-search">
-        {searchLabel}
-        <span className="data-table-search-field">
-          <Icon name="search" size={18} />
-          <input
-            className="field"
-            type="search"
-            placeholder={searchLabel}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </span>
-      </label>
+      <div className={filters ? "data-table-search-controls" : undefined}>
+        {filters && <div className="data-table-filters">{filters}</div>}
+        <label className="field-label data-table-search">
+          <span className={filters ? "sr-only" : undefined}>{searchLabel}</span>
+          <span className="data-table-search-field">
+            <Icon name="search" size={18} />
+            <input
+              className="field"
+              type="search"
+              placeholder={searchLabel}
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setRequestedPage(1);
+              }}
+            />
+          </span>
+        </label>
+      </div>
       <p id={selectionHintId} className="sr-only">
         Select a row by clicking its background or pressing Enter or Space while
         the row has focus. Item details and actions work separately.
@@ -152,6 +170,7 @@ export function DataTable<T>({
               className="field"
               value={sort ? `${sort.id}:${sort.direction}` : ""}
               onChange={(event) => {
+                setRequestedPage(1);
                 const [id, direction] = event.target.value.split(":");
                 setSort(
                   id ? { id, direction: direction as SortDirection } : null,
@@ -306,6 +325,13 @@ export function DataTable<T>({
           ))}
         </ul>
       )}
+      <Pagination
+        page={pagination.page}
+        totalItems={pagination.totalItems}
+        pageSize={pageSize}
+        onPageChange={setRequestedPage}
+        label={`${searchLabel.replace(/^Search /, "")} pagination`}
+      />
       {!visible.length && (
         <div className="console-empty data-table-empty">{emptyMessage}</div>
       )}

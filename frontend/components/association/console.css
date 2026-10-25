@@ -896,6 +896,20 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.console-capacity-row {
+  flex-wrap: wrap;
+}
+.console-capacity-meter {
+  flex: 1;
+  min-width: 140px;
+}
+@media (max-width: 479px) {
+  .console-capacity-meter {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+}
+
 .console-capacity-row .capacity-meter-heading > span {
   font-size: 14px;
   color: var(--text);

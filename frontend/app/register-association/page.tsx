@@ -9,7 +9,7 @@ import {
 } from "@/lib/registration-validation";
 import { Stepper } from "@/components/ui/stepper";
 import { useDemo } from "@/lib/demo-context";
-const registrationSteps = ["Identity", "Donation address", "Review"];
+const registrationSteps = ["Identity", "Drop-off address", "Review"];
 export default function Register() {
   const { state, dispatch, storageError } = useDemo();
   const [step, setStep] = useState(0);
@@ -165,7 +165,7 @@ export default function Register() {
                   />
                   <div className="registration-identifiers">
                     <Field
-                      label="RNA reference"
+                      label="RNA number"
                       id="registration-rna"
                       value={rna}
                       onChange={(e) => setRna(e.target.value)}
@@ -174,7 +174,7 @@ export default function Register() {
                       aria-describedby="identifier-help"
                     />
                     <Field
-                      label="SIRET reference"
+                      label="SIRET number"
                       id="registration-siret"
                       value={siret}
                       onChange={(e) => setSiret(e.target.value)}
@@ -185,18 +185,18 @@ export default function Register() {
                     />
                   </div>
                   <p id="identifier-help" className="meta muted">
-                    Provide an RNA reference, a SIRET reference, or both.
+                    Provide an RNA number, a SIRET number, or both.
                   </p>
                   <p id="siret-help" className="meta muted">
-                    SIRET syntax and checksums are checked here. This does not
-                    verify registration in the SIRENE register.
+                    This demo checks the SIRET number format and check digits.
+                    It does not check the official business register.
                   </p>
                 </section>
               )}
               {step === 1 && (
                 <section className="stack-sm">
                   <Field
-                    label="Donation address (optional)"
+                    label="Drop-off address (optional)"
                     id="donation-address"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
@@ -224,7 +224,7 @@ export default function Register() {
                       <dd>{normalizeSiret(siret) || "Not provided"}</dd>
                     </div>
                     <div>
-                      <dt>Donation address</dt>
+                      <dt>Drop-off address</dt>
                       <dd>{address.trim() || "Not provided"}</dd>
                     </div>
                   </dl>
@@ -232,7 +232,7 @@ export default function Register() {
                     <Card className="stack-sm">
                       <h2>Choose a demo role to submit</h2>
                       <p className="meta muted">
-                        Continue as the donor demo persona. Your registration
+                        Continue as the donor demo role. Your registration
                         details stay on this page.
                       </p>
                       <Button

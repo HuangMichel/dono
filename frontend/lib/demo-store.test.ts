@@ -110,7 +110,7 @@ describe("human review and stock movements", () => {
         ?.remaining_quantity,
     ).toBe("2");
     expect(() => reduceDemo(s, { ...command, expected_revision: "2" })).toThrow(
-      "Receive once",
+      "Confirm receipt once",
     );
     expect(() =>
       reduceDemo(s, {
@@ -161,13 +161,69 @@ describe("human review and stock movements", () => {
     expect(() =>
       reduceDemo(s, {
         type: "need",
-        need: { ...need, attributes: { product: "Other product" } },
-        expected_revision: "1",
+        id: need.id,
+        patch: {
+          attributes: { product: "Other product" },
+          expected_revision: "1",
+        },
       }),
     ).toThrow("criteria are locked");
   });
 });
 describe("source evidence and company drafts", () => {
+  it.each([
+    ["clothes", "clothes", "Winter coat"],
+    ["shoes", "shoes", "Demo item"],
+    ["food", "food", "Sealed pasta, 500 g"],
+    ["para", "para", "Demo item"],
+    ["furniture", "furniture", "Demo item"],
+    ["medicine", "para", "Demo item"],
+    ["cold", "food", "Sealed pasta, 500 g"],
+  ] as const)(
+    "seeds %s once while retaining original sample evidence",
+    (scenario, category, product) => {
+      let state = createInitialState();
+      state.role = "donor";
+      const id = "20000000-0000-4000-8000-000000000099";
+      state = reduceDemo(state, {
+        type: "create",
+        id,
+        input: { quantity: "1", attributes: {} },
+      });
+      state = reduceDemo(state, {
+        type: "analyse",
+        id,
+        scenario,
+        expected_revision: "1",
+      });
+      const original = structuredClone(state.analyses.at(-1)!);
+      expect(original).toMatchObject({ category, extracted: { product } });
+      expect(state.donations[0]).toMatchObject({
+        category,
+        attributes: { product },
+      });
+      state = reduceDemo(state, {
+        type: "patch",
+        id,
+        expected_revision: "2",
+        patch: { category: "shoes", attributes: { product: "My correction" } },
+      });
+      state = reduceDemo(state, {
+        type: "analyse",
+        id,
+        scenario,
+        expected_revision: "3",
+      });
+      expect(state.donations[0]).toMatchObject({
+        category: "shoes",
+        attributes: { product: "My correction" },
+        basis_analysis_id: original.id,
+      });
+      expect(
+        state.analyses.find((analysis) => analysis.id === original.id),
+      ).toEqual(original);
+    },
+  );
   it("retains company quantity and product through first analysis and reanalysis", () => {
     let s = createInitialState();
     s.role = "donor";

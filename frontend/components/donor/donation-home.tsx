@@ -102,7 +102,7 @@ export function DonationHome({
         <Button size="app" onClick={scan}>
           <Icon name="camera" size={32} />
           <span className="scan-action-label">
-            Scan an item
+            Photograph an item
             <Icon name="arrow-right" size={16} />
           </span>
         </Button>

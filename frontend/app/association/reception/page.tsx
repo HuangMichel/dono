@@ -1,4 +1,5 @@
 "use client";
+import { formatCount } from "@/lib/ui-text";
 
 import { Button, Card, Chip, EmptyState, Field, Icon } from "@/components/ui";
 
@@ -48,14 +49,14 @@ export default function ReceptionPage() {
     <>
       <ConsoleTitle
         title="Drop-offs"
-        detail={`${arrivals.length} appointments, Europe/Paris`}
+        detail={`${formatCount(arrivals.length, "appointment")}, Europe/Paris`}
       />
       <div className="console-reception-layout">
         <div className="console-stack">
           <Card className="console-panel">
             <div className="console-scan-area">
               <Icon name="scan" />
-              <span>Scan donor QR</span>
+              <span>Look up a drop-off</span>
               <span className="console-meta">Demo references only</span>
             </div>
             <form
@@ -64,7 +65,7 @@ export default function ReceptionPage() {
               style={{ marginTop: 16 }}
             >
               <Field
-                label="Or paste the demo code"
+                label="Demo booking reference"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
                 placeholder="DEMO-ONLY:…"
@@ -203,8 +204,8 @@ function ReceiveCard({
             {itemName(donation)} × {donation.quantity}
           </h2>
           <p className="console-meta">
-            {slot ? instant(slot.starts_at) : "Slot unavailable"}, {original}{" "}
-            items originally offered
+            {slot ? instant(slot.starts_at) : "Slot unavailable"},{" "}
+            {formatCount(original)} originally offered
           </p>
         </div>
         <div className="console-actions">
@@ -240,7 +241,7 @@ function ReceiveCard({
           <dl>
             <div>
               <dt>Originally offered</dt>
-              <dd>{original} items</dd>
+              <dd>{formatCount(original)}</dd>
             </div>
             <div>
               <dt>Status</dt>
@@ -249,7 +250,7 @@ function ReceiveCard({
                   ? "Refused at reception"
                   : receipt
                     ? "Received"
-                    : "Booked, awaiting confirmation"}
+                    : "Awaiting reception"}
               </dd>
             </div>
           </dl>
@@ -281,7 +282,7 @@ function ReceiveCard({
                   </div>
                   <div>
                     <dt>Quantity refused</dt>
-                    <dd>{refusal.original_quantity} items</dd>
+                    <dd>{formatCount(refusal.original_quantity)}</dd>
                   </div>
                 </dl>
               )}
@@ -295,8 +296,8 @@ function ReceiveCard({
               <Chip variant="success">Received</Chip>
               <dl>
                 <div>
-                  <dt>Actual receipt</dt>
-                  <dd>{receipt.quantity} items</dd>
+                  <dt>Quantity received</dt>
+                  <dd>{formatCount(receipt.quantity)}</dd>
                 </div>
                 <div>
                   <dt>Received by</dt>
@@ -322,8 +323,8 @@ function ReceiveCard({
                   onChange={(e) => setQuantity(e.target.value)}
                 />
                 <p className="console-meta">
-                  A reduced receipt closes this booking without a pending
-                  remainder.
+                  Confirming a smaller quantity completes this booking. No
+                  remaining quantity stays pending.
                 </p>
                 {revision !== donation.revision && (
                   <Notice>
@@ -374,8 +375,8 @@ function ReceiveCard({
                       setConfirmRefusal(event.target.checked)
                     }
                   />
-                  I confirm that staff refuse all {donation.quantity} items at
-                  reception.
+                  I confirm that staff refuse this donation of{" "}
+                  {formatCount(donation.quantity)} at reception.
                 </label>
                 <Button
                   variant="danger"

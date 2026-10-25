@@ -1,3 +1,5 @@
+import { sampleIdentity } from "./sample-identity";
+import { associationBalances } from "./association-balances";
 import {
   normalizeSiret,
   validateRegistrationIdentity,
@@ -19,8 +21,12 @@ import type {
   Match,
   Movement,
   Need,
+  NeedInput,
+  NeedPatch,
   Photo,
   Slot,
+  SlotInput,
+  SlotPatch,
 } from "./contracts";
 export function fixtureId(key: string): string {
   let hash = 2166136261;
@@ -40,12 +46,12 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 };
 export const STATUS_LABELS = {
   draft: "Draft",
-  offered: "Awaiting review",
+  offered: "Waiting for review",
   approved: "Approved by staff",
   refused: "Refused by staff",
   booked: "Booked",
   received: "Received",
-  distributed: "Distributed",
+  distributed: "Given out",
 };
 export type DemoRole = "donor" | "assoc_admin" | "platform_admin" | null;
 // Browser-local evidence for the requested demo reception action. Not a wire DTO.
@@ -62,6 +68,8 @@ export type ReceptionRefusal = {
   refused_by: string;
   refused_at: string;
 };
+export type DemoNeed = Omit<Need, "computed">;
+export type DemoSlot = Omit<Slot, "computed">;
 export type DemoState = {
   role: DemoRole;
   donations: Donation[];
@@ -69,9 +77,9 @@ export type DemoState = {
   photos: Photo[];
   expiry_facts: ExpiryFacts[];
   associations: Association[];
-  needs: Need[];
+  needs: DemoNeed[];
   capacities: Capacity[];
-  slots: Slot[];
+  slots: DemoSlot[];
   bookings: Booking[];
   movements: Movement[];
   receipt_originals: Record<string, string>;
@@ -359,7 +367,6 @@ export function createInitialState(): DemoState {
       revision: "1",
       created_at: stamp,
       updated_at: stamp,
-      computed: { pending_hold: "0", fulfilled: "0", available: "100" },
     })),
     capacities: categories.map((category) => ({
       association_id: DEMO_ASSOCIATION_ID,
@@ -386,7 +393,6 @@ export function createInitialState(): DemoState {
       revision: "1",
       created_at: stamp,
       updated_at: stamp,
-      computed: { booked_count: 0, remaining_places: i === 0 ? 1 : 5 },
     })),
     bookings: [
       {
@@ -552,84 +558,145 @@ export function getExpiry(s: DemoState, id: string): ExpiryRead {
   };
 }
 export function getInventory(s: DemoState): InventoryItem[] {
+  const scopes = new Map(
+    [...new Set(s.donations.map((donation) => donation.association_id))].map(
+      (associationId) => [associationId, associationBalances(s, associationId)],
+    ),
+  );
   return s.donations
-    .filter((d) => ["received", "distributed"].includes(d.status))
-    .map((d) => {
-      const ms = s.movements.filter((m) => m.donation_id === d.id),
-        received = ms
-          .filter((m) => m.movement_type === "receipt")
-          .reduce((v, m) => v + Number(m.quantity), 0),
-        distributed = ms
-          .filter((m) => m.movement_type === "distribution")
-          .reduce((v, m) => v + Number(m.quantity), 0);
+    .filter((donation) => ["received", "distributed"].includes(donation.status))
+    .map((donation) => {
+      const balance = scopes
+        .get(donation.association_id)!
+        .byDonation.get(donation.id)!;
       return {
-        donation: d,
-        received_quantity: String(received),
-        distributed_quantity: String(distributed),
-        remaining_quantity: String(received - distributed),
+        donation,
+        received_quantity: String(balance.received),
+        distributed_quantity: String(balance.distributed),
+        remaining_quantity: String(balance.remaining),
         unit: "item",
-        expiry: getExpiry(s, d.id),
+        expiry: getExpiry(s, donation.id),
       };
     });
 }
-export function getCapacity(s: DemoState, category: Category): Capacity {
-  const c = s.capacities.find((c) => c.category === category)!;
-  const reserved = s.donations
-      .filter(
-        (d) =>
-          d.category === category && ["approved", "booked"].includes(d.status),
-      )
-      .reduce((v, d) => v + Number(d.quantity), 0),
-    stock = getInventory(s)
-      .filter((i) => i.donation.category === category)
-      .reduce((v, i) => v + Number(i.remaining_quantity), 0);
+export function getCapacity(
+  s: DemoState,
+  category: Category,
+  associationId = DEMO_ASSOCIATION_ID,
+): Capacity {
+  const capacity = s.capacities.find(
+    (record) =>
+      record.association_id === associationId && record.category === category,
+  )!;
+  const balance = associationBalances(s, associationId).categoryBalance(
+    category,
+    capacity.limit_quantity,
+  );
   return {
-    ...c,
+    ...capacity,
     computed: {
-      reserved: String(reserved),
-      in_stock: String(stock),
-      available: String(
-        Math.max(0, Number(c.limit_quantity) - reserved - stock),
-      ),
+      reserved: String(balance.reserved),
+      in_stock: String(balance.inStock),
+      available: String(balance.available),
     },
   };
 }
-export function getNeed(s: DemoState, need: Need): Need {
-  const ds = s.donations.filter((d) => d.need_id === need.id),
-    hold = ds
-      .filter((d) => ["approved", "booked"].includes(d.status))
-      .reduce((v, d) => v + Number(d.quantity), 0),
-    fulfilled = s.movements
-      .filter(
-        (m) =>
-          m.movement_type === "receipt" &&
-          ds.some((d) => d.id === m.donation_id),
-      )
-      .reduce((v, m) => v + Number(m.quantity), 0);
+export function isNeedCriteriaLocked(
+  state: DemoState,
+  needId: string,
+): boolean {
+  return state.donations.some(
+    (donation) =>
+      donation.need_id === needId &&
+      (donation.decision === "approved" ||
+        Boolean(getReceptionRefusal(state, donation.id))),
+  );
+}
+
+export function getSlot(state: DemoState, slot: DemoSlot): Slot {
+  const bookedCount = getOccupyingBookings(state).filter(
+    (booking) => booking.slot_id === slot.id,
+  ).length;
+  return {
+    ...slot,
+    computed: {
+      booked_count: bookedCount,
+      remaining_places: Math.max(0, slot.max_bookings - bookedCount),
+    },
+  };
+}
+
+function needWithBalances(
+  need: DemoNeed,
+  balances: ReturnType<typeof associationBalances>,
+): Need {
+  const balance = balances.needBalance(need.id, need.target_quantity);
   return {
     ...need,
     computed: {
-      pending_hold: String(hold),
-      fulfilled: String(fulfilled),
-      available: String(
-        Math.max(0, Number(need.target_quantity) - hold - fulfilled),
-      ),
+      pending_hold: String(balance.reserved),
+      fulfilled: String(balance.received),
+      available: String(balance.stillNeeded),
     },
   };
 }
+export function getNeed(s: DemoState, need: DemoNeed): Need {
+  return needWithBalances(need, associationBalances(s, need.association_id));
+}
+
+export function getNeeds(
+  s: DemoState,
+  associationId = DEMO_ASSOCIATION_ID,
+): Need[] {
+  const balances = associationBalances(s, associationId);
+  return s.needs
+    .filter((need) => need.association_id === associationId)
+    .map((need) => needWithBalances(need, balances));
+}
+
 export function getMatches(s: DemoState, d: Donation): Match[] {
   if (!d.category || !d.quantity || getWarnings(s, d.id).length) return [];
+  const scopes = new Map<
+    string,
+    {
+      balances: ReturnType<typeof associationBalances>;
+      available: number;
+    } | null
+  >();
   return s.needs
-    .filter(
-      (n) =>
-        n.active &&
-        n.category === d.category &&
-        !n.seasons?.length &&
-        Number(getNeed(s, n).computed.available) >= Number(d.quantity) &&
-        Number(getCapacity(s, n.category).computed.available) >=
+    .filter((need) => {
+      if (!need.active || need.category !== d.category || need.seasons?.length)
+        return false;
+      if (!scopes.has(need.association_id)) {
+        const capacity = s.capacities.find(
+          (record) =>
+            record.association_id === need.association_id &&
+            record.category === need.category,
+        );
+        if (capacity) {
+          const balances = associationBalances(s, need.association_id);
+          scopes.set(need.association_id, {
+            balances,
+            available: balances.categoryBalance(
+              need.category,
+              capacity.limit_quantity,
+            ).available,
+          });
+        } else {
+          scopes.set(need.association_id, null);
+        }
+      }
+      const scope = scopes.get(need.association_id);
+      if (!scope) return false;
+      return (
+        scope.balances.needBalance(need.id, need.target_quantity).stillNeeded >=
           Number(d.quantity) &&
-        Object.entries(n.attributes).every(([k, v]) => d.attributes[k] === v),
-    )
+        scope.available >= Number(d.quantity) &&
+        Object.entries(need.attributes).every(
+          ([key, value]) => d.attributes[key] === value,
+        )
+      );
+    })
     .map((n) => ({
       association: {
         id: n.association_id,
@@ -664,6 +731,17 @@ export function normalizeDemoState(state: DemoState): DemoState {
   const records = state.reception_refusals;
   return {
     ...state,
+    // Older browser snapshots contain cached read totals. Keep their source facts.
+    needs: state.needs.map((need) => {
+      const source: DemoNeed & { computed?: Need["computed"] } = { ...need };
+      delete source.computed;
+      return source;
+    }),
+    slots: state.slots.map((slot) => {
+      const source: DemoSlot & { computed?: Slot["computed"] } = { ...slot };
+      delete source.computed;
+      return source;
+    }),
     posted_offers: Array.isArray(state.posted_offers)
       ? state.posted_offers
       : [],
@@ -722,14 +800,16 @@ export type DemoCommand =
       quantity: string;
       expected_revision: string;
     }
-  | { type: "need"; need: Need; expected_revision?: string }
+  | { type: "need"; id: string; input: NeedInput; patch?: never }
+  | { type: "need"; id: string; patch: NeedPatch; input?: never }
   | {
       type: "capacity";
       category: Category;
       quantity: string;
       expected_revision: string;
     }
-  | { type: "slot"; slot: Slot; expected_revision?: string }
+  | { type: "slot"; id: string; input: SlotInput; patch?: never }
+  | { type: "slot"; id: string; patch: SlotPatch; input?: never }
   | { type: "approveAssociation"; id: string; expected_revision: string }
   | {
       type: "register";
@@ -753,7 +833,7 @@ function updateWorkingFacts(
   now: string,
 ): void {
   if (d.status !== "draft")
-    throw Error("Working facts are locked after offering.");
+    throw Error("Item details cannot be changed after sending an offer.");
   const { expiry, ...patch } = c.patch;
   Object.assign(d, patch);
   positive(d.quantity);
@@ -762,12 +842,12 @@ function updateWorkingFacts(
   if (d.donor_kind === "individual") d.company_name = null;
   if (expiry) {
     if (expiry.date_type === "PAO" && expiry.expiry_date)
-      throw Error("PAO has no calendar expiry date.");
+      throw Error("A period after opening does not specify an expiry date.");
     if (
       expiry.pao_months !== null &&
       (!Number.isInteger(expiry.pao_months) || expiry.pao_months < 1)
     )
-      throw Error("Enter positive whole PAO months.");
+      throw Error("Enter a positive whole number of months after opening.");
     if (
       expiry.expiry_date &&
       (!/^\d{4}-\d{2}-\d{2}$/.test(expiry.expiry_date) ||
@@ -793,12 +873,7 @@ function appendSampleAnalysis(
   now: string,
 ): void {
   if (d.status !== "draft") throw Error("Only drafts can be analysed.");
-  const category =
-    c.scenario === "medicine"
-      ? "para"
-      : c.scenario === "cold"
-        ? "food"
-        : c.scenario;
+  const { category, product } = sampleIdentity(c.scenario);
   const photoId = crypto.randomUUID();
   const a: Analysis = {
     id: crypto.randomUUID(),
@@ -806,14 +881,7 @@ function appendSampleAnalysis(
     provider: "openai",
     model: "fixture-only",
     category,
-    extracted: {
-      product:
-        category === "food"
-          ? "Sealed pasta, 500 g"
-          : category === "clothes"
-            ? "Winter coat"
-            : "Demo item",
-    },
+    extracted: { product },
     indicators: [
       {
         key:
@@ -879,7 +947,7 @@ function recordHumanDecision(
   now: string,
 ): void {
   if (d.status !== "offered")
-    throw Error("This offer is no longer awaiting review.");
+    throw Error("This offer is no longer waiting for review.");
   if (c.decision === "approved") {
     if (getWarnings(s, d.id).length)
       throw Error(
@@ -951,7 +1019,9 @@ function receiveDonation(
       (m) => m.donation_id === d.id && m.movement_type === "receipt",
     )
   )
-    throw Error("Receive once, with a quantity no greater than booked.");
+    throw Error(
+      "Confirm receipt once. The quantity cannot exceed the offered quantity.",
+    );
   s.receipt_originals[d.id] = d.quantity!;
   d.quantity = c.quantity;
   d.status = "received";
@@ -1136,16 +1206,36 @@ export function reduceDemo(state: DemoState, c: DemoCommand): DemoState {
     return s;
   }
   if (c.type === "need") {
-    const old = s.needs.find((n) => n.id === c.need.id);
+    const old = s.needs.find((need) => need.id === c.id);
+    if (c.patch && !old) throw Error("Need not found.");
+    if (c.input && old) throw Error("Need already exists.");
+    if (old) revision(old.revision, c.patch?.expected_revision);
+    const input = c.input ?? c.patch!;
+    const need: DemoNeed = {
+      ...(old ?? {
+        id: c.id,
+        association_id: DEMO_ASSOCIATION_ID,
+        created_by: DEMO_STAFF_ID,
+        created_at: now,
+        active: true,
+        source_text: null,
+      }),
+      category: input.category ?? old!.category,
+      attributes: input.attributes ?? old!.attributes,
+      seasons: input.seasons === undefined ? old!.seasons : input.seasons,
+      target_quantity: input.target_quantity ?? old!.target_quantity,
+      unit: input.unit ?? old!.unit,
+      active: input.active ?? old?.active ?? true,
+      source_text:
+        input.source_text === undefined
+          ? (old?.source_text ?? null)
+          : input.source_text,
+      revision: old ? String(BigInt(old.revision) + 1n) : "1",
+      updated_at: now,
+    };
     if (old) {
-      revision(old.revision, c.expected_revision);
       if (
-        s.donations.some(
-          (d) =>
-            d.need_id === old.id &&
-            (d.decision === "approved" ||
-              Boolean(getReceptionRefusal(s, d.id))),
-        ) &&
+        isNeedCriteriaLocked(s, old.id) &&
         JSON.stringify([
           old.category,
           old.attributes,
@@ -1153,38 +1243,36 @@ export function reduceDemo(state: DemoState, c: DemoCommand): DemoState {
           old.unit,
         ]) !==
           JSON.stringify([
-            c.need.category,
-            c.need.attributes,
-            c.need.seasons,
-            c.need.unit,
+            need.category,
+            need.attributes,
+            need.seasons,
+            need.unit,
           ])
       )
         throw Error(
-          "Need criteria are locked. Close this need and create another.",
+          "Need criteria are locked. Pause this need and create another.",
         );
+      const { pending_hold, fulfilled } = getNeed(s, old).computed;
       if (
-        Number(c.need.target_quantity) <
-        Number(getNeed(s, old).computed.pending_hold) +
-          Number(getNeed(s, old).computed.fulfilled)
+        Number(need.target_quantity) <
+        Number(pending_hold) + Number(fulfilled)
       )
-        throw Error("Target is below committed quantity.");
+        throw Error(
+          "The target cannot be below the received and reserved quantity.",
+        );
     }
-    positive(c.need.target_quantity);
-    s.needs = s.needs.filter((n) => n.id !== c.need.id);
-    s.needs.push({
-      ...c.need,
-      revision: old ? String(BigInt(old.revision) + 1n) : "1",
-    });
+    positive(need.target_quantity);
+    s.needs = s.needs.filter((record) => record.id !== c.id);
+    s.needs.push(need);
     return s;
   }
   if (c.type === "capacity") {
     const old = s.capacities.find((x) => x.category === c.category)!;
     revision(old.revision, c.expected_revision);
+    const { reserved, in_stock } = getCapacity(s, c.category).computed;
     if (
       !/^\d{1,9}$/.test(c.quantity) ||
-      Number(c.quantity) <
-        Number(getCapacity(s, c.category).computed.reserved) +
-          Number(getCapacity(s, c.category).computed.in_stock)
+      Number(c.quantity) < Number(reserved) + Number(in_stock)
     )
       throw Error("Capacity cannot be below reserved and in-stock quantities.");
     old.limit_quantity = c.quantity;
@@ -1192,33 +1280,44 @@ export function reduceDemo(state: DemoState, c: DemoCommand): DemoState {
     return s;
   }
   if (c.type === "slot") {
-    const old = s.slots.find((x) => x.id === c.slot.id);
-    if (old) {
-      revision(old.revision, c.expected_revision);
-      if (
-        s.bookings.some((b) => b.slot_id === old.id) &&
-        (old.starts_at !== c.slot.starts_at || old.ends_at !== c.slot.ends_at)
-      )
-        throw Error("Booked slot times cannot change.");
-    }
-    if (
-      c.slot.max_bookings <
-      getOccupyingBookings(s).filter((b) => b.slot_id === c.slot.id).length
-    )
-      throw Error("Cannot reduce places below existing bookings.");
-    if (
-      !Number.isFinite(Date.parse(c.slot.starts_at)) ||
-      !Number.isFinite(Date.parse(c.slot.ends_at)) ||
-      Date.parse(c.slot.starts_at) >= Date.parse(c.slot.ends_at) ||
-      !Number.isInteger(c.slot.max_bookings) ||
-      c.slot.max_bookings < 1
-    )
-      throw Error("Enter a valid interval and place count.");
-    s.slots = s.slots.filter((x) => x.id !== c.slot.id);
-    s.slots.push({
-      ...c.slot,
+    const old = s.slots.find((slot) => slot.id === c.id);
+    if (c.patch && !old) throw Error("Slot not found.");
+    if (c.input && old) throw Error("Slot already exists.");
+    if (old) revision(old.revision, c.patch?.expected_revision);
+    const input = c.input ?? c.patch!;
+    const slot: DemoSlot = {
+      ...(old ?? {
+        id: c.id,
+        association_id: DEMO_ASSOCIATION_ID,
+        created_at: now,
+      }),
+      starts_at: input.starts_at ?? old!.starts_at,
+      ends_at: input.ends_at ?? old!.ends_at,
+      max_bookings: input.max_bookings ?? old!.max_bookings,
+      active: input.active ?? old?.active ?? true,
       revision: old ? String(BigInt(old.revision) + 1n) : "1",
-    });
+      updated_at: now,
+    };
+    if (
+      old &&
+      s.bookings.some((booking) => booking.slot_id === old.id) &&
+      (old.starts_at !== slot.starts_at || old.ends_at !== slot.ends_at)
+    )
+      throw Error("Booked slot times cannot change.");
+    if (slot.max_bookings < getSlot(s, slot).computed.booked_count)
+      throw Error("The booking limit cannot be below existing bookings.");
+    if (
+      !Number.isFinite(Date.parse(slot.starts_at)) ||
+      !Number.isFinite(Date.parse(slot.ends_at)) ||
+      Date.parse(slot.starts_at) >= Date.parse(slot.ends_at) ||
+      !Number.isInteger(slot.max_bookings) ||
+      slot.max_bookings < 1
+    )
+      throw Error(
+        "Enter valid start and end times and a positive booking limit.",
+      );
+    s.slots = s.slots.filter((record) => record.id !== c.id);
+    s.slots.push(slot);
     return s;
   }
   const id =

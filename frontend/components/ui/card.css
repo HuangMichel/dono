@@ -1,0 +1,36 @@
+/* Only cards with an explicit action area participate in the footer layout. */
+.card:has(> .card-actions),
+.card:has(> .card-action-content) {
+  display: flex;
+  flex-direction: column;
+}
+.card > .card-action-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+.card-actions > .button:only-child {
+  width: 100%;
+}
+
+.card-actions > .button-app,
+.card-actions > .full,
+.card-actions > p {
+  width: 100%;
+}
+.card-actions > p {
+  margin: 0;
+}
+
+.card.stack > .card-actions,
+.card.stack-sm > .card-actions {
+  padding-top: 0;
+}

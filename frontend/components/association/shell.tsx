@@ -16,7 +16,7 @@ import "./console.css";
 const routes = [
   ["", "Dashboard", "dashboard"],
   ["/review", "Review", "review"],
-  ["/offers", "Offers nearby", "offers"],
+  ["/offers", "Posted offers", "offers"],
   ["/reception", "Reception", "reception"],
   ["/inventory", "Stock", "inventory"],
   ["/needs", "Needs", "needs"],
@@ -58,9 +58,9 @@ export function ConsoleShell({
             title={
               admin ? "Platform access required" : "Association access required"
             }
-            description={`Select the ${admin ? "platform admin" : "association"} demo persona.`}
+            description={`Select the ${admin ? "platform admin" : "association"} demo role.`}
           />
-          <Link href="/login">Choose a demo persona →</Link>
+          <Link href="/login">Choose a demo role →</Link>
         </main>
       </div>
     );
@@ -81,15 +81,27 @@ export function ConsoleShell({
   const stockQuantity = getInventory(state)
     .filter((item) => item.donation.association_id === DEMO_ASSOCIATION_ID)
     .reduce((quantity, item) => quantity + Number(item.remaining_quantity), 0);
+  const postedOffersCount = getPostedOffers(state).length;
   const counts: Record<string, { value: number; description: string }> = {
     "/offers": {
-      value: getPostedOffers(state).length,
-      description: "available offers",
+      value: postedOffersCount,
+      description:
+        postedOffersCount === 1 ? "available offer" : "available offers",
     },
     "/review": { value: reviewCount, description: "waiting for review" },
-    "/reception": { value: receptionCount, description: "expected drop-offs" },
-    "/needs": { value: activeNeeds, description: "active needs" },
-    "/inventory": { value: stockQuantity, description: "items remaining" },
+    "/reception": {
+      value: receptionCount,
+      description:
+        receptionCount === 1 ? "expected drop-off" : "expected drop-offs",
+    },
+    "/needs": {
+      value: activeNeeds,
+      description: activeNeeds === 1 ? "active need" : "active needs",
+    },
+    "/inventory": {
+      value: stockQuantity,
+      description: stockQuantity === 1 ? "item remaining" : "items remaining",
+    },
   };
   const pendingApprovals = state.associations.filter(
     (item) => item.approval_status === "pending",
@@ -135,7 +147,7 @@ export function ConsoleShell({
             </summary>
             <div className="console-account-menu">
               <Link href="/">Dono home</Link>
-              <Link href="/login">Switch demo persona</Link>
+              <Link href="/login">Switch demo role</Link>
             </div>
           </details>
         </div>

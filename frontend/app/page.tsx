@@ -21,7 +21,10 @@ export default function Home() {
           </section>
           <ol className="process" aria-label="How Dono works">
             {[
-              ["Scan", "Photograph the item and its label, if it has a date."],
+              [
+                "Photograph",
+                "Photograph the item and its label, if it has a date.",
+              ],
               [
                 "Check the indicators",
                 "Review estimates and extracted facts. Correct the item details before continuing.",
@@ -50,7 +53,7 @@ export default function Home() {
               "Clothes",
               "Shoes",
               "Food, non-perishable",
-              "Parapharmacy & hygiene",
+              "Hygiene & care",
               "Small furniture",
             ].map((c) => (
               <Chip key={c}>{c}</Chip>
