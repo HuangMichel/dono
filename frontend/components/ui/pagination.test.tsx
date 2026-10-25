@@ -27,6 +27,19 @@ it("announces an empty range and disables both directions", () => {
   expect(html).toContain('aria-label="Previous page"');
   expect(html).toContain('aria-label="Next page"');
 });
+it("renders nothing for a single page when asked to hide it", () => {
+  const props = { page: 1, pageSize: 10, onPageChange: vi.fn() };
+  expect(
+    renderToStaticMarkup(
+      <Pagination {...props} totalItems={10} hideSinglePage />,
+    ),
+  ).toBe("");
+  expect(
+    renderToStaticMarkup(
+      <Pagination {...props} totalItems={11} hideSinglePage />,
+    ),
+  ).toContain("Page 1 of 2");
+});
 it("renders the final partial range with only Next disabled", () => {
   const html = renderToStaticMarkup(
     <Pagination

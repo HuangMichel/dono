@@ -174,7 +174,7 @@ export default function Approvals() {
                   await resource.refresh();
                 }}
               >
-                <label>
+                <label className="check">
                   <input type="checkbox" required /> I manually verified this
                   association and its registration identifier.
                 </label>
@@ -203,7 +203,7 @@ export default function Approvals() {
                     await resource.refresh();
                   }}
                 >
-                  <label>
+                  <label className="check">
                     <input type="checkbox" required /> I manually verified that
                     no active administrator with an enabled account remains.
                   </label>

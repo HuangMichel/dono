@@ -280,6 +280,9 @@ export type ExpiryView = {
 }; // group only for actual stock; all fields computed in Python, never stored
 // Exactly one bucket; date passed is not equivalent to unsafe or a human decision.
 export type Facts = {
+  // Historical offer snapshots can predate these fields.
+  name?: string | null;
+  description?: string | null;
   category: Category | null;
   attributes: Attributes;
   quantity: Quantity | null;
@@ -292,6 +295,7 @@ export type OfferedFacts = Facts & {
   unit: Unit;
 }; // validated ready snapshot
 export type Donation = {
+  posting?: { posted_at: Instant; locality: string } | null;
   id: UUID;
   donor_id: UUID;
   status: DonationState;
@@ -511,4 +515,25 @@ export type PublicNeed = {
   available_quantity: Quantity;
   unit: Unit;
   distance_km: number | null;
+};
+
+export type PostedDonation = {
+  name?: string | null;
+  description?: string | null;
+  id: UUID;
+  category: Category;
+  attributes: Attributes;
+  quantity: Quantity;
+  unit: Unit;
+  expiry: Omit<SourceDates, "raw_label">;
+  indicators: {
+    key: string;
+    value: string | null;
+    probability: number | null;
+    level: "low" | "medium" | "high" | null;
+  }[];
+  photos: Pick<Photo, "id" | "content_url">[];
+  posted_at: Instant;
+  locality: string;
+  distance_km: number;
 };

@@ -1,5 +1,6 @@
 import { PublicShell } from "@/components/public-shell";
 import { Chip, Icon, LinkButton } from "@/components/ui";
+import { IndicatorRow } from "@/components/donor/indicator-row";
 const impact = [
   {
     step: "Easy to donate",
@@ -38,11 +39,52 @@ export default function Home() {
               offer for staff to review.
             </p>
             <LinkButton href="/needs" size="app">
-              Browse nearby needs <Icon name="arrow" />
+              Browse nearby needs <Icon name="arrow-right" />
             </LinkButton>
             <p className="meta">
               Browse needs without an account. Sign in to offer an item.
             </p>
+            <figure className="hero-example">
+              <figcaption className="sr-only">
+                Example: photos of a coat show visible stains as likely, 61%,
+                and a medicine as unlikely, 2%. The offer then waits for
+                association staff to review it.
+              </figcaption>
+              <div className="hero-example-card" aria-hidden="true">
+                <div className="row between">
+                  <Chip>Example</Chip>
+                  <Chip variant="caution">Waiting for review</Chip>
+                </div>
+                <div className="hero-example-item">
+                  <span className="hero-example-photo">
+                    <Icon name="package" size={24} />
+                  </span>
+                  <span>
+                    <strong>Coat, 8 years</strong>
+                    <span className="meta muted block">
+                      Category confidence 94%
+                    </span>
+                  </span>
+                </div>
+                <IndicatorRow
+                  indicator={{
+                    key: "stains_visible",
+                    probability: 0.61,
+                    level: "medium",
+                  }}
+                />
+                <IndicatorRow
+                  indicator={{
+                    key: "looks_like_medicine",
+                    probability: 0.02,
+                    level: "low",
+                  }}
+                />
+                <span className="meta muted">
+                  Association staff make the donation decision.
+                </span>
+              </div>
+            </figure>
           </section>
           <ol className="process" aria-label="How Dono works">
             {[

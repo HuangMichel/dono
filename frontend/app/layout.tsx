@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { AppNotifications } from "@/components/auth/app-notifications";
 export const metadata: Metadata = {
+  icons: { icon: { url: "/favicon.svg", type: "image/svg+xml" } },
   title: "Dono | Donate items associations need",
   description:
     "Find nearby needs, offer items to associations and arrange your drop-off after staff approval.",
@@ -16,6 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin=""
+        />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"

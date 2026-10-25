@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { FileUpload } from "@/components/ui/file-upload";
+import { MAX_PHOTO_SIZE_LABEL } from "@/lib/photo-limits";
 import { validatePhotoFiles } from "./api-donation";
 
 type Kind = "item" | "label";
@@ -9,6 +10,7 @@ export function DonationPhotos({
   savedCount,
   locked,
   disabled,
+  showLabel = true,
   onChange,
   onKind,
   getKind,
@@ -18,11 +20,13 @@ export function DonationPhotos({
   savedCount: number;
   locked: boolean;
   disabled: boolean;
+  showLabel?: boolean;
   onChange: (files: File[]) => void;
   getKind: (file: File) => Kind;
   onKind: (file: File, kind: Kind) => void;
   onError: (error: string) => void;
 }) {
+  const limitsId = useId();
   const [previews, setPreviews] = useState(new Map<File, string>());
   const previewCache = useRef(new Map<File, string>());
   useEffect(() => {
@@ -77,49 +81,64 @@ export function DonationPhotos({
     }
   }
   return (
-    <div className="donation-photo-panels">
-      {(["item", "label"] as const).map((kind) => (
-        <FileUpload
-          key={kind}
-          id={kind === "item" ? "photos" : "label-photos"}
-          label={kind === "item" ? "Item photos" : "Label close-up"}
-          description={
-            kind === "item"
-              ? "Show the whole item in good light."
-              : "Photograph the printed date and product details."
-          }
-          optional={kind === "label"}
-          multiple={kind === "item"}
-          disabled={disabled || locked}
-          photos={files.flatMap((file, index) =>
-            getKind(file) === kind
-              ? [
-                  {
-                    id: String(index),
-                    name: file.name,
-                    src: previews.get(file) ?? "",
-                    loading: !previews.has(file),
-                  },
-                ]
-              : [],
-          )}
-          onFilesChange={(added) => change([...files, ...added], kind, added)}
-          onReplace={(id, file) =>
-            change(
-              files.map((old, index) => (index === Number(id) ? file : old)),
-              kind,
-              [file],
-            )
-          }
-          onRemove={(id) =>
-            change(
-              files.filter((_, index) => index !== Number(id)),
-              kind,
-              [],
-            )
-          }
-        />
-      ))}
+    <div className="stack-sm">
+      <div
+        className={`donation-photo-panels ${showLabel ? "" : "donation-photo-panels-single"}`}
+      >
+        {(showLabel ? (["item", "label"] as const) : (["item"] as const)).map(
+          (kind) => (
+            <FileUpload
+              key={kind}
+              limitsId={limitsId}
+              id={kind === "item" ? "photos" : "label-photos"}
+              label={kind === "item" ? "Item photos" : "Label close-up"}
+              description={
+                kind === "item"
+                  ? "Show the whole item in good light."
+                  : "Photograph the printed date and product details."
+              }
+              optional={kind === "label"}
+              multiple={kind === "item"}
+              disabled={disabled || locked}
+              photos={files.flatMap((file, index) =>
+                getKind(file) === kind
+                  ? [
+                      {
+                        id: String(index),
+                        name: file.name,
+                        src: previews.get(file) ?? "",
+                        loading: !previews.has(file),
+                      },
+                    ]
+                  : [],
+              )}
+              onFilesChange={(added) =>
+                change([...files, ...added], kind, added)
+              }
+              onReplace={(id, file) =>
+                change(
+                  files.map((old, index) =>
+                    index === Number(id) ? file : old,
+                  ),
+                  kind,
+                  [file],
+                )
+              }
+              onRemove={(id) =>
+                change(
+                  files.filter((_, index) => index !== Number(id)),
+                  kind,
+                  [],
+                )
+              }
+            />
+          ),
+        )}
+      </div>
+      <p id={limitsId} className="meta muted">
+        Up to three photos in total: JPEG, PNG or WebP, up to{" "}
+        {MAX_PHOTO_SIZE_LABEL} each.
+      </p>
     </div>
   );
 }

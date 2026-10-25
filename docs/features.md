@@ -6,7 +6,7 @@ Status: proposed delivery specification for a ≤40-hour hackathon MVP. The [req
 
 ## Feature catalog
 
-The frontend now uses the real API and removes runtime demo records. The [current integration notes](requirements.md#connected-frontend--2026-10-25) distinguish connected behavior from unsupported product designs. Unmatched public posting and reception refusal from the former demo have no equivalent backend command and are no longer exposed as working actions.
+The frontend now uses the real API and removes runtime demo records. The [current integration notes](requirements.md#connected-frontend--2026-10-25) distinguish connected behavior from unsupported product designs. Explicit donor posting and authenticated association browsing are restored; see the current posting rules in requirements.md. Claiming and reception refusal remain unavailable.
 
 | ID | Feature | Priority | Minimum deliverable / boundary |
 |---|---|---|---|
@@ -124,6 +124,8 @@ Acceptance criteria:
 - **UC-003-AC05:** Photo list/evidence DTOs contain no base64 payload; authenticated content reads decode the retained original bytes and check their digest, without accessing a bucket.
 - **UC-003-AC06:** The donor can open a live camera preview for an item or label, capture a photo, retake it and confirm it. Only confirmation changes the local photo selection; capture alone starts no upload or analysis. The same size and total-count limits apply to captured and selected files.
 - **UC-003-AC07:** Closing the camera, leaving the screen or reviewing a capture releases every camera track. A late permission response cannot reopen a closed camera or add a photo. Camera errors provide a file-selection fallback. Keyboard users can reach every control, close with Escape and return focus to the opener.
+- **UC-003-AC08:** Before photos, the donor enters an item name and an optional description. A blank name prevents continuing in the form. Names are trimmed and limited to 120 characters; descriptions are trimmed and limited to 2,000 characters. An empty description becomes null. The API permits incomplete drafts but requires a name before publication, restoration, posting or a new recipient offer.
+- **UC-003-AC09:** Photo analysis and category changes preserve the donor's name and description. Saving and reopening restores them. A text-only draft remains eligible for initial analysis seeding of structured category facts.
 
 ### UC-004 — Read category-specific analysis and safety indicators
 
@@ -169,6 +171,7 @@ Acceptance criteria:
 - **UC-005-AC03:** Requests to edit original probability, indicator level, confidence, model or provider are rejected, including direct requests that bypass the UI.
 - **UC-005-AC04:** If reanalysis occurs, both results remain attributable; a new run does not replace or relabel old category-specific indicators. A late result attaches a missing comparison basis separately, but seeds only an empty unchanged working set with no active offer.
 - **UC-005-AC05:** Editing category or facts cannot directly set a staff decision, erase an original warning or silently change an already-reviewed offer; active-offer edits/new analysis requests are rejected until withdrawal. A captured in-flight result may append scoped evidence, without modifying snapshots or decisions.
+- **UC-005-AC06:** Name and description corrections follow the same revision and active-offer guards as other item facts. A recipient sees the name and description frozen in its offer. Later donor changes do not alter that recipient's review, reception or stock display. Existing snapshots without these fields retain product/type/category fallback labels.
 
 ### UC-006 — Match a donation or view other options
 

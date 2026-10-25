@@ -8,7 +8,15 @@ const { page, command } = vi.hoisted(() => ({
   command: vi.fn(),
 }));
 vi.mock("@/lib/api", () => ({ api: command }));
-vi.mock("@/lib/api-hooks", () => ({ useApiPage: page }));
+vi.mock("@/lib/api-hooks", () => ({
+  useApiPage: page,
+  useApiResource: () => ({
+    data: null,
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  }),
+}));
 vi.mock("@/components/association/shell", () => ({
   ConsoleTitle: ({ title }: { title: string }) => <h1>{title}</h1>,
   useAssociation: () => ({ id: "association" }),
@@ -19,6 +27,7 @@ vi.mock("@/components/association/shell", () => ({
 vi.mock("@/components/association/evidence", () => ({
   Evidence: () => <p>Frozen item evidence</p>,
   itemName: (o: { id: string }) => o.id,
+  labelCorrectionApplies: () => false,
 }));
 vi.mock("@/components/association/auth-photo", () => ({
   AuthPhoto: ({
@@ -97,33 +106,23 @@ it("opens the first offer and lets staff switch while preserving approval checks
       '[aria-label="Review category"] button[aria-pressed="true"]',
     ),
   ).not.toBeNull();
-  expect(
-    view.container.querySelector<HTMLButtonElement>('button[type="submit"]')
-      ?.disabled,
-  ).toBe(true);
-  const decision = view.container.querySelector<HTMLSelectElement>(
-    'select[name="decision"]',
-  )!;
-  await act(async () => {
-    decision.value = "refused";
-    decision.dispatchEvent(new Event("change", { bubbles: true }));
-  });
-  expect(
-    view.container.querySelector<HTMLButtonElement>('button[type="submit"]')
-      ?.disabled,
-  ).toBe(false);
-  await act(async () => {
-    decision.value = "approved";
-    decision.dispatchEvent(new Event("change", { bubbles: true }));
-  });
+  const approve = () =>
+    view.container.querySelector<HTMLButtonElement>(
+      'button[value="approved"]',
+    )!;
+  const refuse = () =>
+    view.container.querySelector<HTMLButtonElement>('button[value="refused"]')!;
+  expect(view.container.querySelector('select[name="decision"]')).toBeNull();
+  expect(approve().disabled).toBe(true);
+  expect(refuse().disabled).toBe(false);
+  expect(view.container.textContent).toContain(
+    "Complete the checks above to approve.",
+  );
   const check = view.container.querySelector<HTMLInputElement>(
     'input[type="checkbox"]',
   )!;
   await act(async () => check.click());
-  expect(
-    view.container.querySelector<HTMLButtonElement>('button[type="submit"]')
-      ?.disabled,
-  ).toBe(false);
+  expect(approve().disabled).toBe(false);
 });
 
 it("requires every manual and date check before approval", async () => {
@@ -158,12 +157,27 @@ it("requires every manual and date check before approval", async () => {
   const checks = Array.from(
     view.container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
   );
-  const submit = () =>
-    view.container.querySelector<HTMLButtonElement>('button[type="submit"]')!;
-  expect(submit().disabled).toBe(true);
+  const approve = () =>
+    view.container.querySelector<HTMLButtonElement>(
+      'button[value="approved"]',
+    )!;
+  expect(checks).toHaveLength(4);
+  expect(approve().disabled).toBe(true);
   for (const checkbox of checks.slice(0, 3))
     await act(async () => checkbox.click());
-  expect(submit().disabled).toBe(true);
+  expect(approve().disabled).toBe(true);
   await act(async () => checks[3].click());
-  expect(submit().disabled).toBe(false);
+  expect(approve().disabled).toBe(true);
+  expect(view.container.textContent).toContain("Add a reason to approve.");
+  const reason = view.container.querySelector<HTMLInputElement>(
+    'input[name="reason"]',
+  )!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!.call(reason, "Label checked against the item");
+    reason.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(approve().disabled).toBe(false);
 });

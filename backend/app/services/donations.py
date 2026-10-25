@@ -31,14 +31,25 @@ async def donation_view(db: Supabase, actor: Actor, item: UUID) -> dict[str, obj
     if row.get("quantity") is not None:
         row["quantity"] = str(row["quantity"])
     facts = Facts.model_validate(
-        {key: row.get(key) for key in ("category", "attributes", "quantity", "unit")}
+        {
+            key: row.get(key)
+            for key in (
+                "name",
+                "description",
+                "category",
+                "attributes",
+                "quantity",
+                "unit",
+            )
+        }
         | {"expiry": dates[0] if dates else {}}
     )
-    for key in ("category", "attributes", "quantity", "unit"):
+    for key in ("name", "description", "category", "attributes", "quantity", "unit"):
         row.pop(key, None)
     row["facts"] = facts.model_dump(mode="json")
-    row["revision"], row["facts_revision"] = str(row["revision"]), str(
-        row["facts_revision"]
+    row["revision"], row["facts_revision"] = (
+        str(row["revision"]),
+        str(row["facts_revision"]),
     )
     originals = await db.read(
         "donation_analysis",
@@ -61,5 +72,6 @@ async def donation_view(db: Supabase, actor: Actor, item: UUID) -> dict[str, obj
     )
     # The active-offer/stock projection is added with transactional offer commands.
     summary = (await db.command("item_summary", actor.id, {"item": str(item)}))[0]
+    row["posting"] = summary.pop("posting", None)
     row["computed"] = {"expiry": asdict(view), **summary}
     return row

@@ -11,14 +11,17 @@ export function Pagination({
   pageSize,
   onPageChange,
   label = "Results pagination",
+  hideSinglePage = false,
 }: {
   page: number;
   totalItems: number;
   pageSize: number;
   onPageChange: (page: number) => void;
   label?: string;
+  hideSinglePage?: boolean;
 }) {
   const range = paginationRange(totalItems, page, pageSize);
+  if (hideSinglePage && range.pageCount <= 1) return null;
   return (
     <nav className="pagination" aria-label={label}>
       <p

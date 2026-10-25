@@ -1,5 +1,6 @@
 import type { ExpiryBucket, ExpiryView } from "@/lib/api-contracts";
 import { STATUS_LABELS } from "@/lib/labels";
+import { expiryTone } from "@/lib/ui-text";
 import { Chip } from "@/components/ui";
 const EXPIRY_LABELS: Record<ExpiryBucket, string> = {
   expired: "Expired",
@@ -17,19 +18,13 @@ export function expiryLabel(bucket: ExpiryBucket) {
 }
 export function ExpiryChip({
   expiry,
+  showNotApplicable = false,
 }: {
   expiry: Pick<ExpiryView, "bucket" | "days_left">;
+  showNotApplicable?: boolean;
 }) {
-  const variant =
-    expiry.bucket === "expired"
-      ? "danger"
-      : ["today", "lt_7", "lt_30"].includes(expiry.bucket)
-        ? "warning"
-        : ["lt_90", "at_90", "unknown"].includes(expiry.bucket)
-          ? "caution"
-          : expiry.bucket === "gt_90"
-            ? "success"
-            : "neutral";
+  if (expiry.bucket === "not_applicable" && !showNotApplicable) return null;
+  const variant = expiryTone(expiry.bucket);
   const label =
     expiry.days_left !== null && expiry.days_left > 0
       ? `${expiry.days_left} ${expiry.days_left === 1 ? "day" : "days"} left`

@@ -250,6 +250,11 @@ class SlotDTO(RowDTO):
     computed: dict[str, Any]
 
 
+class PostingSummary(BaseModel):
+    posted_at: UTCInstant
+    locality: str
+
+
 class DonationDTO(RowDTO):
     id: UUID
     donor_id: UUID
@@ -260,6 +265,7 @@ class DonationDTO(RowDTO):
     updated_at: UTCInstant
     facts_revision: str
     facts_origin: Literal["empty", "human", "ai_seeded"]
+    posting: PostingSummary | None = None
     facts: Facts
     computed: DonationComputed
 

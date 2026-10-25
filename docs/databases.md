@@ -2,7 +2,7 @@
 
 Status: **schema, RLS and guarded commands implemented** in [migrations](../supabase/migrations/); executed PostgreSQL checks and deployment limits are in [readiness](readiness.md). [AGENTS.md](../AGENTS.md) is authoritative. Read [domain-model.md](domain-model.md) for the complete working defaults and state/accounting rules, [requirements](requirements.md), [features](features.md), [architecture](architecture.md) and the [FastAPI contract](api.md).
 
-The [interactive ERD](architecture/database-erd.html) and [source](architecture/database-erd.json) show all **21 application tables, 225 columns and 45 FK roles**, plus a managed auth.users referenced-key stub. PK/UK badges indicate participation in keys, not individual uniqueness of every component. JSON/array snapshot references are command-validated and are not falsely drawn as SQL FKs.
+The [interactive ERD](architecture/database-erd.html) shows the baseline **21 application tables, 225 columns and 45 FK roles**, plus a managed auth.users referenced-key stub. The previously linked editable JSON source is absent. This diagram does not include the later posting table or item-detail columns. PK/UK badges indicate participation in keys, not individual uniqueness of every component. JSON/array snapshot references are command-validated and are not falsely drawn as SQL FKs.
 
 ## Design status and working defaults
 
@@ -239,6 +239,8 @@ Reusable item/source facts; no target or decision. **Ownership:** Raw current ro
 |---|---|---|---|---|---|
 | `id` | `uuid` | no | PK | generated UUID | Donation aggregate identifier. |
 | `donor_id` | `uuid` | no | FK → profiles.id | verified actor | Immutable donor ownership. |
+| `name` | `text` | yes | — | donor input | Trimmed item name, at most 120 characters; required for publication, restoration, posting and new offers. |
+| `description` | `text` | yes | — | donor input | Optional trimmed item description, at most 2,000 characters; blank becomes NULL. |
 | `category` | `donation_category` | yes | — | NULL | Current working category; NULL allowed before extraction/correction. Allowed labels: `clothes`, `shoes`, `food`, `para`, `furniture`. |
 | `attributes` | `jsonb` | no | — | {} | Current validated attributes, separate from immutable extracted JSON. |
 | `quantity` | `numeric(12,3)` | yes | — | NULL | Current positive integral lot quantity, validated before publish/offer. |
@@ -249,9 +251,9 @@ Reusable item/source facts; no target or decision. **Ownership:** Raw current ro
 | `created_at` | `timestamptz` | no | — | now() | Draft created at. |
 | `updated_at` | `timestamptz` | no | — | now() | Last aggregate transition. |
 | `facts_revision` | `bigint` | no | — | 1 | Changes only when current source facts or photos change; captured by analysis/offer snapshots. |
-| `facts_origin` | `facts_origin` | no | — | empty or human on creation | Any supplied human facts mark human; first AI may seed only an untouched empty working set. Allowed labels: `empty`, `human`, `ai_seeded`. |
+| `facts_origin` | `facts_origin` | no | — | empty or human on creation | Supplied structured facts mark human; a name/description-only draft remains empty for initial AI seeding. Seeding never changes these donor-entered text fields. Allowed labels: `empty`, `human`, `ai_seeded`. |
 
-**Constraints / guards:** PK(id). Same-item composite FK(basis_analysis_id,id) → donation_analysis(id,donation_id). Positive revisions; nullable early facts, but publish requires category, positive integral quantity, item unit, category-valid facts and validated photos. No active offer while withdrawn/transferred. No donation-wide booking uniqueness or decision field.
+**Constraints / guards:** PK(id). Same-item composite FK(basis_analysis_id,id) → donation_analysis(id,donation_id). Positive revisions; nullable early facts, but publish requires a nonempty name, category, positive integral quantity, item unit, category-valid facts and validated photos. Name and description travel with source-fact snapshots and revision-guarded edits. Existing donation names are backfilled from product/type/category; immutable historical snapshots and audits are preserved. No active offer while withdrawn/transferred. No donation-wide booking uniqueness or decision field.
 
 **Indexes:** (donor_id,created_at DESC,id DESC); (basis_analysis_id) WHERE basis_analysis_id IS NOT NULL.
 
@@ -641,7 +643,7 @@ Current diagram validation and any dense-layout warnings are linked in [architec
 
 ## Implementation boundary
 
-Migrations use the imperative Supabase CLI workflow; their versioned filenames were generated with `supabase migration new`. They create all 21 application tables and 25 enum types, scoped read policies, immutable original-evidence/history triggers, independent deadline-aware budget aggregates and service-only command RPCs. No hosted project has been changed.
+The repository contains 21 ordered migrations for the application schema, scoped read policies, immutable evidence/history triggers, budget aggregates and service-only command RPCs. The posted-donations migration adds `private.donation_postings` to the original 21 application tables. Hosted changes have been recorded in prior deployment reports; local files alone do not establish their current remote state. See [migration status](setup.md#migration-status-and-cleanup) for manual applications, generated files and history reconciliation.
 
 `dono_command_owner` is a NOLOGIN role owning only Dono application objects. Managed Supabase does not support granting that role direct access to the `auth` schema. Two private helpers, `current_user_id()` and `auth_user_exists(uuid)`, are owned by `postgres`, use `SECURITY DEFINER` with an empty search path, and allow execution only by the command owner. They return only a UUID or an existence boolean. Existing business commands and scope predicates retain their restricted owner. No helper can mutate Auth data. RLS is enabled for ordinary readers; table-owner command execution deliberately bypasses row filtering and repeats actor/tenant/state checks. Ordinary authenticated clients have SELECT policies and no DML. The service role has command execution rather than direct application-table DML. Function search paths are pinned; future functions/tables do not automatically receive client privileges.
 

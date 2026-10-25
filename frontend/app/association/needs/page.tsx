@@ -29,6 +29,15 @@ import {
   text,
   useCommand,
 } from "@/components/association/command";
+function needDetails(n: Need) {
+  return Object.entries(n.attributes)
+    .filter(([, v]) => v != null)
+    .map(
+      ([k, v]) =>
+        `${factLabel(k)}: ${typeof v === "boolean" ? (v ? "Yes" : "No") : typeof v === "string" && categoryFields[n.category][k]?.includes(v) ? enumLabel(v) : v}`,
+    )
+    .join(", ");
+}
 export default function Needs() {
   const { id, membership } = useAssociation();
   const resource = useApiPage<Need>(`/associations/${id}/needs`);
@@ -69,44 +78,42 @@ export default function Needs() {
               {
                 id: "item",
                 label: "Need",
+                width: "34%",
                 cell: (n) => (
                   <>
                     <strong>{CATEGORY_LABELS[n.category]}</strong>
-                    <p className="console-meta">
-                      {Object.entries(n.attributes)
-                        .filter(([, v]) => v != null)
-                        .map(
-                          ([k, v]) =>
-                            `${factLabel(k)}: ${typeof v === "boolean" ? (v ? "Yes" : "No") : typeof v === "string" && categoryFields[n.category][k]?.includes(v) ? enumLabel(v) : v}`,
-                        )
-                        .join(", ")}
-                    </p>
+                    <p className="console-meta">{needDetails(n)}</p>
                   </>
                 ),
               },
               {
                 id: "target",
                 label: "Items needed",
+                numeric: true,
                 cell: (n) => n.target_quantity,
               },
               {
                 id: "held",
                 label: "Reserved",
+                numeric: true,
                 cell: (n) => n.computed.held_quantity,
               },
               {
                 id: "fulfilled",
                 label: "Received",
+                numeric: true,
                 cell: (n) => n.computed.fulfilled_quantity,
               },
               {
                 id: "available",
                 label: "Still needed",
+                numeric: true,
                 cell: (n) => n.computed.available_quantity,
               },
               {
                 id: "storage",
-                label: "Storage places per item",
+                label: "Places per item",
+                numeric: true,
                 cell: (n) => n.storage_units_per_item,
               },
               {
@@ -138,6 +145,7 @@ export default function Needs() {
             renderMobileRow={(n) => (
               <>
                 <strong>{CATEGORY_LABELS[n.category]}</strong>
+                <p className="console-meta">{needDetails(n)}</p>
                 <p>
                   {n.computed.available_quantity} still needed of{" "}
                   {n.target_quantity} target items
@@ -266,12 +274,12 @@ export default function Needs() {
                   <option value="true">Active</option>
                   <option value="false">Paused</option>
                 </SelectField>
-                <fieldset>
+                <fieldset className="console-checkbox-group">
                   <legend>
                     Seasons (leave all unchecked for year-round needs)
                   </legend>
                   {["spring", "summer", "autumn", "winter"].map((s) => (
-                    <label key={s}>
+                    <label key={s} className="check">
                       <input
                         type="checkbox"
                         name="seasons"
@@ -281,8 +289,8 @@ export default function Needs() {
                           parsed?.result.draft.seasons ??
                           []
                         ).includes(s as never)}
-                      />{" "}
-                      {enumLabel(s)}{" "}
+                      />
+                      {enumLabel(s)}
                     </label>
                   ))}
                 </fieldset>

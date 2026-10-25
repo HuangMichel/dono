@@ -15,12 +15,15 @@ import {
   indicatorTone,
   enumLabel,
   formatCount,
+  rankIndicators,
+  safetyWarnings,
 } from "@/lib/ui-text";
 import { ExpiryChip } from "./status";
 import { ResourceStatus } from "./shell";
 import { AuthPhoto } from "./auth-photo";
 export { AuthPhoto } from "./auth-photo";
 export function itemName(offer: Offer) {
+  if (offer.facts_snapshot.name?.trim()) return offer.facts_snapshot.name;
   const a = offer.facts_snapshot.attributes;
   if (
     typeof a.type === "string" &&
@@ -107,10 +110,66 @@ function DateCorrection({
     </section>
   );
 }
-export function Evidence({ offer }: { offer: Offer }) {
-  const resource = useApiResource<EvidenceDTO>(`/offers/${offer.id}/evidence`);
+export function labelCorrectionApplies(offer: Offer, analyses: Analysis[]) {
+  const donorSet = offer.facts_snapshot.expiry.expiry_date;
+  return analyses.some((analysis) => {
+    const dates = (
+      analysis.extracted as {
+        dates?: {
+          expiry_date?: string | null;
+          date_type?: string | null;
+          pao_months?: number | null;
+        };
+      }
+    ).dates;
+    const strict =
+      ["DLC", "expiry", "PAO"].includes(dates?.date_type ?? "") ||
+      dates?.pao_months != null;
+    return (
+      strict &&
+      !!dates?.expiry_date &&
+      !!donorSet &&
+      dates.expiry_date !== donorSet
+    );
+  });
+}
+const PROVIDER_LABELS: Record<string, string> = {
+  openai: "OpenAI",
+  jev: "Jev",
+  hybrid: "OpenAI and Jev",
+};
+type EvidenceResource = ReturnType<typeof useApiResource<EvidenceDTO>>;
+export function Evidence({
+  offer,
+  resource: shared,
+}: {
+  offer: Offer;
+  resource?: EvidenceResource;
+}) {
+  const own = useApiResource<EvidenceDTO>(
+    shared ? null : `/offers/${offer.id}/evidence`,
+  );
+  const resource = shared ?? own;
+  const warnings = safetyWarnings(
+    resource.data?.analyses.flatMap((analysis) => analysis.indicators) ?? [],
+  );
   return (
     <div className="console-stack">
+      {warnings.map((warning) => (
+        <div key={warning.key} className="notice danger" role="note">
+          <strong>
+            {warning.key === "looks_like_medicine"
+              ? "Looks like a medicine"
+              : "Chilled or frozen food likely"}
+            , {probabilityLabel(warning.probability ?? 0)}
+          </strong>
+          <p>
+            {warning.key === "looks_like_medicine"
+              ? "Medicines cannot be donated through Dono. If this is a medicine, refuse the offer and suggest a pharmacy."
+              : "Individuals can only give food stored at room temperature. Check the storage instructions on the label."}
+          </p>
+        </div>
+      ))}
       <ResourceStatus {...resource} />
       {resource.data && resource.data.photos.length > 0 && (
         <div className="console-photos">
@@ -126,6 +185,18 @@ export function Evidence({ offer }: { offer: Offer }) {
       <section className="console-evidence-section">
         <h2>Offered item</h2>
         <dl className="console-evidence-facts">
+          <div>
+            <dt>Item name</dt>
+            <dd>{itemName(offer)}</dd>
+          </div>
+          {offer.facts_snapshot.description && (
+            <div>
+              <dt>Description</dt>
+              <dd className="item-description">
+                {offer.facts_snapshot.description}
+              </dd>
+            </div>
+          )}
           {Object.entries(offer.facts_snapshot.attributes)
             .filter(([, value]) => value !== null && value !== "")
             .map(([key, value]) => (
@@ -139,7 +210,11 @@ export function Evidence({ offer }: { offer: Offer }) {
                     : typeof value === "string" &&
                         categoryFields[offer.category][key]?.includes(value)
                       ? enumLabel(value)
-                      : String(value)}
+                      : Array.isArray(value)
+                        ? value
+                            .map((part) => enumLabel(String(part)))
+                            .join(", ")
+                        : String(value)}
                 </dd>
               </div>
             ))}
@@ -147,20 +222,24 @@ export function Evidence({ offer }: { offer: Offer }) {
             <dt>Quantity</dt>
             <dd>{formatCount(offer.quantity)}</dd>
           </div>
-          <div>
-            <dt>Printed date</dt>
-            <dd>
-              {dateLabel(offer.facts_snapshot.expiry.expiry_date)}
-              {offer.facts_snapshot.expiry.date_type &&
-                ` (${enumLabel(offer.facts_snapshot.expiry.date_type)})`}
-            </dd>
-          </div>
-          <div>
-            <dt>Expiry priority</dt>
-            <dd>
-              <ExpiryChip expiry={offer.computed.expiry} />
-            </dd>
-          </div>
+          {offer.computed.expiry.bucket !== "not_applicable" && (
+            <>
+              <div>
+                <dt>Printed date</dt>
+                <dd>
+                  {dateLabel(offer.facts_snapshot.expiry.expiry_date)}
+                  {offer.facts_snapshot.expiry.date_type &&
+                    ` (${enumLabel(offer.facts_snapshot.expiry.date_type)})`}
+                </dd>
+              </div>
+              <div>
+                <dt>Expiry priority</dt>
+                <dd>
+                  <ExpiryChip expiry={offer.computed.expiry} />
+                </dd>
+              </div>
+            </>
+          )}
         </dl>
       </section>
       {resource.data && (
@@ -189,12 +268,13 @@ export function Evidence({ offer }: { offer: Offer }) {
             {resource.data.analyses.map((a) => (
               <section key={a.id}>
                 <p className="console-meta">
-                  {CATEGORY_LABELS[a.category]}, {a.provider}, category
+                  {CATEGORY_LABELS[a.category]},{" "}
+                  {PROVIDER_LABELS[a.provider] ?? a.provider}, category
                   confidence {probabilityLabel(a.confidence)}
                 </p>
                 <DateCorrection analysis={a} offer={offer} />
                 <ul className="console-evidence-indicators">
-                  {a.indicators.map((i, index) => (
+                  {rankIndicators(a.indicators).map((i, index) => (
                     <li key={index}>
                       <span>{indicatorLabel(i.key)}</span>
                       <Chip variant={indicatorTone(i.key, i.level)}>
@@ -275,6 +355,14 @@ function SourceFacts({
       : category;
   return (
     <dl className="console-evidence-facts">
+      {["name", "description"].map((key) =>
+        typeof facts[key] === "string" && facts[key] ? (
+          <div key={key}>
+            <dt>{key === "name" ? "Item name" : "Description"}</dt>
+            <dd className="item-description">{String(facts[key])}</dd>
+          </div>
+        ) : null,
+      )}
       {typeof facts.category === "string" && (
         <div>
           <dt>Category</dt>

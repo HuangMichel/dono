@@ -294,6 +294,9 @@
 .console-actions > .field-label {
   min-width: 120px;
 }
+.command-submit {
+  justify-self: start;
+}
 .console-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -533,18 +536,24 @@
   align-items: center;
 }
 .console-calendar-dot {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--primary);
 }
 .console-calendar-dot.is-full {
+  border-radius: 1px;
   background: var(--danger);
 }
 .console-calendar-dot.is-busy {
-  background: var(--warning-solid);
+  width: 10px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--warning-meter);
 }
 .console-calendar-dot.is-closed {
+  height: 2px;
+  border-radius: 1px;
   background: var(--muted);
 }
 .console-reception-layout {
@@ -1000,6 +1009,27 @@
 .console-main fieldset {
   min-width: 0;
 }
+.console-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.console-checkbox-group > legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.console-checkbox-group > .check {
+  gap: 8px;
+  align-items: center;
+}
+.console-checkbox-group > .check input {
+  margin-top: 0;
+}
 .console-main dl > div {
   display: flex;
   flex-wrap: wrap;
@@ -1067,7 +1097,6 @@
   flex-wrap: wrap;
 }
 .console-evidence-section > h2 {
-  font-size: 16px;
   margin-bottom: 12px;
 }
 .console-evidence-indicators {
@@ -1163,4 +1192,49 @@
 }
 .auth-photo-thumbnail > p {
   margin: 0;
+}
+@media (min-width: 1001px) {
+  .restored-review-detail > .console-decision {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin-inline: -24px;
+    padding: 16px 24px;
+    background: var(--background);
+    border-top: 0.5px solid var(--border);
+  }
+}
+.console-header-start,
+.console-header-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.console-header-end {
+  flex-shrink: 0;
+}
+.console-header-end > .button {
+  white-space: nowrap;
+}
+.console-header-context {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) {
+  .console-menu-toggle {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .console-header-end > .console-meta {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .console-review-list,
+  .restored-review .console-review-list {
+    max-height: none;
+    overflow: visible;
+  }
 }

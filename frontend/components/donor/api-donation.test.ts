@@ -3,14 +3,33 @@ import {
   validatePhotoFiles,
   changeCategory,
   createCommandKeys,
+  itemName,
 } from "./api-donation";
+it("uses the donor's item name and retains it across category changes", () => {
+  const facts = {
+    name: "Blue winter coat",
+    description: "Small tear inside the left pocket.",
+    category: "clothes" as const,
+    attributes: { type: "coat" },
+    quantity: "1",
+    unit: "item" as const,
+    expiry: {},
+  };
+  expect(itemName(facts)).toBe("Blue winter coat");
+  expect(changeCategory(facts, "furniture")).toMatchObject({
+    name: "Blue winter coat",
+    description: "Small tear inside the left pocket.",
+    attributes: {},
+  });
+  expect(itemName({ ...facts, name: null })).toBe("Coat");
+});
 it("rejects unsupported, oversized and excessive analysis photos", () => {
   expect(() =>
     validatePhotoFiles([{ type: "image/gif", size: 100 }] as File[]),
   ).toThrow("JPEG");
   expect(() =>
     validatePhotoFiles([{ type: "image/jpeg", size: 4_194_305 }] as File[]),
-  ).toThrow("4 MiB");
+  ).toThrow("4 MB");
   expect(() =>
     validatePhotoFiles(
       Array.from({ length: 4 }, () => ({

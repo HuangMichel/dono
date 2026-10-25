@@ -94,13 +94,19 @@ export default function Reception() {
                 resource.data.length > 0 && (
                   <span className="console-meta">
                     {" "}
-                    {formatCount(resource.data.length, "expected drop-off")}
+                    {formatCount(
+                      resource.data.filter(
+                        ({ booking }) =>
+                          booking.computed.effective_state === "booked",
+                      ).length,
+                      "expected drop-off",
+                    )}
                     {resource.hasMore ? " and more available" : ""}
                   </span>
                 )}
             </h2>
             <Field
-              label="Drop-off date (Europe/Paris)"
+              label="Drop-off date (Paris time)"
               type="date"
               value={day}
               onChange={(e) => {
@@ -155,7 +161,7 @@ export default function Reception() {
                   }}
                 >
                   <DateChecks expiry={resolved.offer.computed.expiry} />
-                  <label>
+                  <label className="check">
                     <input type="checkbox" required /> I checked the physical
                     item and received the full offered quantity.
                   </label>
@@ -168,6 +174,7 @@ export default function Reception() {
               </p>
               <CommandForm
                 submit="Cancel appointment"
+                submitVariant="danger"
                 successMessage="Appointment and offer cancelled."
                 onSubmit={async (data) => {
                   await command(
@@ -220,12 +227,11 @@ export default function Reception() {
                   </div>
                   <StateChip state={arrival.booking.computed.effective_state} />
                 </div>
-                <div className="reception-arrival-meta">
-                  <ExpiryChip expiry={arrival.offer.computed.expiry} />
-                  <span className="console-meta">
-                    {instant(arrival.booking.computed.starts_at)}
-                  </span>
-                </div>
+                {arrival.offer.computed.expiry.bucket !== "not_applicable" && (
+                  <div className="reception-arrival-meta">
+                    <ExpiryChip expiry={arrival.offer.computed.expiry} />
+                  </div>
+                )}
               </article>
             ))}
           </div>

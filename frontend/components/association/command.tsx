@@ -3,15 +3,26 @@ import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui";
 import { useNotifications } from "@/components/ui/notifications";
+type CommandAction = {
+  value: string;
+  label: string;
+  variant?: "primary" | "outline" | "soft" | "danger";
+  disabled?: boolean;
+  describedBy?: string;
+};
 export function CommandForm({
   children,
-  submit,
+  submit = "",
+  submitVariant = "primary",
+  actions,
   onSubmit,
   successMessage = "Saved.",
   submitDisabled = false,
 }: {
   children: ReactNode;
-  submit: string;
+  submit?: string;
+  submitVariant?: CommandAction["variant"];
+  actions?: CommandAction[];
   successMessage?: string;
   submitDisabled?: boolean;
   onSubmit: (data: FormData) => Promise<void | false>;
@@ -25,7 +36,10 @@ export function CommandForm({
     inFlight.current = true;
     setBusy(true);
     try {
-      const result = await onSubmit(new FormData(e.currentTarget));
+      const submitter = (e.nativeEvent as SubmitEvent).submitter;
+      const result = await onSubmit(
+        new FormData(e.currentTarget, submitter ?? undefined),
+      );
       if (result !== false) notify({ message: successMessage });
     } catch (err) {
       notify({
@@ -48,9 +62,32 @@ export function CommandForm({
       >
         <div className="console-stack">
           {children}
-          <Button type="submit" disabled={busy || submitDisabled}>
-            {busy ? "Please wait…" : submit}
-          </Button>
+          {actions ? (
+            <div className="console-actions">
+              {actions.map((action) => (
+                <Button
+                  key={action.value}
+                  type="submit"
+                  name="intent"
+                  value={action.value}
+                  variant={action.variant}
+                  disabled={busy || action.disabled}
+                  aria-describedby={action.describedBy}
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <Button
+              type="submit"
+              variant={submitVariant}
+              className="command-submit"
+              disabled={busy || submitDisabled}
+            >
+              {busy ? "Please wait…" : submit}
+            </Button>
+          )}
         </div>
       </fieldset>
     </form>

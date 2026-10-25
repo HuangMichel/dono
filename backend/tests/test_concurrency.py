@@ -43,6 +43,7 @@ def test_two_reviewers_cannot_over_reserve_storage(postgres: str) -> None:
             if index:
                 # Reuse validated immutable bytes through a new ordinary upload command.
                 facts = Facts(
+                    name="Winter coat",
                     category="clothes",
                     attributes={"type": "coat"},
                     quantity="1",

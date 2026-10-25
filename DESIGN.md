@@ -13,15 +13,18 @@ colors:
   text: "#21201C"
   text-muted: "#63635E"
   text-disabled: "#8D8D86"
+  neutral-meter: "#82827C"
   success-bg: "#E9F6E9"
   success-bg-subtle: "#F5FBF5"
   success-text: "#2A7E3B"
   caution-bg: "#FFF7C2"
   caution-solid: "#FFC53D"
   caution-text: "#4F3422"
+  caution-meter: "#AB6400"
   warning-bg: "#FFEFD6"
   warning-solid: "#F76B15"
   warning-text: "#582D1D"
+  warning-meter: "#CC4E00"
   danger-bg: "#FEEBEC"
   danger-solid: "#CE2C31"
   danger-text: "#CE2C31"
@@ -190,9 +193,14 @@ mockups so white text passes AA (5.1:1): `{colors.primary}` is grass-11 and
 marks, not for text-bearing surfaces. Hairlines have no component sub-token, so they are
 documented here: every border is 0.5 px — sand-6 `#DAD9D6` subtle, sand-7 `#CFCECA` UI,
 sand-8 `#BCBBB5` strong — and selection and keyboard focus use grass-11, `{colors.focus}`, pinned
-up from the mockups' grass-8 so the ring passes 3:1 against the page.
+up from the mockups' grass-8 so the ring passes 3:1 against the page. Text fields are the one
+hairline pinned higher: their boundary is sand-9 `#8D8D86`, so the input area passes 3:1 against
+the page. Native checkboxes, radios and the text caret take `{colors.primary}`.
 Disabled controls use `{colors.text-disabled}` on `{colors.background-component}`
-(sand-9 on sand-3), which WCAG exempts as inactive UI.
+(sand-9 on sand-3), which WCAG exempts as inactive UI. Meter and probability-bar fills sit on a
+`{colors.background-component}` track and use `{colors.primary}`, `{colors.caution-meter}`
+(amber-11), `{colors.warning-meter}` (orange-11), `{colors.danger-solid}` or
+`{colors.neutral-meter}` (sand-10), so every fill passes 3:1 against the track.
 Status color encodes **who speaks**, not just severity:
 
 | Color | Says | Set by |
@@ -202,6 +210,10 @@ Status color encodes **who speaks**, not just severity:
 | Orange | Stains likely 61%, 5 days left | AI indicator or code bucket |
 | Red | Refused, Expired, Medicine 34% | Staff action, code, or AI warning |
 | Sand | Full, Paused category | Hidden from matching |
+
+AI indicators speak by key and level: medium or high condition concerns are orange, medium or high
+medicine and chilled-food concerns are red, a medium or high unreadable label is amber, and low or
+unassessed estimates stay sand. Grass never marks an AI indicator.
 
 No decorative color: no gradients, no glows, and never a colored bar on a card's left edge.
 
@@ -267,8 +279,7 @@ exact class strings in the selected mockups.
   surface treatments; list rows inside use 0.5 px dividers, not extra cards, selected rows use
   `{components.row-selected}`, meta lines use `{components.list-meta}`.
 - **Console shell** — `{components.console-sidebar}` with the section nav; one chrome across
-  Dashboard, Review, Reception, Stock, Needs, Capacity, Slots and Photos. A separate
-  posted-offers section is future design and is not implemented in the connected frontend.
+  Dashboard, Review, Reception, Stock, Needs, Capacity, Slots and Photos. Offers nearby uses the page 19 gallery and detail layout for explicitly posted items, with category and approximate-distance filters. Claiming is unavailable.
 - **Lists** — one row per entity: primary text, muted meta line, status chip on the right. No
   nested cards. Overlays sit on `{components.sheet-scrim}`.
 - **Action notifications** appear in a fixed stack at the top right, with safe screen-edge spacing and a maximum width of 384 px. Use the page background, a hairline border, a semantic icon and a dismiss button. Show at most three popups. Success and information messages close after six seconds; pause the timer on hover or keyboard focus. Errors do not expire automatically. Keep field validation and resource-loading errors beside the affected controls. Notifications survive client navigation and clear when the signed-in account changes. Do not move focus when a notification appears.

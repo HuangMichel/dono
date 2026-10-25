@@ -63,7 +63,7 @@ print(mimetypes.guess_type(sys.argv[1])[0] or 'application/octet-stream')
 PY
 )
 # Use the same deterministic human facts for each fresh item.
-FACTS='{"category":"clothes","attributes":{"type":"coat"},"quantity":"1","unit":"item"}'
+FACTS='{"name":"Winter coat","category":"clothes","attributes":{"type":"coat"},"quantity":"1","unit":"item"}'
 new_item() {
   post DONOR_TOKEN /donations 201 "$(jq -cn --argjson f "$FACTS" '{facts:$f}')"
   ITEM=$(value '.data.id')

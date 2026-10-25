@@ -83,7 +83,11 @@ function AccountForm({ mode }: { mode: "login" | "signup" }) {
               ? "Create an account"
               : "Sign in"}
         </h2>
-        {(error || auth.error) && <p role="alert">{error || auth.error}</p>}
+        {(error || auth.error) && (
+          <p role="alert" className="notice danger">
+            {error || auth.error}
+          </p>
+        )}
         {auth.loading ? (
           <p role="status">Signing you in…</p>
         ) : auth.user ? (

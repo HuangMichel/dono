@@ -21,6 +21,19 @@ it("exposes actual usage and explains threshold boundaries without color alone",
     "Green through 60%; orange above 60% through 85%; red above 85%.",
   );
 });
+it("refers to a shared threshold legend instead of repeating it", () => {
+  const html = renderToStaticMarkup(
+    <CapacityMeter
+      label="Food"
+      inStock="3"
+      reserved="0"
+      limit="10"
+      rangesId="shared-ranges"
+    />,
+  );
+  expect(html).toContain('aria-describedby="shared-ranges"');
+  expect(html).not.toContain("Green through 60%");
+});
 it("announces paused intake without representing a positive progress value", () => {
   const html = renderToStaticMarkup(
     <CapacityMeter label="Shoes" inStock="0" reserved="0" limit="0" />,

@@ -1,4 +1,5 @@
 "use client";
+import { PostingControls } from "./posting-controls";
 import { useRef, useState } from "react";
 import { Button, Card, Chip, LinkButton } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -35,6 +36,7 @@ export function useDonationStatus(donation: Donation) {
 }
 export function DonationStatusChip({ donation }: { donation: Donation }) {
   const { status, effective, received } = useDonationStatus(donation);
+  if (donation.posting) return <Chip>Posted nearby</Chip>;
   if (status.loading) return <span className="meta muted">Checking…</span>;
   if (status.error)
     return <span className="meta muted">Status unavailable</span>;
@@ -66,10 +68,7 @@ export function donationNextStep(
     return { label: "Continue draft", href: `/donate?id=${donation.id}` };
   if (donation.status === "withdrawn") return null;
   if (donation.computed.active_offer_id)
-    return {
-      label: "Manage drop-off",
-      href: `/booking/${donation.computed.active_offer_id}`,
-    };
+    return { label: "View offer", href: `/donate?id=${donation.id}` };
   return { label: "Find an association", href: `/donate?id=${donation.id}` };
 }
 function decisionNote(events: OfferEvent[], offerId: string | undefined) {
@@ -194,7 +193,18 @@ export function DonationRow({
           </Chip>
         </div>
       )}
+      {donation.facts.description && (
+        <p className="item-description">{donation.facts.description}</p>
+      )}
 
+      {donation.posting && (
+        <PostingControls
+          donation={donation}
+          onChanged={async () => {
+            await refresh();
+          }}
+        />
+      )}
       {status.loading && <p role="status">Loading offer status…</p>}
       {status.error && (
         <p role="alert">

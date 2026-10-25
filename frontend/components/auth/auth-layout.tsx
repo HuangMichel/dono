@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 export function AuthLayout({ children }: { children: ReactNode }) {
@@ -6,7 +7,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
     <main id="main" className="auth-layout">
       <aside className="auth-intro">
         <Link href="/" className="logo">
-          dono
+          <Image src="/logo.svg" alt="Dono" width={96} height={32} />
         </Link>
         <h1>Give what associations actually need.</h1>
         <ol>

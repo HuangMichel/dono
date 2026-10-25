@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
-import { useApiPage } from "@/lib/api-hooks";
-import type { Offer } from "@/lib/api-contracts";
+import { useId, useState } from "react";
+import { useApiPage, useApiResource } from "@/lib/api-hooks";
+import type { Evidence as EvidenceDTO, Offer } from "@/lib/api-contracts";
 import { Button, Chip, Field, SelectField } from "@/components/ui";
 import {
   ConsoleTitle,
@@ -10,9 +10,20 @@ import {
   More,
 } from "@/components/association/shell";
 import { CATEGORY_LABELS, STATUS_LABELS } from "@/lib/labels";
-import { timeAgo } from "@/lib/ui-text";
+import {
+  enumLabel,
+  indicatorLabel,
+  indicatorTone,
+  rankIndicators,
+  safetyWarnings,
+  timeAgo,
+} from "@/lib/ui-text";
 import { AuthPhoto } from "@/components/association/auth-photo";
-import { Evidence, itemName } from "@/components/association/evidence";
+import {
+  Evidence,
+  itemName,
+  labelCorrectionApplies,
+} from "@/components/association/evidence";
 import { ExpiryChip, StateChip } from "@/components/association/status";
 import {
   CommandForm,
@@ -144,6 +155,7 @@ export default function Review() {
                     {o.created_at ? `, ${timeAgo(o.created_at)}` : ""}
                   </span>
                   <span className="restored-review-chips">
+                    <QueueRisk offerId={o.id} />
                     {o.computed.manual_review_required && (
                       <Chip variant="caution">Manual review required</Chip>
                     )}
@@ -188,6 +200,18 @@ export default function Review() {
     </div>
   );
 }
+function QueueRisk({ offerId }: { offerId: string }) {
+  const evidence = useApiResource<EvidenceDTO>(`/offers/${offerId}/evidence`);
+  const top = rankIndicators(
+    evidence.data?.analyses.flatMap((analysis) => analysis.indicators) ?? [],
+  ).find((i) => indicatorTone(i.key, i.level) !== "neutral");
+  if (!top) return null;
+  return (
+    <Chip variant={indicatorTone(top.key, top.level)}>
+      {indicatorLabel(top.key)} {Math.round((top.probability ?? 0) * 100)}%
+    </Chip>
+  );
+}
 function ReviewDetail({
   offer,
   refresh,
@@ -196,9 +220,27 @@ function ReviewDetail({
   refresh: () => Promise<void>;
 }) {
   const command = useCommand();
-  const [decision, setDecision] = useState("approved");
+  const hintId = useId();
+  const evidence = useApiResource<EvidenceDTO>(`/offers/${offer.id}/evidence`);
   const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const [reason, setReason] = useState("");
   const required = requiredReviewChecks(offer);
+  const analyses = evidence.data?.analyses ?? [];
+  const correctable = labelCorrectionApplies(offer, analyses);
+  const restriction = offer.computed.expiry.distribution_restriction;
+  const reasonRequired =
+    offer.computed.manual_review_required ||
+    offer.computed.expiry.required_date_checks.length > 0 ||
+    safetyWarnings(analyses.flatMap((analysis) => analysis.indicators)).length >
+      0 ||
+    (correctable && !!checks.date_label_correction_confirmed);
+  const blocker = restriction
+    ? `Approval is unavailable: ${enumLabel(restriction)}.`
+    : required.some((key) => !checks[key])
+      ? "Complete the checks above to approve."
+      : reasonRequired && !reason.trim()
+        ? "Add a reason to approve."
+        : null;
   return (
     <section className="console-review-detail restored-review-detail">
       <div className="restored-review-heading">
@@ -207,48 +249,39 @@ function ReviewDetail({
         </h2>
         <StateChip state={offer.computed.effective_state} />
       </div>
-      <Evidence offer={offer} />
+      <Evidence offer={offer} resource={evidence} />
       {offer.computed.effective_state === "pending_review" && (
         <div className="console-decision">
           <h2>Staff decision</h2>
           <CommandForm
-            submit="Record staff decision"
             successMessage="Staff decision recorded."
-            submitDisabled={
-              decision === "approved" && required.some((key) => !checks[key])
-            }
+            actions={[
+              { value: "refused", label: "Refuse", variant: "outline" },
+              {
+                value: "approved",
+                label: "Approve",
+                disabled: !!blocker,
+                describedBy: blocker ? hintId : undefined,
+              },
+            ]}
             onSubmit={async (data) => {
-              const decision = text(data, "decision");
-              if (
-                decision === "approved" &&
-                required.some((key) => !checks[key])
-              )
-                throw new Error(
-                  "Complete each required staff check before approval.",
-                );
+              const decision = text(data, "intent");
+              if (decision === "approved" && blocker) throw new Error(blocker);
               await command(`/offers/${offer.id}/decision`, {
                 expected_revision: offer.revision,
                 decision,
                 ...(decision === "approved"
                   ? { intake_checks: reviewChecks(checks) }
                   : {}),
-                ...(text(data, "reason")
-                  ? { reason: text(data, "reason") }
-                  : {}),
+                ...(reason.trim() ? { reason: reason.trim() } : {}),
               });
               await refresh();
             }}
           >
-            <SelectField
-              label="Staff decision"
-              name="decision"
-              value={decision}
-              onChange={(e) => setDecision(e.target.value)}
-            >
-              <option value="approved">Approve</option>
-              <option value="refused">Refuse</option>
-            </SelectField>
-            {[...required, "date_label_correction_confirmed"].map((key) => (
+            {[
+              ...required,
+              ...(correctable ? ["date_label_correction_confirmed"] : []),
+            ].map((key) => (
               <label className="check" key={key}>
                 <input
                   type="checkbox"
@@ -261,16 +294,28 @@ function ReviewDetail({
               </label>
             ))}
             <Field
-              label="Reason (required for manual review, date checks or label correction)"
+              label={
+                reasonRequired
+                  ? "Reason (required to approve)"
+                  : "Reason (optional)"
+              }
               name="reason"
               maxLength={240}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
             />
+            {blocker && (
+              <p id={hintId} className="console-meta">
+                {blocker}
+              </p>
+            )}
           </CommandForm>
         </div>
       )}
       {offer.computed.effective_state === "approved" && (
         <CommandForm
           submit="Cancel this offer"
+          submitVariant="danger"
           successMessage="Offer cancelled."
           onSubmit={async (data) => {
             await command(`/offers/${offer.id}/cancellation`, {

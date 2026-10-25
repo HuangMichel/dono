@@ -48,7 +48,7 @@ describe("local multi-photo lifecycle", () => {
     expect(f.pending.has("large.jpg")).toBe(false);
     expect(f.snapshot.photos.map((photo) => photo.name)).toEqual(["exact.jpg"]);
     expect(f.snapshot.errors).toEqual([
-      "large.jpg: Choose a photo up to 4 MiB.",
+      "large.jpg: Choose a photo up to 4 MB.",
     ]);
   });
   it("appends batches and reports each invalid file without losing good images", async () => {

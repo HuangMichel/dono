@@ -124,8 +124,15 @@ async def donor_items(db: Supabase, actor: Actor) -> list[dict[str, Any]]:
         row = wire_row(row)
         facts = Facts.model_validate(
             {
-                key: row.pop(key)
-                for key in ("category", "attributes", "quantity", "unit")
+                key: row.pop(key, None)
+                for key in (
+                    "name",
+                    "description",
+                    "category",
+                    "attributes",
+                    "quantity",
+                    "unit",
+                )
             }
             | {"expiry": date_map.get(row["id"], {})}
         )
@@ -141,6 +148,7 @@ async def donor_items(db: Supabase, actor: Actor) -> list[dict[str, Any]]:
         summary = summaries.get(row["id"], {})
         if not isinstance(summary, dict):
             raise DomainError("database_unavailable", 503)
+        row["posting"] = summary.pop("posting", None)
         row["computed"] = {
             "expiry": asdict(expiry),
             **summary,

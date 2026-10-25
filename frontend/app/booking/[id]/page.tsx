@@ -273,6 +273,14 @@ function BookingFlow({ id }: { id: string }) {
                         </dd>
                       </div>
                     )}
+                    {offer.data?.facts_snapshot.description && (
+                      <div>
+                        <dt>Description</dt>
+                        <dd className="item-description">
+                          {offer.data.facts_snapshot.description}
+                        </dd>
+                      </div>
+                    )}
                     <div>
                       <dt>When</dt>
                       <dd>
@@ -285,7 +293,7 @@ function BookingFlow({ id }: { id: string }) {
                       <dd>{booking.dropoff_address}</dd>
                     </div>
                   </dl>
-                  <p className="meta muted">Times are shown in Europe/Paris.</p>
+                  <p className="meta muted">Times are in Paris time.</p>
                   {booking.computed.effective_state === "booked" && (
                     <details className="booking-cancellation">
                       <summary>Cancel this appointment</summary>
@@ -358,7 +366,7 @@ function BookingFlow({ id }: { id: string }) {
                     <p role="status">Loading available times…</p>
                   )}
                   <fieldset className="stack-sm booking-slot-list">
-                    <legend>Choose a time, Europe/Paris</legend>
+                    <legend>Choose a time (Paris time)</legend>
                     {!slots.loading && !slots.error && !daySlots.length && (
                       <p className="meta muted" role="status">
                         {slots.hasMore

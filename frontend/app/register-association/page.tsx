@@ -21,7 +21,9 @@ export default function Register() {
           <p role="status">Loading account…</p>
         ) : !auth.user ? (
           <p>
-            <Link href="/login">Sign in to register an association</Link>
+            <Link className="text-link" href="/login">
+              Sign in to register an association
+            </Link>
           </p>
         ) : sent ? (
           <div role="status">

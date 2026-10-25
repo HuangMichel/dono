@@ -108,6 +108,7 @@ class Supabase:
                 "date_clarification_required": 409,
                 "validation_error": 422,
                 "ineligible_item": 422,
+                "association_location_required": 422,
                 "outside_reception_window": 422,
                 "invalid_qr": 422,
                 "photo_limit_reached": 422,

@@ -48,6 +48,25 @@ beforeEach(() => {
   notify.mockReset();
   apiPage.mockResolvedValue(page([offer]));
 });
+it("shows the authored description in expanded donation details", async () => {
+  const view = await render(
+    <DonationRow
+      compact
+      donation={{
+        ...donation,
+        facts: {
+          ...donation.facts,
+          name: "Basmati rice",
+          description: "Unopened bag.\nStored in a dry cupboard.",
+        },
+      }}
+      refresh={async () => {}}
+    />,
+  );
+  expect(view.container.querySelector(".item-description")?.textContent).toBe(
+    "Unopened bag.\nStored in a dry cupboard.",
+  );
+});
 it("loads a one-record summary while collapsed, then paginates history on demand", async () => {
   apiPage.mockImplementation(async (path: string) =>
     path.endsWith("/offers") ? page([offer], "earlier") : page([offer]),

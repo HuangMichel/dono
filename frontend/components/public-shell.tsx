@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Icon, LinkButton } from "@/components/ui";
+import { DemoWorkspace } from "@/components/auth/demo-workspace";
 export function PublicShell({
   children,
   donorBack,
@@ -20,7 +22,7 @@ export function PublicShell({
     <div className={donor ? "public-shell donor-shell" : "public-shell"}>
       <header className={`public-header ${landing ? "landing-header" : ""}`}>
         <Link href="/" className="logo">
-          dono
+          <Image src="/logo.svg" alt="Dono" width={96} height={32} />
         </Link>
         <nav aria-label="Main navigation">
           <Link
@@ -37,36 +39,33 @@ export function PublicShell({
               My donations
             </Link>
           )}
-          {memberships.some((member) => member.active) && (
+          {!landing && memberships.some((member) => member.active) && (
             <Link href="/association">Association</Link>
           )}
           <LinkButton variant="outline" href="/login">
             {user ? "Account" : "Sign in"}
           </LinkButton>
+          {landing && <DemoWorkspace />}
         </nav>
       </header>
       {donor && (
         <nav className="donor-topbar" aria-label="Donation navigation">
-          <Link
-            href={
-              donorBack?.href ??
-              (path === "/donations" ? "/donate" : "/donations")
-            }
-            aria-label={
-              donorBack?.label ??
-              (path === "/donations"
-                ? "Prepare a donation"
-                : "Back to my donations")
-            }
-            title={donorBack?.label}
-          >
-            <Icon
-              name={donorBack ? "arrow-left" : "chevron-left"}
-              size={donorBack ? 20 : 24}
-            />
-          </Link>
+          {donorBack || path !== "/donations" ? (
+            <Link
+              href={donorBack?.href ?? "/donations"}
+              aria-label={donorBack?.label ?? "Back to my donations"}
+              title={donorBack?.label}
+            >
+              <Icon
+                name={donorBack ? "arrow-left" : "chevron-left"}
+                size={donorBack ? 20 : 24}
+              />
+            </Link>
+          ) : (
+            <span aria-hidden="true" />
+          )}
           <Link href="/" className="logo">
-            dono
+            <Image src="/logo.svg" alt="Dono" width={96} height={32} />
           </Link>
         </nav>
       )}
