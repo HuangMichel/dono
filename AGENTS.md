@@ -28,7 +28,7 @@ Check the future `frontend/package.json` and `backend/pyproject.toml` before add
 frontend/              Next.js UI only
   app/                 donor, association and platform approval views
   lib/supabase/        public Auth/browser integration; no privileged keys
-backend/               FastAPI application (planned, not scaffolded)
+backend/               FastAPI application
   app/main.py          application/router composition
   app/api/             /api/v1 routers, authentication dependencies, error mapping
   app/services/        analysis, matching, review, booking and inventory orchestration
@@ -67,7 +67,7 @@ type AnalysisResult = {
 
 `profiles` · `associations` · `association_members` · `membership_events` · `capacity` · `needs` · `intake_quotas` · `donations` · `donation_offers` · `offer_events` · `donation_photos` · `private.photo_contents` · `donation_analysis` · `donation_indicators` · `expiry_info` · `donation_edits` · `slots` · `bookings` · `inventory_movements` · `redirect_points` · `private.api_requests`
 
-Donation is a reusable donor item; each recipient attempt lives in donation_offers and owns the human decision. At most one active attempt per item. Demand, storage, daily intake and appointment places are independent budgets with finite holds. The proposed working defaults and separate lifecycles are documented in `docs/domain-model.md`; no migrations have been implemented.
+Donation is a reusable donor item; each recipient attempt lives in donation_offers and owns the human decision. At most one active attempt per item. Demand, storage, daily intake and appointment places are independent budgets with finite holds. The proposed working defaults and separate lifecycles are documented in `docs/domain-model.md`; migrations and guarded commands live in `supabase/migrations/`.
 
 Roles: `donor`, `assoc_admin`, `assoc_staff`, `platform_admin`. Every table touching association data must have RLS scoped by `association_members`; donors only see their own donations. Personnel read their frozen offer/evidence scope, not later donor corrections. Admins alone configure/manage members; initial activation, revocation, last-admin protection and constrained orphan recovery require guarded audited commands.
 
@@ -79,7 +79,7 @@ Roles: `donor`, `assoc_admin`, `assoc_staff`, `platform_admin`. Every table touc
 
 ## Commands
 
-> Neither frontend/package.json nor backend/pyproject.toml exists. Every command below is planned and unverified; update once the respective tool configuration and scripts exist.
+> The backend is scaffolded. Run its commands from `backend/`. The frontend remains unimplemented; its commands are future instructions.
 
 ```sh
 # From the future frontend/ directory:
@@ -87,7 +87,7 @@ pnpm dev
 pnpm lint
 pnpm typecheck
 pnpm test
-# From the future backend/ directory, after uv/pyproject setup:
+# From backend/, after uv sync --locked:
 uv run uvicorn app.main:app --reload
 uv run ruff check .
 uv run mypy app
@@ -102,7 +102,7 @@ node .agents/skills/archify/bin/archify.mjs finalize architecture docs/architect
 
 ## Verification before finishing a task
 
-1. Once scaffolded, frontend lint/typecheck/tests and backend Ruff/mypy/pytest pass; neither toolchain currently exists.
+1. Backend Ruff/mypy/pytest must pass. Frontend checks apply only after a frontend exists; see docs/readiness.md for actual evidence.
 2. Unit tests cover `backend/app/domain/expiry.py` (boundaries: today, expired, unreadable date) and `backend/app/domain/matching.py` (capacity full, season, distance ordering).
 3. Analysis changes are checked against the photo test set (`tests/fixtures/photos/`, 25–35 images including medicines and para products).
 4. No UI path shows an AI-made approve/refuse decision.

@@ -38,4 +38,13 @@ __pycache__/
 .venv/
 
 
-# Keep Archify sources/current validation evidence eligible for version control.
+# Existing broad diagram JSON ignore rule retained; tracked sources remain tracked.
+# Review new source/evidence files explicitly before staging.
+/docs/architecture/**/*.json
+# Backend tooling and coverage artifacts.
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/

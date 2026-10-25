@@ -1,6 +1,6 @@
 # Dono REST API contract
 
-Status: **corrected design, not implemented**. Python **FastAPI** owns `/api/v1` business routes; Next.js is the frontend. No Route Handler duplicates, migrations, application files or workers are generated here. [AGENTS.md](../AGENTS.md), [working domain defaults](domain-model.md), [requirements](requirements.md), [use cases](features.md), [schema/RLS](databases.md) and [diagrams](architecture.md) form the same design.
+Status: **FastAPI backend implemented**; all 64 catalog method/path combinations have routes and explicit response models. Tests and remaining live integration gates are recorded in [readiness](readiness.md). Python **FastAPI** owns `/api/v1` business routes; Next.js is the frontend. There are no Next.js business Route Handlers or background workers. See [backend](../backend/app/main.py) and [migrations](../supabase/migrations/). [AGENTS.md](../AGENTS.md), [working domain defaults](domain-model.md), [requirements](requirements.md), [use cases](features.md), [schema/RLS](databases.md) and [diagrams](architecture.md) form the same design.
 
 ## Authentication, permissions and HTTP conventions
 
@@ -111,7 +111,7 @@ type ExpiryBucket = "expired" | "today" | "lt_7" | "lt_30" | "lt_90" | "at_90" |
 type ExpiryUnknownReason = "missing_date" | "unreadable_date" | "ambiguous_date" | "conflicting_dates" |
   "invalid_date" | "category_date_conflict" | "incomplete_strict_date" | "date_type_unknown" | "opening_state_unknown" |
   "opening_date_missing" | "invalid_opening_date" | "pao_duration_missing" | "opened_food";
-type DateReviewChecks = {date_review_ack?: true; ddm_passed_ack?: true};
+type DateReviewChecks = {date_label_correction_confirmed?: true; date_review_ack?: true; ddm_passed_ack?: true};
 type ExpiryView = {as_of: Instant; timezone: string; reference_date: DateOnly;
   effective_expiry_date: DateOnly | null; days_left: number | null; expired: boolean | null;
   bucket: ExpiryBucket; policy_version: "expiry-v1"; unknown_reason: ExpiryUnknownReason | null;
@@ -412,3 +412,8 @@ For a reliable DDM date 2027-01-23, reference date 2026-10-25 is exactly 90 days
 ```
 
 A source with PAO but unknown opening state instead has bucket=unknown, unknown_reason=opening_state_unknown, null effective date/days/expired and date_clarification_required; it is not a long-life estimate. Passed DDM requires ddm_passed_ack=true plus human reason at the relevant approval/reception/distribution command, while confirmed passed DLC cannot commit even with that checkbox.
+
+
+## Audited false date-label correction
+
+`DateReviewChecks` additionally accepts `date_label_correction_confirmed?: true` (and therefore `IntakeChecks` does too). This assertion is for an incorrectly detected original strict label, requires a nonempty `reason` and frozen human-confirmed source facts. Approval records the assertion, staff actor/reason and reviewed analysis IDs in the command audit context. Original AI extraction/indicators remain unchanged. It never bypasses expired/unresolved strict dates or PAO in corrected source facts. Booking may reuse the reviewed correction only with the identical completed evidence set; newly completed evidence invalidates it. Reception/distribution require a fresh assertion/reason. Invalid clarification returns `date_clarification_required`; passed strict dates return `intake_date_restriction`. Gallery indicator `source` includes `analysis_id` and original `category` alongside provider/model so category mismatch stays attributable. FR-011, FR-025, FR-038; donation_edits, donation_analysis, donation_offers, private.api_requests.

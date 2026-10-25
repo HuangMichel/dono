@@ -1,6 +1,6 @@
 # Dono database design
 
-Status: **corrected domain design; no SQL, migrations, policies or backend objects implemented**. [AGENTS.md](../AGENTS.md) is authoritative. Read [domain-model.md](domain-model.md) for the complete working defaults and state/accounting rules, [requirements](requirements.md), [features](features.md), [architecture](architecture.md) and the [FastAPI contract](api.md).
+Status: **schema, RLS and guarded commands implemented** in [migrations](../supabase/migrations/); executed PostgreSQL checks and deployment limits are in [readiness](readiness.md). [AGENTS.md](../AGENTS.md) is authoritative. Read [domain-model.md](domain-model.md) for the complete working defaults and state/accounting rules, [requirements](requirements.md), [features](features.md), [architecture](architecture.md) and the [FastAPI contract](api.md).
 
 The [interactive ERD](architecture/database-erd.html) and [source](architecture/database-erd.json) show all **21 application tables, 225 columns and 45 FK roles**, plus a managed auth.users referenced-key stub. PK/UK badges indicate participation in keys, not individual uniqueness of every component. JSON/array snapshot references are command-validated and are not falsely drawn as SQL FKs.
 
@@ -31,7 +31,7 @@ Operational lease deadlines and snapshotted event/source facts are persisted; pr
 
 ## Enumerated types
 
-Closed vocabularies use **named PostgreSQL ENUM objects**, referenced by table columns; the dictionary repeats their labels at every affected column. They are definitions on paper, not CREATE TYPE statements executed against a database. Shared category/unit types prevent mismatched table contracts; Python/Pydantic enums and frontend wire unions must agree. Enum order never encodes matching rank or allowed lifecycle transitions. [PostgreSQL enums](https://www.postgresql.org/docs/current/datatype-enum.html)
+Closed vocabularies use **named PostgreSQL ENUM objects**, referenced by table columns; the dictionary repeats their labels at every affected column. They are implemented by CREATE TYPE statements in the schema migration. Shared category/unit types prevent mismatched table contracts; Python/Pydantic enums and frontend wire unions must agree. Enum order never encodes matching rank or allowed lifecycle transitions. [PostgreSQL enums](https://www.postgresql.org/docs/current/datatype-enum.html)
 
 | SQL enum type | Labels |
 |---|---|
@@ -633,8 +633,18 @@ Matching performs deterministic need/season/storage plus a future intake quota/s
 
 ## Verification and external documentation
 
-Before migrations, review exact definitions/grants/functions and remaining upload/retention/deployment decisions and the specified analysis-v1/expiry-v1 contracts. Test refusal→re-offer same item; double-submit exclusivity; expired stale-row replacement without a scheduler; independent demand/storage/quota failures; last-place quota/slot races; simultaneous cancellation/receipt/expiry; no duplicate/full-only stock effects; pending bootstrap, grant/last-admin/transfer/revocation/recovery; direct Data API/RPC/private-photo isolation after re-offering; and delayed first analysis after correction/fallback offering. Application toolchains and 25–35-photo fixtures do not exist, so none of these runtime tests was executed.
+Before migrations, review exact definitions/grants/functions and remaining upload/retention/deployment decisions and the specified analysis-v1/expiry-v1 contracts. Test refusal→re-offer same item; double-submit exclusivity; expired stale-row replacement without a scheduler; independent demand/storage/quota failures; last-place quota/slot races; simultaneous cancellation/receipt/expiry; no duplicate/full-only stock effects; pending bootstrap, grant/last-admin/transfer/revocation/recovery; direct Data API/RPC/private-photo isolation after re-offering; and delayed first analysis after correction/fallback offering. The backend toolchain and PostgreSQL/RLS tests now exist; see readiness.md for executed evidence. The 25–35-photo evaluation set remains a separate pending gate.
 
 Supabase's current [changelog](https://supabase.com/changelog?types=breaking-change), [RLS guidance](https://supabase.com/docs/guides/database/postgres/row-level-security) and [Google OAuth guide](https://supabase.com/docs/guides/auth/social-sign-in/auth-google) inform this design. Explicit grants, enabled RLS, private helpers and current membership checks remain essential. No remote project was modified.
 
 Current diagram validation and any dense-layout warnings are linked in [architecture.md](architecture.md#validation-evidence). Those checks validate an artifact, not these database policies or transactions.
+
+## Implementation boundary
+
+Migrations use the imperative Supabase CLI workflow; their versioned filenames were generated with `supabase migration new`. They create all 21 application tables and 25 enum types, scoped read policies, immutable original-evidence/history triggers, independent deadline-aware budget aggregates and service-only command RPCs. No hosted project has been changed.
+
+`dono_command_owner` is a NOLOGIN role owning only Dono application objects, with SELECT(id) on managed auth.users. It receives no managed Auth mutation privileges. RLS is enabled for ordinary readers; table-owner command execution deliberately bypasses row filtering and repeats actor/tenant/state checks. Ordinary authenticated clients have SELECT policies and no DML. The service role has command execution rather than direct application-table DML. Function search paths are pinned; future functions/tables do not automatically receive client privileges.
+
+The applicant exception for association reads is limited to pending registration; after approval, current membership or platform verification capability is required. This resolves the broader applicant wording in the earlier table dictionary in favor of the API's G/M/P scopes. Raw donor facts remain owner-only.
+
+The approved upload policy is JPEG/PNG/WebP, 5 MiB decoded per image, three images per donation and 20 million pixels. The analysis lease is 120 elapsed seconds and provider timeout defaults to 60 seconds. Changing database-bound limits requires a matching migration. Operational seven-day booking horizons use 168 elapsed hours, including DST transitions. Item expiry is still computed only in Python at read time.

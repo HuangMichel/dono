@@ -1,6 +1,6 @@
 # Dono requirements
 
-Status: documentation baseline for a ≤ 40-hour hackathon MVP. No application behavior is implemented or verified by this document.
+Status: binding specification for a ≤40-hour MVP. Backend implementation and executed checks are recorded separately in [readiness](readiness.md); this document alone is not verification evidence.
 
 ## Authority and evidence
 
@@ -14,7 +14,7 @@ Read this document with the [feature specification and traceability matrix](feat
 | [Rendered architecture](architecture/dono-architecture.html) | Planned donor/dashboard/platform → FastAPI → analysis, geocoding and Supabase flows. |
 | Architecture receipts in `docs/architecture/` | Existing generation/browser-check evidence for the diagram only; not evidence that the application exists or meets requirements. |
 | Current domain review | Six structural corrections: reusable offers, independent budgets, finite reservations, separate lifecycles, secure memberships and delayed evidence/corrections. |
-| [Domain model](domain-model.md) | Working DEC defaults, under AGENTS authority; no application behavior claimed. |
+| [Domain model](domain-model.md) | Working DEC defaults under AGENTS authority; backend evidence in readiness.md. |
 
 The updated architecture includes platform administration and geocoding as explicit components. [Database](databases.md) and [API](api.md) specifications refine that planned design; the [domain working defaults](domain-model.md#working-defaults) now resolve the six reviewed structural gaps on paper. Unrelated product ambiguities remain explicit below. Installed Supabase skill guidance informs the access-control and storage safeguards; it does not determine unresolved product permissions.
 

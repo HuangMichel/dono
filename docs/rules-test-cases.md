@@ -1,6 +1,6 @@
 # Analysis and expiry acceptance fixtures
 
-Status: **future test specification only**. No application, pytest suite or real photo test set is implemented. IDs below describe expected behavior under [analysis-v1](analysis-rules.md) and [expiry-v1](expiry-rules.md). Use injected provider payloads/reference instants for deterministic tests; live model scores are not exact test oracles.
+Status: **acceptance scenario specification**. A backend pytest suite now exists; [readiness](readiness.md) records executed tests. The real photo evaluation set remains absent, and scenario IDs here are not a claim that every scenario has a dedicated passing test. IDs below describe expected behavior under [analysis-v1](analysis-rules.md) and [expiry-v1](expiry-rules.md). Use injected provider payloads/reference instants for deterministic tests; live model scores are not exact test oracles.
 
 ## Analysis schema and provenance tests
 
@@ -77,3 +77,8 @@ Prepare **30 unique consented/synthetic images**, within the existing 25–35-im
 Record category/visible-source facts, observable indicators, uncertainty and expected warning behavior with human annotations. Do not use approve/refuse as a ground-truth indicator label; do not require a live model to return an exact invented probability. Use fixed synthetic payloads for threshold/schema/provenance tests and separately inspect real provider outputs for honest uncertainty and false negatives/positives. No empirical accuracy/calibration target is claimed before that evaluation.
 
 Future tools remain backend pytest and frontend contract/UI tests after scaffolding, with real Postgres/RLS integration for immutable originals and guarded command races. This document does not install a runner or claim these tests passed.
+
+
+## Additional implementation regression
+
+EX-T034: false strict-label correction requires `date_label_correction_confirmed`, nonempty reason and human-confirmed snapshot facts; missing confirmation fails. A corrected current expired/unresolved strict date still fails. Booking reuse fails when completed evidence IDs change. Original AI rows remain immutable. Covered by backend rule-edge and database history tests; hosted/provider evaluation remains separate.
