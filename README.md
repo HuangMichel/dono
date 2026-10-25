@@ -2,7 +2,7 @@
 
 **Scan before you donate.** Dono helps individuals offer usable goods to associations that need them and have space. AI supplies indicators; association personnel make the donation decision.
 
-This repository now includes a FastAPI backend, Supabase PostgreSQL migrations/RLS and OpenAI Structured Outputs integration. All 64 documented REST method/path combinations are registered. The Next.js frontend is not implemented. The total product scope remains a **40-hour hackathon MVP**; [readiness](docs/readiness.md) distinguishes executed backend checks from remaining live-provider and photo-evaluation gates.
+This repository now includes a FastAPI backend, Supabase PostgreSQL migrations/RLS and OpenAI Structured Outputs integration. All 64 documented REST method/path combinations are registered. The Next.js frontend in [frontend/](frontend/) is a browser-local demo and is not connected to the backend yet. The merge preserves both implementations; [contract differences](docs/requirements.md#backend-integration-differences) need resolution before API wiring. The total product scope remains a **40-hour hackathon MVP**; [readiness](docs/readiness.md) distinguishes executed backend checks from remaining live-provider and photo-evaluation gates.
 
 ## Product and scope
 
@@ -48,7 +48,7 @@ Human facts never depend on successful AI: valid manual facts/photos may proceed
 | Optional indicators | TypeSafe Jev / hybrid behind `ANALYSIS_PROVIDER`; Jev does no OCR/date/number extraction. |
 | Geocoding | Government BAN address data through IGN Géoplateforme, `https://data.geopf.fr/geocodage/`. Backend geocoding only; no routing service. |
 
-Backend dependencies are pinned in backend/pyproject.toml and backend/uv.lock with a 2026-10-18 release cutoff. Frontend dependencies remain unselected; prefer releases at least seven days old.
+Backend dependencies are pinned in backend/pyproject.toml and backend/uv.lock with a 2026-10-18 release cutoff. Frontend dependencies are pinned in frontend/package.json and frontend/pnpm-lock.yaml. Check both manifests before adding dependencies; prefer releases at least seven days old.
 
 ## Documentation
 
@@ -93,9 +93,15 @@ Closed vocabularies such as roles, unit, category and state use named PostgreSQL
 
 The API uses `/api/v1/account/profile` and `/api/v1/account/memberships` for the signed-in user. All business routes belong to FastAPI; Next.js renders the frontend.
 
-## Frontend status
+## Run the frontend demo
 
-The Next.js frontend is planned; there is no frontend package or runnable pnpm command yet. Backend setup and commands follow below. Hosted Supabase/Auth configuration and live model evaluation remain prerequisites described in [setup](docs/setup.md).
+```sh
+cd frontend
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open `http://localhost:3000` and choose a demo persona on `/login`. Data and actions stay in browser-local storage. No service credentials are required for the demo. See [frontend setup and limits](frontend/README.md). The backend runs separately; starting both servers does not connect them.
 
 ## Run the backend
 

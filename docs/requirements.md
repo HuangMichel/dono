@@ -22,6 +22,39 @@ Requirement IDs are stable: `BR` = binding business rule, `FR` = functional requ
 
 Priority: **M** = required MVP baseline; **S1–S4** = optional MVP stretch, cut in that order; **P** = post-MVP. **Derived** means a necessary safeguard or explicit documentation recommendation, rather than a behavior already specified in the sources. An open decision remains open even when its surrounding capability is M.
 
+## Current frontend decisions — 2026-10-25
+
+The committed frontend implementation is a browser-local demo, separate from the implemented backend. The user's latest frontend requests override earlier mockup controls and the FEFO presentation requirement for this demo:
+
+- Photograph an item supports several views of the same item, with an optional separate label close-up. The demo allows six item photos plus one label, with JPEG/PNG/WebP validation and a 5 MB limit per file. The implemented backend permits three photos per donation; local preview behavior does not change that limit.
+- Association pages omit duplicate Category dropdowns under More filters and FEFO/distribute-first controls and panels. Main category controls, source dates, indicators and normal stock distribution remain available.
+- Capacity displays show the computed percentage of stock plus reservations against the limit. The display is green through 60%, orange above 60% through 85%, and red above 85%. A zero limit remains a neutral paused state. Selected table rows use a visible semantic background and an aligned checkmark.
+- Required fields show red styling and a nearby error after interaction or a failed submission. Registration still accepts RNA alone, SIRET alone, or both. A supplied SIRET must pass local format and checksum validation; this does not verify registry existence or grant approval. Step navigation sits in a separate action area below the content.
+- Platform approval uses the selected association for the row highlight, details and approval action. Clearing selection or changing status filters removes the target. Registration lets visitors choose a donor demo persona at Review while keeping their entered fields on the page. Company drafts require a product description with non-space characters before continuing to photos.
+- Failed browser storage writes retain current session state and show a persistent warning with Retry saving. Recovery saves the latest full session without repeating actions. A startup read failure protects the unread browser copy from ordinary writes; explicit retry replaces it, as explained in the warning. Offer and registration confirmations distinguish session-only changes from saved changes.
+- When a valid analyzed draft has no eligible association match, its donor can choose Post offer. The item appears as Posted in My donations and as Available in the association's Offers nearby view. Only explicitly posted items appear there. Donor identity and private location stay out of the listing. Medicine and chilled-food warnings still prevent posting. Posting assigns no association or need and creates no staff decision, reservation, booking, QR or stock movement. The donor can withdraw the post and edit the preserved draft. Claiming remains undefined and unavailable.
+- Staff can refuse a booked donation before receipt. A required reason and explicit confirmation record the human decision. The donation becomes terminally refused; offered quantity, original AI evidence, original approval attribution and booking history remain. No receipt or stock movement is created. The demo releases the provisional need/capacity hold and slot allocation. Donors see the reason; a refused booking cannot show an active QR, be received or be rebooked.
+
+Reception refusal and unmatched-offer posting are demo-only extensions with no corresponding backend operations. Backend reservation, cancellation and no-show behavior is defined in [domain-model.md](domain-model.md). The merge preserves both branch behaviors and does not resolve the differences below.
+
+## Backend integration differences
+
+These are source differences, not new product decisions. Retain the frontend decisions and backend implementation until their intended behavior is reconciled before wiring the affected flows.
+
+| Area | Committed frontend | Implemented backend / integration work |
+|---|---|---|
+| Identity and persistence | Demo personas and browser-local state. | Supabase bearer identity, profile bootstrap and membership checks. Add an authenticated API client. |
+| Item and offer identity | `Donation` combines item facts, recipient and decision/status. | Separate reusable donation, recipient offer, booking and inventory lifecycles. Map DTOs and actions explicitly. |
+| Photos | Six local item views plus one label. | Three uploaded images total, 5 MiB each and 20 megapixels; authenticated content routes and private base64 persistence. |
+| Reception and stock | Quantity correction at receipt and partial distribution. | Full-lot reception and distribution. Reconcile quantity behavior before connecting these actions. |
+| Posting and reception refusal | Explicit unmatched posts and terminal refusal before receipt. | No matching publication or reception-refusal endpoint. Do not map either to unrelated commands. |
+| Company attribution | Existing donor acts for a named company; no shared company account. | Closed donation DTOs have no `donor_kind` or `company_name`. Preserve AMB-022 as an integration gap. |
+| Need criteria | Freeze category, unit, attributes and seasons after commitments/receipts. | Backend permits criteria changes while preserving frozen prior offers, including season changes. Reconcile AMB-024 before exposing edits. |
+| Packaged goods and PAO | Unopened food/para; PAO is label evidence only. | Backend represents opening facts and computes PAO constraints. Resolve the policy difference before mapping these fields. |
+| Expiry presentation | FEFO panels removed for the demo. | Expiry buckets and FEFO reads remain implemented and required by the backend baseline. Resolve the connected UI scope. |
+
+One donation still represents a single homogeneous product lot. Neither branch's tests establish the connected donor-to-staff journey.
+
 ## Product scope
 
 The six-issue domain correction uses [explicit working defaults](domain-model.md#working-defaults), not indefinite deferral of offer/reservation/permission mechanisms. Numeric durations are proposals for this MVP, changeable through a consistent design revision. Original BR IDs and optional cut order are preserved.
@@ -226,6 +259,11 @@ Entries marked working profile are now concretely defined by the proposed DEC de
 | AMB-019 | No supported device matrix, accessibility conformance target, model/cost budget, response-time target or uptime target is specified. Do not invent an SLA or accuracy claim. | Performance planning / deployment | Product + technical owner |
 | AMB-020 | The pre-review README labeled advanced metrics and formal impact reporting MVP. The reviewed README now aligns with proposed post-MVP deferral (FR-030); confirm if a simple measured counter must instead be included. This wording alignment does not resolve the product choice. No estimated factors are authorized. | Final MVP scope review | Product owner |
 | AMB-021 | **Service selection resolved:** user chooses the government BAN service; use the official IGN Géoplateforme address geocoder at https://data.geopf.fr/geocodage/. AGENTS and diagrams now name this explicitly. Verify adapter parameters, coordinate ordering, limits and failure behavior during integration. DEC-009 defines distance ordering/no radius and request-scoped origin; retention/privacy notice remains AMB-015. Evidence is linked in setup.md. | Adapter integration verification remains | Technical owner |
+| AMB-022 | **Company scope resolved:** existing donor workflow with company-name attribution, identical food/packaging restrictions, no company verification, shared accounts, cold-chain handling or tax receipts. The frontend demo now permits explicit unmatched posts for association browsing. Production publication, public visitor access and association claims remain unresolved. | Company implementation; production publication and claim contract | Product + technical owner |
+| AMB-023 | **Donation grouping resolved:** one product type per donation; identical units share category, matching attributes and expiry facts. Split mixed groups before offering. | Capture/validation implementation | Technical owner |
+| AMB-024 | **Need editing resolved:** freeze category/unit/attributes/seasons once commitments or receipts reference the need. Close it and create another for changed criteria. Old fulfillment never counts for the new need. | Need guards and concurrent-edit tests | Technical owner |
+
+AMB-022–AMB-024 retain frontend decisions from before the merge. AMB-022 and AMB-024 have the backend gaps described above; their presence does not claim backend parity. AMB-023 describes the shared homogeneous-lot requirement.
 
 ## Forty-hour scope and verification
 
@@ -233,4 +271,4 @@ The [feature priorities and illustrative 40-hour allocation](features.md#deliver
 
 For application delivery, review every M requirement against its linked use-case criteria, plus the NFR verification rows. Test unresolved edge cases only after their policy is agreed; do not encode a guessed policy as a passing test. Optional features cannot compensate for a missing review queue, QR reception, indicators, expiry buckets/distribute-first list or auth/RLS.
 
-For this documentation task, check unique IDs, feature-to-requirement coverage, cross-document links and contradictions against AGENTS.md. Application test commands and photo-set evaluation cannot run until the application and fixtures exist.
+For this documentation task, check unique IDs, feature-to-requirement coverage, cross-document links and contradictions against AGENTS.md. Application checks now exist for both directories. Live photo-set evaluation and the connected frontend journey remain unverified; see [readiness](readiness.md).

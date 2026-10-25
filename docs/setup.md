@@ -1,8 +1,14 @@
-# Backend setup
+# Development setup
 
-FastAPI is implemented in `backend/`; Next.js is a future frontend. The backend uses Supabase Auth and PostgreSQL, OpenAI Responses Structured Outputs and government BAN through IGN. Photo bytes are canonical base64 in `private.photo_contents`; Supabase Storage is disabled. No hosted resources were provisioned by this implementation.
+FastAPI is implemented in `backend/`; the browser-local Next.js demo is in `frontend/`. They are not connected yet. The backend uses Supabase Auth and PostgreSQL, OpenAI Responses Structured Outputs and government BAN through IGN. Photo bytes are canonical base64 in `private.photo_contents`; Supabase Storage is disabled. No hosted resources were provisioned by this implementation.
 
-## Install and run
+## Frontend demo
+
+From `frontend/`, run `pnpm install --frozen-lockfile` and `pnpm dev`. Open `http://localhost:3000`. No service credentials are required for demo personas and browser-local data. Run `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build` to check the frontend. See [frontend/README.md](../frontend/README.md) for demo limits.
+
+Starting the backend does not replace demo persistence. Reconcile the [integration differences](requirements.md#backend-integration-differences) before adding authenticated API calls.
+
+## Install and run the backend
 
 Install Python 3.12 and uv. From the repository root:
 
@@ -12,13 +18,13 @@ uv sync --locked
 uv run uvicorn app.main:app --reload
 ```
 
-The committed lockfile selects dependencies published before 2026-10-18. FastAPI exposes `/docs` and `/openapi.json`; business endpoints are under `/api/v1`. Startup works without provider credentials, but protected operations then return explicit configuration/provider errors. It does not fabricate an authenticated user or AI analysis. There is no frontend or working pnpm application command.
+The committed lockfile selects dependencies published before 2026-10-18. FastAPI exposes `/docs` and `/openapi.json`; business endpoints are under `/api/v1`. Startup works without provider credentials, but protected operations then return explicit configuration/provider errors. It does not fabricate an authenticated user or AI analysis. The frontend demo runs independently and does not use these API routes.
 
 Select the backend entries from [.env.example](../.env.example) into an ignored `backend/.env`, or set deployment environment variables. All template values are blank placeholders. Do not overwrite an existing environment file or put backend secrets in public settings.
 
 | Variable | Purpose |
 |---|---|
-| `SUPABASE_URL` | Chosen Supabase project URL, shared with future frontend Auth. |
+| `SUPABASE_URL` | Chosen Supabase project URL, to be shared with frontend Auth when wired. |
 | `SUPABASE_PUBLISHABLE_KEY` | Public app key accompanying verified user JWTs and scoped reads. |
 | `SUPABASE_SECRET_KEY` | FastAPI-only credential for restricted database commands. No legacy JWT-key fallback is implemented. |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | Server credential and explicitly selected model supporting vision and Structured Outputs. No model was selected or live-tested in this work. |
@@ -54,4 +60,4 @@ uv run pytest -q --cov=app --cov-report=term-missing
 
 Tests launch disposable embedded PostgreSQL using `pgserver`, create test-only Auth primitives and apply every migration. They require local process/socket permissions, not Docker or live credentials. Auth HTTP, the Supabase HTTP gateway and OpenAI responses are simulated; SQL constraints, commands, grants, RLS and concurrent connections execute in real PostgreSQL. Only synthetic tiny images are included. Tests must never use a production database.
 
-Formatting is configured with Black; Ruff and strict mypy are the required static checks. Test evidence and remaining gates are recorded in [readiness](readiness.md) and [handoff](handoff.md). No claim is made that future frontend commands, hosted OAuth, target-mobile camera/QR rendering, the full Supabase stack or live model evaluation have passed.
+Formatting is configured with Black; Ruff and strict mypy are the required static checks. Test evidence and remaining gates are recorded in [readiness](readiness.md) and [handoff](handoff.md). No claim is made that connected frontend behavior, hosted OAuth, target-mobile camera/QR rendering, the full Supabase stack or live model evaluation have passed.

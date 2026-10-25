@@ -1,0 +1,83 @@
+.shared-calendar {
+  min-width: 0;
+  width: 100%;
+}
+.shared-calendar-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.shared-calendar-header h2 {
+  margin: 0;
+}
+.shared-calendar-actions {
+  display: flex;
+  gap: 8px;
+}
+.shared-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.shared-calendar-weekday {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 0;
+}
+.shared-calendar-day {
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--text);
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.shared-calendar-day:hover {
+  background: var(--subtle);
+}
+.shared-calendar-day[aria-current="date"] {
+  border-color: var(--primary);
+}
+.shared-calendar-day[aria-pressed="true"] {
+  color: var(--success-text);
+  background: var(--success-bg);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+.shared-calendar-detail {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-height: 7px;
+}
+.shared-calendar-help {
+  margin-top: 12px;
+}
+.booking-layout {
+  align-items: start;
+}
+.booking-layout > .card {
+  min-width: 0;
+}
+.booking-slot-list {
+  padding: 0;
+  border: 0;
+  margin: 0;
+  min-width: 0;
+}
+.booking-slot-list legend {
+  margin-bottom: 12px;
+  font-weight: 600;
+}

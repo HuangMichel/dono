@@ -6,6 +6,16 @@ Status: proposed delivery specification for a ≤40-hour hackathon MVP. The [req
 
 ## Feature catalog
 
+For the current frontend demo, the [2026-10-25 decisions](requirements.md#current-frontend-decisions--2026-10-25) add multiple local photo previews, staff refusal before receipt and explicit posting when no association matches. They also remove duplicate category filters and FEFO panels. These override the corresponding presentation and lifecycle baseline below only within the frontend demo. The frontend demo does not call backend operations. See the [integration differences](requirements.md#backend-integration-differences).
+
+Unmatched posting has these demo acceptance criteria:
+
+- A donor can post their valid analyzed draft when there are no eligible matches. Existing medicine and chilled-food warnings block posting.
+- Posting once or reloading produces one available listing. A stale or unauthorized command cannot publish or withdraw another donor's item.
+- My donations distinguishes Posted from Drafts and Waiting for review. Offers nearby shows only explicitly posted items to the association persona, without private donor details or invented distances.
+- A post assigns no association or need and has no decision, reservation, booking, QR or stock effect. Existing addressed offers keep their staff-review flow.
+- The donor can withdraw the post. The listing disappears and the preserved draft becomes editable. Claiming and automatic assignment remain unavailable.
+
 | ID | Feature | Priority | Minimum deliverable / boundary |
 |---|---|---|---|
 | FEAT-001 | Identity, roles and association approval | M | Donor/staff isolation and platform approval of RNA/SIRET association registrations. No general platform access to donation decisions. |
@@ -411,9 +421,9 @@ Post-MVP contains advanced reporting/impact and discovery/verification/partnersh
 | Lifecycle and concurrency | Staff-only decision; one active attempt; deadline equality without jobs; cancellation/re-offer; last-quota/slot contention; cross-attempt receipt/distribution uniqueness; stale JWT revocation/last-admin and delayed analysis races | NFR-004; UC-007/UC-008/UC-010–UC-012 |
 | Full flow | Own item → corrected facts → match → offer → staff review → booking/QR → staff reception → distribution, with in-app donor status and FEFO/gallery | All M features |
 | Product language and exclusions | Every AI view uses indicator wording; human decision identified; no transport, routing, email or messaging paths | BR-001, BR-006 |
-| Repository checks | Frontend pnpm lint/typecheck/test and backend Ruff/mypy/pytest pass once scaffolded; photo fixtures are present and exercised | NFR-009 |
+| Repository checks | Frontend pnpm lint/typecheck/test/build and backend Ruff/mypy/pytest pass for changed components; photo fixtures are present and exercised | NFR-009 |
 
-These acceptance specifications now have backend implementation and automated evidence in [readiness](readiness.md). There is no frontend `package.json` or real photo evaluation set, so frontend commands and model/photo evaluation remain delivery gates. Documentation review checks that IDs are unique, all requirements are traceable, links resolve, priorities respect AGENTS.md and ambiguities remain explicit.
+These acceptance specifications have backend implementation and automated evidence in [readiness](readiness.md). The frontend demo and its package scripts now exist. Connected API flows and live model/photo evaluation remain delivery gates. Documentation review checks that IDs are unique, all requirements are traceable, links resolve, priorities respect AGENTS.md and ambiguities remain explicit.
 
 ## Two-blocker contract revision
 

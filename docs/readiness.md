@@ -1,6 +1,6 @@
-# Backend readiness report
+# Integration readiness report
 
-FastAPI, PostgreSQL migrations/RLS and OpenAI integration are implemented. **96 tests pass; combined statement/branch coverage is 91%.** This is local backend evidence, not a claim of production readiness or measured AI accuracy. No frontend or hosted resources were created.
+FastAPI, PostgreSQL migrations/RLS and OpenAI integration are implemented. **96 tests pass; combined statement/branch coverage is 91%.** This is local backend evidence, not a claim of production readiness or measured AI accuracy. That backend revision did not include a frontend. This integration branch now also contains the committed browser-local frontend demo; no hosted resources were created.
 
 ## Delivered
 
@@ -9,7 +9,7 @@ FastAPI, PostgreSQL migrations/RLS and OpenAI integration are implemented. **96 
 - Backend tests cover deterministic expiry/matching, five analysis schemas, upload validation, failures/manual fallback, real PostgreSQL constraints/RLS/commands, lifecycle/history, membership recovery/revocation, late evidence privacy and concurrent capacity/booking reservations.
 - [setup](setup.md), [handoff](handoff.md), [README](../README.md), AGENTS implementation commands and affected contract/status documentation updated. `.env.example` remains blank placeholders; local environments/caches/build output are ignored. Existing diagram sources, HTML and validation receipts were preserved; all diagrams remain linked in [architecture](architecture.md).
 
-## Executed checks
+## Backend evidence inherited from dev
 
 From `backend/`, on 2026-10-25:
 
@@ -41,6 +41,10 @@ SQL tests start disposable PostgreSQL and apply the actual migration files. Test
 1. Apply migrations to a chosen development Supabase project and verify managed ownership/grants, actual Data API/RPC restrictions, Google OAuth/redirects and current security/performance advisors. No remote provisioning or full Docker-stack run was performed.
 2. Select/configure OpenAI model/credential and execute live strict-schema smoke tests for all five categories. Supply and evaluate 25–35 real photos including medicines and para products. Model quality/calibration remain unmeasured.
 3. Decide photo/audit retention (AMB-015); configure deployment request-body/spool limits, rate/cost budgets and measure performance/mobile behavior (AMB-019). Multipart parsing precedes endpoint image-size validation.
-4. Future Next.js UI and graphical QR rendering/scanning remain unimplemented. Jev/hybrid and optional analytics remain deferred under the 40-hour scope.
+4. Connect the existing Next.js demo to the backend after reconciling the [contract differences](requirements.md#backend-integration-differences). Graphical demo QR rendering does not verify backend-signed QR scanning. Jev/hybrid and optional analytics remain deferred under the 40-hour scope.
 
-Recommended order: Supabase/Auth deployment validation → live OpenAI/photo evaluation → Next.js required flows → mobile end-to-end/resource-race checks and deployment limits. Details and assumptions are in [handoff](handoff.md).
+Recommended order: Supabase/Auth deployment validation → live OpenAI/photo evaluation → connected Next.js required flows → mobile end-to-end/resource-race checks and deployment limits. Details and assumptions are in [handoff](handoff.md).
+
+## Integration branch verification
+
+The branch starts at dev `8a4021a` and merges committed frontend `7aed137`. Runtime source and migrations are preserved from those parents; documentation conflicts are reconciled. Current frontend lint, TypeScript checks and 134 tests passed. The production build was blocked by registry network access. Backend Ruff/mypy/pytest did not run because Python 3.12/3.13 was unavailable and its download failed. Exact commands and environment limits are recorded in [handoff](handoff.md). Historical frontend checks are in [frontend/README.md](../frontend/README.md) and do not prove connected API behavior.

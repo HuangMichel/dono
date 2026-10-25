@@ -2,6 +2,10 @@
 
 Status: **FastAPI backend implemented**; all 64 catalog method/path combinations have routes and explicit response models. Tests and remaining live integration gates are recorded in [readiness](readiness.md). Python **FastAPI** owns `/api/v1` business routes; Next.js is the frontend. There are no Next.js business Route Handlers or background workers. See [backend](../backend/app/main.py) and [migrations](../supabase/migrations/). [AGENTS.md](../AGENTS.md), [working domain defaults](domain-model.md), [requirements](requirements.md), [use cases](features.md), [schema/RLS](databases.md) and [diagrams](architecture.md) form the same design.
 
+## Frontend integration boundary
+
+The committed frontend uses browser-local `DemoProvider` state and does not call this API. Its [demo decisions](requirements.md#current-frontend-decisions--2026-10-25) include operations and data shapes that differ from this implemented contract. In particular, unmatched posting and reception refusal have no API operations, and the local photo preview limit exceeds the backend upload limit. See [backend integration differences](requirements.md#backend-integration-differences). This merge adds no endpoints and does not change request or response models.
+
 ## Authentication, permissions and HTTP conventions
 
 FastAPI verifies the Supabase bearer token's signature, algorithm, issuer, audience and expiry using the project's supported keys/Auth verification path. Decoding a JWT is insufficient. Google OAuth is the working sign-in default in Supabase; the app provisions its own donor-only profile through the bootstrap command below. No email, invite or messaging flow is required. Role checks read current enabled profiles and database memberships; editable OAuth metadata and stale role claims never grant authorization. [Supabase JWT verification](https://supabase.com/docs/guides/auth/jwts)
@@ -401,7 +405,7 @@ The actual response contains the complete Analysis, unchanged extracted evidence
 
 Protected tests must cover every case in UC-001–UC-012/UC-015/UC-016, cross-tenant direct reads/RPC/private-photo, one active offer, two independent budget conflicts, stale-row expiry without a scheduler, cancellation/re-offering, last-quota/place contention, duplicate receipt/distribution, revocation with a stale JWT, concurrent last-admin changes and delayed analysis after human edits/offer. See [handoff](handoff.md) for order and remaining policy decisions.
 
-This contract specifies full-lot MVP behavior. No partials, direct rescheduling, arbitrary platform reassignment, model acceptance, transport, route optimization, email or messaging routes exist. OpenAI/expiry fixtures and toolchain tests remain future gates; document/diagram validation does not execute API or RLS behavior.
+This contract specifies full-lot MVP behavior. No partials, direct rescheduling, arbitrary platform reassignment, model acceptance, transport, route optimization, email or messaging routes exist. Live OpenAI/real-photo evaluation and connected frontend acceptance remain release gates; document/diagram validation does not execute API or RLS behavior.
 
 ### Representative expiry-v1 read projection
 

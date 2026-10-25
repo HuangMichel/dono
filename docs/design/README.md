@@ -33,4 +33,4 @@ At reception, staff adjust the actual quantity before one confirmation records t
 
 Page 18 lets an authenticated donor offer on behalf of a named company. The same unopened, non-perishable, room-temperature food rules apply. Cold/frozen donations, cold storage, tax receipts and company verification are deferred.
 
-The public offer discovery and claiming policy shown on page 19 remains unresolved. It does not define permission to publish donor photos or claim an addressed offer. Medicine-specific workflow changes remain on standby; existing warning references are unchanged.
+The current frontend uses page 19 for explicitly posted unmatched items that associations can browse. The donor chooses Post offer. Only those posts appear, with item facts and labelled sample illustrations. Uploaded photo previews remain temporary. Public visitor discovery and claiming remain unresolved. Addressed offers stay in their review queue. Medicine-specific workflow changes remain on standby; existing warning references are unchanged.

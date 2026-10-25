@@ -1,52 +1,52 @@
-# Implementation handoff
+# Handoff
 
-## Current state and authority
+Updated: 2026-10-25
 
-The FastAPI backend, Supabase migration set and OpenAI integration are implemented. No frontend was scaffolded and no hosted project was modified. [AGENTS.md](../AGENTS.md) remains authoritative; its six product rules are unchanged. [Readiness](readiness.md) records measured checks and remaining release gates. The [architecture index](architecture.md) links all preserved interactive diagrams and native sources; their existing validation receipts are diagram evidence, not backend test evidence.
+## Goal
 
-The implementation includes all 64 documented REST method/path combinations, explicit Pydantic response contracts, verified Auth identity, fresh database permissions/RLS, immutable AI evidence, base64 photo persistence, deterministic expiry/matching, reusable donations and historical offers, independent resource budgets, finite holds, booking and signed QR reception, full-lot inventory, membership administration, site configuration and bounded expiration reconciliation. Source: [backend](../backend/), [migrations](../supabase/migrations/), [API](api.md), [database dictionary](databases.md).
+Create `feat/backend-frontend-integration` from `origin/dev` and merge the committed `feat/frontend-demo` branch as a base for API wiring.
 
-## Decisions retained
+## Status
 
-- [DEC-001–DEC-012](domain-model.md#working-defaults) provide the working MVP rules. Donation, offer, booking and inventory have separate lifecycles. One effective live offer per reusable donation; refusal permits a new attempt. No partial receipt/distribution, return, reversal or automatic decision.
-- Demand, storage places, daily intake quantities and appointment places remain independent. Deadline-aware reads release expired unreceived holds without a scheduler; bounded reconciliation materializes history. Seven-day booking horizon means 168 elapsed hours, including DST transitions.
-- Original AI extraction, indicators, provenance and input context remain immutable. Human fields are separate. A delayed result may attach missing original basis but cannot overwrite edits or expose a later recipient's evidence to an earlier association. Fenced retries and no network calls inside database transactions.
-- User-approved upload defaults: JPEG/PNG/WebP, 5 MiB per image, three images, 20 megapixels; OpenAI timeout 60 seconds, analysis lease 120 seconds. Image payloads stay in private base64 PostgreSQL rows, never Supabase Storage.
-- User-approved contract clarification: `date_label_correction_confirmed: true` requires a nonempty staff reason and frozen human-confirmed source facts. It addresses an incorrect original strict label, never an expired/unresolved strict date in corrected source facts. Approval audits reviewed analysis IDs. Booking may reuse that correction only while the completed evidence set is unchanged; reception/distribution require a fresh assertion and reason. Original evidence is never rewritten.
-- Google OAuth remains the deployment sign-in choice, with no app email flow. Donor-only bootstrap; inactive original applicant admin; platform approval/activation; fresh membership checks, last-admin protection, transfer and narrow orphan recovery. Trusted operator provisions platform capability.
-- Next.js is future presentation only. Python FastAPI owns business endpoints. OpenAI is the only implemented provider; Jev/hybrid follow the prescribed cut order. BAN via IGN uses longitude/latitude GeoJSON coordinates.
+| Item | State | Notes |
+| --- | --- | --- |
+| Branch merge | complete | Dev `8a4021a` plus committed frontend `7aed137`; documentation conflicts reconciled. Runtime source from each parent is unchanged. |
+| Backend | complete | Existing FastAPI source and migrations retained from dev; inherited evidence in [readiness](readiness.md). |
+| Frontend demo | complete | Committed browser-local demo retained; existing limits and historical checks in [frontend/README.md](../frontend/README.md). |
+| Frontend API wiring | not started | Auth, DTO mapping and [contract differences](requirements.md#backend-integration-differences) require integration work. |
 
-## Consistency resolutions
+## Uncommitted work
 
-| Finding | Implemented resolution |
-|---|---|
-| Original model merged donation and offer | Dedicated offer rows, frozen facts/evidence, unique active attempt, separate human decision/history; re-offering retains item identity. |
-| Capacity conflated with demand | Independent aggregate budgets, stable lock order and guarded atomic commands; no editable used counters. |
-| Indefinite holds/lifecycle gaps | Finite deadlines, cancellation/withdrawal/restore/no-show/reconciliation, full-lot receipt/distribution and idempotent replay. |
-| Undefined registration/admin rights | Atomic applicant approval, current membership/RLS, revocation/transfer/last-admin/orphan safeguards; no metadata-based elevation. |
-| Late AI overwrote corrections | Original/basis attach separated from facts seeding; human revision fencing; recipient-frozen evidence scope. |
-| Date-label correction had no API assertion | Explicit audited field above; current strict source restrictions still enforced in Python. |
-| Applicant association read wording was broader than API scope | Applicant SELECT is pending-only, matching the API's G registration scope; approval requires active membership. |
-| Old docs said no scaffold/commands | Setup and readiness now distinguish implemented local checks from hosted/model/mobile gates. |
+- Original checkout remains on `feat/frontend-demo`; all pre-existing local edits stay there and are excluded from this merge.
+- Integration worktree: `/private/tmp/dono-backend-frontend-integration`; merge resolutions are committed on `feat/backend-frontend-integration`. The branch has not been pushed.
 
-## Evidence and limits
+## Verification
 
-The test suite uses real disposable PostgreSQL with migrations, grants, RLS, transaction commands and parallel connections. Auth verification, the HTTP gateway, OpenAI and BAN are simulated in integration tests. A separate public BAN sample lookup verified its response shape. No configured Google OAuth session, hosted Supabase deployment, real OpenAI call or photo-quality evaluation was performed. Synthetic image tests verify upload mechanics only.
+Checks ran in `/private/tmp/dono-backend-frontend-integration`. Frontend commands below ran from `frontend/` using copied installed dependencies; direct binaries avoided pnpm attempting to reinstall the copied modules.
 
-Remaining decisions and risks:
+| Check | Command | Result | Revision or environment |
+| --- | --- | --- | --- |
+| Frontend lint | `node node_modules/eslint/bin/eslint.js .` | Passed | Committed frontend `7aed137` in integration worktree |
+| Frontend types | `node node_modules/typescript/bin/tsc --noEmit` | Passed | Same source |
+| Frontend tests | `node node_modules/vitest/vitest.mjs run` | 134 passed, 16 files | Unit/component fixtures; no live API |
+| Production build | `node node_modules/next/dist/bin/next build --webpack` | Blocked by network access to `registry.npmjs.org`, including elevated retry | No successful merge build claimed |
+| Backend environment | `uv sync --locked --offline`; locked Python 3.13 setup attempt | No compatible Python 3.12/3.13 installed; interpreter download failed through network tunnel | Ruff, mypy and pytest did not run |
+| Merge review | Read-only architecture review and `git diff --check` | Passed after documentation corrections | No runtime API acceptance |
+| Parent source preservation | `git diff origin/dev -- backend supabase`; `git diff feat/frontend-demo -- frontend ':!frontend/README.md'` | Empty diffs | Backend/migrations and frontend runtime source unchanged |
+| Original checkout | SHA-256 comparison of 66 pre-existing modified/untracked files | All unchanged | Original `feat/frontend-demo` worktree |
 
-- AMB-015: retention/deletion rules for base64 photos, originals and audit history remain unselected; no hard-delete policy is invented.
-- AMB-018: optional Jev/hybrid semantics and evaluation remain deferred.
-- AMB-019: deployment body/spooling limits, rate/model-cost budgets, memory/performance and target-mobile behavior need measurement/configuration. The endpoint limits decoded images, but multipart parsing precedes handler validation; deploy a request-size limit.
-- Choose an OpenAI model and confirm its support for all five strict schemas. Complete the required 25–35 real-photo evaluation including medicines/para. Do not infer accuracy from mocked responses.
-- Apply migrations to an isolated managed Supabase development target and verify owner/grant compatibility, Auth Google redirects, restricted RPC and private schema exposure. Full Docker stack startup was unavailable in this environment. Run current Supabase security/performance advisors there.
-- Deployment topology, HTTPS and secret provisioning/rotation remain operational work. QR payload generation is implemented; graphical QR rendering/scanning belongs to the future frontend. No live/demo user accounts or production seed were provisioned.
+Backend evidence inherited from dev is labelled separately in [readiness](readiness.md).
 
-## Recommended implementation milestones
+## Not verified
 
-1. Validate migrations and Auth/RLS against the chosen Supabase development project; provision trusted operator and demo data. Run the full automated backend checks.
-2. Select/configure OpenAI; run live category-schema smoke tests and the real-photo acceptance set. Confirm upload/retention/cost limits.
-3. Build the Next.js client against the implemented contracts: donor/manual corrections, review queue, bookings/QR display/scanning, expiry/FEFO and membership/configuration. Preserve human-only decisions and original-indicator provenance in every UI.
-4. Exercise complete mobile donor→staff→receipt→distribution flows with competing resource requests, revocation, time boundaries and delayed AI. Measure public deployment limits before launch.
+- Current production build and backend checks: dependency/runtime downloads were blocked as recorded above.
 
-Stay within the 40-hour MVP: no transport, routes, pickups, messaging, email, Jev comparison, partial inventory or extra analytics before the required flows work.
+- Connected frontend/API journey: the frontend still uses `DemoProvider` and local storage.
+- Hosted Supabase/Auth, live OpenAI/photo evaluation and native camera/QR behavior: not exercised by this merge.
+- Contract parity: company attribution, quantity changes, upload count, posting, reception refusal, need criteria, opening/PAO and FEFO presentation differ.
+
+## Next step
+
+1. Reconcile the documented frontend/backend contract differences without silently dropping frontend decisions.
+2. Connect Auth and implement explicit API DTO/action mapping; keep FastAPI responsible for business operations.
+3. Verify the connected donor, review, booking, reception and inventory journey against the real development services.
