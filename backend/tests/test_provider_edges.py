@@ -135,3 +135,55 @@ def test_database_error_details_stay_private() -> None:
                 400, json={"code": "23505", "message": "associations_rna_uk"}
             )
         )
+
+
+@pytest.mark.parametrize("metadata", [{}, {"city": None, "postcode": 68100}])
+async def test_ban_optional_locality_preserves_address_geocoding(
+    metadata: dict,
+) -> None:
+    body = {
+        "features": [
+            {
+                "geometry": {"type": "Point", "coordinates": [7.34, 47.75]},
+                "properties": {"label": "1 Rue du Centre 68100 Mulhouse", **metadata},
+            }
+        ]
+    }
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, json=body))
+    ) as client:
+        result = await BANGeocoder(client, "https://data.geopf.fr/geocodage/").geocode(
+            "1 Rue du Centre 68100 Mulhouse"
+        )
+        assert result.display_address == "1 Rue du Centre 68100 Mulhouse"
+        assert result.latitude == 47.75
+        assert result.longitude == 7.34
+        assert result.city is None
+        assert result.postcode is None
+
+
+@pytest.mark.parametrize("feature_type", ["street", "housenumber", None])
+async def test_municipality_lookup_rejects_other_feature_types(feature_type) -> None:
+    def upstream(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["type"] == "municipality"
+        return httpx.Response(
+            200,
+            json={
+                "features": [
+                    {
+                        "geometry": {"type": "Point", "coordinates": [7.34, 47.75]},
+                        "properties": {
+                            "label": "mulhouse 68400 Riedisheim",
+                            "city": "Riedisheim",
+                            "type": feature_type,
+                        },
+                    }
+                ]
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream)) as client:
+        with pytest.raises(DomainError, match="geocoding_unavailable"):
+            await BANGeocoder(client, "https://data.geopf.fr/geocodage/").geocode(
+                "Mulhouse", municipality_only=True
+            )

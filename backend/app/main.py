@@ -25,6 +25,7 @@ from app.api import (
     inventory,
     needs_parsing,
     photos,
+    public_needs,
     site,
     workflow,
 )
@@ -125,6 +126,7 @@ def create_app(
             ),
         )
 
+    application.include_router(public_needs.router)
     application.include_router(workflow.router)
     application.include_router(configuration.router)
     application.include_router(inventory.router)
