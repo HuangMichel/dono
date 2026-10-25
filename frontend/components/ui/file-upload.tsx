@@ -1,8 +1,10 @@
 "use client";
 import Image from "next/image";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { CameraCapture } from "./camera-capture";
 import { Button, Card, Chip, Icon } from "@/components/ui";
 import "./file-upload.css";
+import { MAX_PHOTO_SIZE_LABEL } from "@/lib/photo-limits";
 type UploadPhoto = { id: string; name: string; src: string; loading: boolean };
 type FileUploadProps = {
   id: string;
@@ -17,7 +19,6 @@ type FileUploadProps = {
   onReplace: (id: string, file: File) => void;
   onRemove: (id: string) => void;
   onPrimary?: (id: string) => void;
-  onUseSample?: () => void;
 };
 /** File bytes and validation stay with the caller; this component presents local previews. */
 export function FileUpload({
@@ -33,11 +34,19 @@ export function FileUpload({
   onReplace,
   onRemove,
   onPrimary,
-  onUseSample,
 }: FileUploadProps) {
+  const [camera, setCamera] = useState<{ replacementId: string | null } | null>(
+    null,
+  );
+  const available = useRef(!disabled);
+  useEffect(() => {
+    available.current = !disabled;
+  }, [disabled]);
   const input = useRef<HTMLInputElement>(null),
     replacement = useRef<HTMLInputElement>(null),
     replacementId = useRef<string | null>(null);
+  // A lock change cancels the session rather than reopening it when unlocked.
+  if (disabled && camera) setCamera(null);
   return (
     <Card
       className={`file-upload ${multiple ? "file-upload-multiple" : "file-upload-single"}`}
@@ -68,7 +77,7 @@ export function FileUpload({
                   />
                 ) : (
                   <span className="meta muted" role="status">
-                    Reading image…
+                    Loading photo preview…
                   </span>
                 )}
               </div>
@@ -77,7 +86,7 @@ export function FileUpload({
               </p>
               <div className="file-upload-photo-status">
                 {photo.loading ? (
-                  <Chip>Reading…</Chip>
+                  <Chip>Loading preview…</Chip>
                 ) : photo.id === primaryId ? (
                   <Chip variant="success">Main photo</Chip>
                 ) : null}
@@ -105,6 +114,16 @@ export function FileUpload({
                   onClick={() => onRemove(photo.id)}
                 >
                   Remove
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={disabled}
+                  aria-label={`Retake ${photo.name}, photo ${index + 1}`}
+                  onClick={() => setCamera({ replacementId: photo.id })}
+                >
+                  Retake
                 </Button>
                 {onPrimary && photo.id !== primaryId && (
                   <Button
@@ -166,6 +185,16 @@ export function FileUpload({
         {(multiple || !photos.length) && (
           <Button
             type="button"
+            disabled={disabled}
+            aria-label={`Take ${label.toLowerCase()}`}
+            onClick={() => setCamera({ replacementId: null })}
+          >
+            <Icon name="camera" /> Take photo
+          </Button>
+        )}
+        {(multiple || !photos.length) && (
+          <Button
+            type="button"
             variant="outline"
             disabled={disabled}
             aria-label={
@@ -182,22 +211,36 @@ export function FileUpload({
                 : "Choose photo"}
           </Button>
         )}
-        {onUseSample && (
-          <Button
-            type="button"
-            variant="soft"
-            disabled={disabled}
-            onClick={onUseSample}
-          >
-            Add sample illustrations
-          </Button>
-        )}
       </div>
+      {camera && !disabled && (
+        <CameraCapture
+          label={label}
+          description={description}
+          onClose={() => setCamera(null)}
+          onChooseFile={() => {
+            const target = camera.replacementId;
+            setCamera(null);
+            if (!available.current) return;
+            if (target) {
+              replacementId.current = target;
+              replacement.current?.click();
+            } else input.current?.click();
+          }}
+          onCapture={(file) => {
+            setCamera(null);
+            if (!available.current) return;
+            if (camera.replacementId) onReplace(camera.replacementId, file);
+            else onFilesChange([file]);
+          }}
+        />
+      )}
       <p id={`${id}-limits`} className="meta muted">
-        JPEG, PNG or WebP, up to 5 MB each. Local previews only.
+        JPEG, PNG or WebP, up to {MAX_PHOTO_SIZE_LABEL} each.
       </p>
       {optional ? (
-        <p className="meta muted">No printed date? Leave this empty.</p>
+        <p className="meta muted">
+          Leave this empty if the item has no printed date.
+        </p>
       ) : (
         <p className="meta muted">Add different angles of the same item.</p>
       )}

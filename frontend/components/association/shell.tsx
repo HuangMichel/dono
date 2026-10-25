@@ -1,30 +1,42 @@
 "use client";
-
+import { CATEGORY_LABELS } from "@/lib/labels";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
-import { useDemo } from "@/lib/demo-context";
 import {
-  DEMO_ASSOCIATION_ID,
-  getInventory,
-  getPostedOffers,
-} from "@/lib/demo-store";
-import { DemoTools } from "@/components/public-shell";
-import { Button, Chip, Icon, PageHeading, SelectField } from "@/components/ui";
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { useAuth } from "@/lib/auth-context";
+import { api } from "@/lib/api";
+import { useApiResource } from "@/lib/api-hooks";
+import type { Association, Membership } from "@/lib/api-contracts";
+import { Button, Field, Icon, PageHeading, SelectField } from "@/components/ui";
+import { useNotifications } from "@/components/ui/notifications";
 import "./console.css";
-
+const AssociationContext = createContext<{
+  id: string;
+  membership: Membership;
+  association: Association;
+  refresh: () => Promise<void>;
+} | null>(null);
+export function useAssociation() {
+  const value = useContext(AssociationContext);
+  if (!value) throw new Error("Association workspace required");
+  return value;
+}
 const routes = [
   ["", "Dashboard", "dashboard"],
   ["/review", "Review", "review"],
-  ["/offers", "Posted offers", "offers"],
   ["/reception", "Reception", "reception"],
   ["/inventory", "Stock", "inventory"],
   ["/needs", "Needs", "needs"],
-  ["/capacity", "Capacity", "capacity"],
-  ["/slots", "Slots", "calendar"],
-  ["/images", "Images", "images"],
+  ["/capacity", "Capacity and intake", "capacity"],
+  ["/slots", "Site and appointments", "calendar"],
+  ["/images", "Photos", "images"],
 ];
-
 export function ConsoleShell({
   children,
   admin = false,
@@ -32,199 +44,185 @@ export function ConsoleShell({
   children: ReactNode;
   admin?: boolean;
 }) {
-  const { state, ready } = useDemo();
+  const auth = useAuth();
   const path = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [navCollapsed, setNavCollapsed] = useState(false);
-  const allowed = admin
-    ? state.role === "platform_admin"
-    : state.role === "assoc_admin";
-  const association = state.associations.find(
-    (a) => a.id === DEMO_ASSOCIATION_ID,
-  );
-  if (!ready)
-    return (
-      <div className="console">
-        <main id="main" className="console-main" role="status">
-          Loading workspace…
-        </main>
-      </div>
-    );
-  if (!allowed)
-    return (
-      <div className="console">
-        <main id="main" className="console-main">
-          <PageHeading
-            title={
-              admin ? "Platform access required" : "Association access required"
-            }
-            description={`Select the ${admin ? "platform admin" : "association"} demo role.`}
-          />
-          <Link href="/login">Choose a demo role →</Link>
-        </main>
-      </div>
-    );
-  const reviewCount = state.donations.filter(
-    (d) => d.association_id === DEMO_ASSOCIATION_ID && d.status === "offered",
-  ).length;
-  const receptionCount = state.bookings.filter(
-    (booking) =>
-      booking.association_id === DEMO_ASSOCIATION_ID &&
-      state.donations.some(
-        (donation) =>
-          donation.id === booking.donation_id && donation.status === "booked",
+  const [selected, setSelected] = useState("");
+  const [menu, setMenu] = useState(false);
+  const { notify } = useNotifications();
+  const memberships = auth.memberships.filter((m) => m.active);
+  const membership =
+    memberships.find((m) => m.association_id === selected) ?? memberships[0];
+  const [associationNames, setAssociationNames] = useState<
+    Record<string, string>
+  >({});
+  useEffect(() => {
+    const activeMemberships = auth.memberships.filter((m) => m.active);
+    if (admin || activeMemberships.length < 2) return;
+    let current = true;
+    void Promise.all(
+      activeMemberships.map((m) =>
+        api<Association>(`/associations/${m.association_id}`)
+          .then((association) => [m.association_id, association.name] as const)
+          .catch(() => [m.association_id, ""] as const),
       ),
-  ).length;
-  const activeNeeds = state.needs.filter(
-    (need) => need.association_id === DEMO_ASSOCIATION_ID && need.active,
-  ).length;
-  const stockQuantity = getInventory(state)
-    .filter((item) => item.donation.association_id === DEMO_ASSOCIATION_ID)
-    .reduce((quantity, item) => quantity + Number(item.remaining_quantity), 0);
-  const postedOffersCount = getPostedOffers(state).length;
-  const counts: Record<string, { value: number; description: string }> = {
-    "/offers": {
-      value: postedOffersCount,
-      description:
-        postedOffersCount === 1 ? "available offer" : "available offers",
-    },
-    "/review": { value: reviewCount, description: "waiting for review" },
-    "/reception": {
-      value: receptionCount,
-      description:
-        receptionCount === 1 ? "expected drop-off" : "expected drop-offs",
-    },
-    "/needs": {
-      value: activeNeeds,
-      description: activeNeeds === 1 ? "active need" : "active needs",
-    },
-    "/inventory": {
-      value: stockQuantity,
-      description: stockQuantity === 1 ? "item remaining" : "items remaining",
-    },
-  };
-  const pendingApprovals = state.associations.filter(
-    (item) => item.approval_status === "pending",
-  ).length;
+    ).then((entries) => {
+      if (current) setAssociationNames(Object.fromEntries(entries));
+    });
+    return () => {
+      current = false;
+    };
+  }, [admin, auth.memberships]);
+  const resource = useApiResource<Association>(
+    !admin && membership ? `/associations/${membership.association_id}` : null,
+  );
+  if (auth.loading)
+    return (
+      <main id="main" className="console-main" role="status">
+        Loading workspace…
+      </main>
+    );
+  if (auth.error)
+    return (
+      <main id="main" className="console-main">
+        <ResourceStatus
+          loading={false}
+          error={auth.error}
+          refresh={auth.refresh}
+        />
+      </main>
+    );
+  if (!auth.user)
+    return (
+      <main id="main" className="console-main">
+        <PageHeading title="Sign in required" />
+        <Link href="/login">Sign in</Link>
+      </main>
+    );
+  if (admin ? auth.profile?.platform_role !== "platform_admin" : !membership)
+    return (
+      <main id="main" className="console-main">
+        <PageHeading
+          title={
+            admin ? "Platform access required" : "Association access required"
+          }
+        />
+        <p>
+          {admin
+            ? "Your account does not have platform access."
+            : "You need an active staff membership in an approved association."}
+        </p>
+        <Link href="/register-association">Association registration</Link>
+      </main>
+    );
+  if (!admin && (resource.loading || !resource.data))
+    return (
+      <main id="main" className="console-main">
+        <ResourceStatus {...resource} />
+      </main>
+    );
+  if (!admin && resource.data?.approval_status !== "approved")
+    return (
+      <main id="main" className="console-main">
+        Your association is waiting for platform approval.
+      </main>
+    );
+  const content = <>{children}</>;
   return (
-    <div className={`console ${navCollapsed ? "is-nav-collapsed" : ""}`}>
+    <div className="console">
       <header className="console-header">
-        <div className="console-profile">
-          <Button
-            variant="soft"
-            className="console-nav-toggle-desktop"
-            aria-label={
-              navCollapsed ? "Expand navigation" : "Collapse navigation"
-            }
-            aria-expanded={!navCollapsed}
-            aria-controls="console-sidebar"
-            onClick={() => setNavCollapsed(!navCollapsed)}
-          >
-            <Icon name={navCollapsed ? "chevron-right" : "chevron-left"} />
-          </Button>
-          <Button
-            variant="soft"
-            className="console-nav-toggle-mobile"
-            aria-label={menuOpen ? "Hide navigation" : "Show navigation"}
-            aria-expanded={menuOpen}
-            aria-controls="console-sidebar"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            <Icon name={menuOpen ? "close" : "menu"} />
-          </Button>
-          <details className="console-account" key={path}>
-            <summary>
-              <span className="console-avatar" aria-hidden="true">
-                {admin ? "NF" : "LM"}
-              </span>
-              <span>
-                <strong>{admin ? "N. Farhi" : "Léa Martin"}</strong>
-                <span className="console-meta">
-                  {admin ? "Platform admin" : "Association admin"}
-                </span>
-              </span>
-              <Icon name="chevron-down" size={16} />
-            </summary>
-            <div className="console-account-menu">
-              <Link href="/">Dono home</Link>
-              <Link href="/login">Switch demo role</Link>
-            </div>
-          </details>
-        </div>
-        <Chip>Demo</Chip>
+        <Button
+          variant="soft"
+          aria-label="Toggle navigation"
+          aria-expanded={menu}
+          onClick={() => setMenu(!menu)}
+        >
+          <Icon name="menu" />
+        </Button>
+        <span>
+          {auth.profile?.display_name ?? auth.user.email ?? "Your account"}
+        </span>
+        <Link href="/">Dono home</Link>
+        <Button
+          variant="soft"
+          onClick={() => {
+            void auth.signOut().catch((error) =>
+              notify({
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : "Sign out failed. Try again.",
+                tone: "error",
+              }),
+            );
+          }}
+        >
+          Sign out
+        </Button>
       </header>
       <aside
         id="console-sidebar"
-        className={`console-sidebar ${menuOpen ? "is-open" : ""}`}
+        className={`console-sidebar ${menu ? "is-open" : ""}`}
       >
         <div className="console-organization">
           <strong>
-            {admin
-              ? "Platform administration"
-              : (association?.name ?? "Association")}
+            {admin ? "Platform administration" : resource.data?.name}
           </strong>
         </div>
+        {!admin && memberships.length > 1 && (
+          <SelectField
+            label="Association"
+            value={membership?.association_id}
+            onChange={(e) => setSelected(e.target.value)}
+          >
+            {memberships.map((m) => (
+              <option key={m.association_id} value={m.association_id}>
+                {associationNames[m.association_id] || m.association_id}
+              </option>
+            ))}
+          </SelectField>
+        )}
         <nav
-          id="console-navigation"
           aria-label={admin ? "Platform navigation" : "Association navigation"}
         >
-          {admin ? (
-            <Link
-              href="/admin"
-              aria-current="page"
-              aria-label={`Approvals, ${pendingApprovals} pending`}
-              title={`Approvals, ${pendingApprovals} pending`}
-            >
-              <Icon name="review" />
-              <span className="console-nav-text">
-                <span className="console-nav-label">Approvals</span>
-                <Chip>{pendingApprovals}</Chip>
-              </span>
-            </Link>
-          ) : (
-            routes.map(([route, name, icon]) => {
-              const count = counts[route];
-              const accessibleLabel = count
-                ? `${name}, ${count.value} ${count.description}`
-                : name;
-              return (
-                <Link
-                  key={route}
-                  href={`/association${route}`}
-                  aria-label={accessibleLabel}
-                  title={accessibleLabel}
-                  aria-current={
-                    path === `/association${route}` ? "page" : undefined
-                  }
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Icon name={icon} />
-                  <span className="console-nav-text">
-                    <span className="console-nav-label">{name}</span>
-                    {count && <Chip>{count.value}</Chip>}
-                  </span>
-                </Link>
-              );
-            })
+          {(admin ? [["", "Approvals", "review"]] : routes).map(
+            ([route, label, icon]) => (
+              <Link
+                key={route}
+                href={admin ? "/admin" : `/association${route}`}
+                aria-current={
+                  path === (admin ? "/admin" : `/association${route}`)
+                    ? "page"
+                    : undefined
+                }
+                onClick={() => setMenu(false)}
+              >
+                <Icon name={icon} />
+                <span className="console-nav-text">{label}</span>
+              </Link>
+            ),
           )}
         </nav>
-        <DemoTools>
-          <p className="console-meta">
-            No live API or signed QR. Expiry and matching policies remain
-            unresolved.
-          </p>
-        </DemoTools>
       </aside>
-      <main
-        id="main"
-        className={`console-main ${path === "/association/review" ? "console-main-review" : ""}`}
-      >
-        {children}
+      <main id="main" className="console-main">
+        {admin ? (
+          content
+        ) : (
+          <AssociationContext.Provider
+            key={membership!.association_id}
+            value={{
+              id: membership!.association_id,
+              membership: membership!,
+              association: resource.data!,
+              refresh: resource.refresh,
+            }}
+          >
+            {content}
+          </AssociationContext.Provider>
+        )}
       </main>
     </div>
   );
 }
-
 export function ConsoleTitle({
   title,
   detail,
@@ -232,30 +230,10 @@ export function ConsoleTitle({
   title: string;
   detail?: string;
 }) {
-  return (
-    <PageHeading title={title}>
-      {detail && <span className="console-meta">{detail}</span>}
-    </PageHeading>
-  );
+  return <PageHeading title={title} description={detail} />;
 }
 export function Notice({ children }: { children: ReactNode }) {
   return <div className="notice console-notice">{children}</div>;
-}
-export function Feedback({
-  message,
-  error,
-}: {
-  message: string;
-  error?: boolean;
-}) {
-  return message ? (
-    <div
-      role={error ? "alert" : "status"}
-      className={`notice ${error ? "error" : "success"} console-feedback`}
-    >
-      {message}
-    </div>
-  ) : null;
 }
 export function CategorySelect({
   value,
@@ -270,14 +248,86 @@ export function CategorySelect({
     <SelectField
       label="Category"
       value={value}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(e) => onChange(e.target.value)}
     >
-      {all && <option value="all">All categories</option>}
-      <option value="clothes">Clothes</option>
-      <option value="shoes">Shoes</option>
-      <option value="food">Food</option>
-      <option value="para">Hygiene & care</option>
-      <option value="furniture">Small furniture</option>
+      {all ? (
+        <option value="">All categories</option>
+      ) : (
+        <option value="">Choose category</option>
+      )}
+      {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+        <option key={key} value={key}>
+          {label}
+        </option>
+      ))}
     </SelectField>
+  );
+}
+export function ResourceStatus({
+  loading,
+  error,
+  refresh,
+  empty,
+}: {
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+  empty?: boolean;
+}) {
+  return (
+    <>
+      {loading && <p role="status">Loading…</p>}
+      {error && (
+        <div role="alert">
+          <p>{error}</p>
+          <Button variant="outline" onClick={() => void refresh()}>
+            Retry
+          </Button>
+        </div>
+      )}
+      {!loading && !error && empty && <p>No results.</p>}
+    </>
+  );
+}
+export function More({
+  hasMore,
+  loadMore,
+  loading,
+}: {
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
+  loading: boolean;
+}) {
+  return hasMore ? (
+    <Button
+      variant="outline"
+      disabled={loading}
+      onClick={() => void loadMore()}
+    >
+      Load more
+    </Button>
+  ) : null;
+}
+export function NumberInput({
+  label,
+  name,
+  value,
+  min = 0,
+}: {
+  label: string;
+  name: string;
+  value?: string | number;
+  min?: number;
+}) {
+  return (
+    <Field
+      label={label}
+      name={name}
+      type="number"
+      step="1"
+      min={min}
+      required
+      defaultValue={value}
+    />
   );
 }

@@ -1,294 +1,293 @@
 "use client";
-import { indicatorLabel } from "@/lib/ui-text";
-
-import Image from "next/image";
 import { useState } from "react";
-import { useDemo } from "@/lib/demo-context";
+import { useApiPage } from "@/lib/api-hooks";
+import type { Offer } from "@/lib/api-contracts";
+import { Button, Chip, Field, SelectField } from "@/components/ui";
 import {
-  CATEGORY_LABELS,
-  DEMO_ASSOCIATION_ID,
-  DEMO_STAFF_ID,
-  STATUS_LABELS,
-} from "@/lib/demo-store";
-import type { Donation, IntakeChecks } from "@/lib/contracts";
-import { Button, Chip, EmptyState } from "@/components/ui";
-import { ConsoleTitle, Feedback, Notice } from "@/components/association/shell";
-import { Evidence, instant, itemName } from "@/components/association/evidence";
-
-export default function ReviewPage() {
-  const { state } = useDemo();
-  const [category, setCategory] = useState("all");
-  const [selected, setSelected] = useState("");
-  const [history, setHistory] = useState(false);
-  const donations = state.donations.filter(
-    (d) =>
-      d.association_id === DEMO_ASSOCIATION_ID &&
-      d.status !== "draft" &&
-      (history || d.status === "offered") &&
-      (category === "all" || d.category === category),
+  ConsoleTitle,
+  useAssociation,
+  ResourceStatus,
+  More,
+} from "@/components/association/shell";
+import { CATEGORY_LABELS, STATUS_LABELS } from "@/lib/labels";
+import { timeAgo } from "@/lib/ui-text";
+import { AuthPhoto } from "@/components/association/auth-photo";
+import { Evidence, itemName } from "@/components/association/evidence";
+import { ExpiryChip, StateChip } from "@/components/association/status";
+import {
+  CommandForm,
+  text,
+  useCommand,
+} from "@/components/association/command";
+import {
+  CHECK_LABELS,
+  requiredReviewChecks,
+  reviewChecks,
+} from "@/components/association/review-policy";
+export default function Review() {
+  const { id } = useAssociation();
+  const [status, setStatus] = useState("pending_review");
+  const [category, setCategory] = useState("");
+  const [query, setQuery] = useState("");
+  const resource = useApiPage<Offer>(
+    `/associations/${id}/offers?effective_state=${status}${category ? `&category=${category}` : ""}`,
   );
-  const donation = donations.find((d) => d.id === selected) ?? donations[0];
+  const [selected, setSelected] = useState("");
+  const offers = resource.data.filter((o) =>
+    `${itemName(o)} ${CATEGORY_LABELS[o.category]}`
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
+  const offer = offers.find((o) => o.id === selected) ?? offers[0];
   return (
-    <div className="console-review">
-      <section className="console-review-queue">
+    <div className="console-review restored-review">
+      <section className="console-review-queue" aria-label="Offer queue">
         <div className="console-review-queue-header">
-          <ConsoleTitle title="To review" detail={String(donations.length)} />
-          <div
-            className="console-filter-strip console-category-tabs"
-            aria-label="Review category"
-          >
-            {[
-              ["all", "All"],
-              ["food", "Food"],
-              ["clothes", "Clothes"],
-              ["para", "Hygiene & care"],
-              ["shoes", "Shoes"],
-              ["furniture", "Small furniture"],
-            ].map(([value, label]) => (
-              <Button
-                key={value}
-                variant="soft"
-                size="sm"
-                aria-pressed={category === value}
-                onClick={() => setCategory(value)}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
-          <details style={{ marginTop: 12 }}>
-            <summary className="console-meta">More filters</summary>
-            <div className="console-stack" style={{ marginTop: 12 }}>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={history}
-                  onChange={(e) => setHistory(e.target.checked)}
-                />
-                Include reviewed offers
-              </label>
+          <ConsoleTitle
+            title={
+              status === "pending_review"
+                ? "Waiting for review"
+                : "Offer history"
+            }
+          />
+          <div className="console-stack">
+            <div
+              className="console-filter-strip restored-review-categories"
+              role="group"
+              aria-label="Review category"
+            >
+              {[["", "All"], ...Object.entries(CATEGORY_LABELS)].map(
+                ([key, label]) => (
+                  <Button
+                    key={key}
+                    type="button"
+                    variant="soft"
+                    size="sm"
+                    aria-pressed={category === key}
+                    onClick={() => {
+                      setCategory(key);
+                      setSelected("");
+                    }}
+                  >
+                    {label}
+                  </Button>
+                ),
+              )}
             </div>
-          </details>
+            <Field
+              label="Search loaded offers"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <details>
+              <summary className="console-meta">Review history</summary>
+              <SelectField
+                label="Status"
+                value={status}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setSelected("");
+                }}
+              >
+                {[
+                  "pending_review",
+                  "approved",
+                  "refused",
+                  "cancelled",
+                  "expired",
+                  "fulfilled",
+                  "withdrawn",
+                ].map((s) => (
+                  <option key={s} value={s}>
+                    {STATUS_LABELS[s]}
+                  </option>
+                ))}
+              </SelectField>
+            </details>
+          </div>
+          <ResourceStatus {...resource} />
         </div>
         <div className="console-review-list">
-          {donations.map((d) => {
-            const photo = state.photos.find((p) => p.donation_id === d.id);
-            const analysis = state.analyses.find(
-              (a) => a.id === d.basis_analysis_id,
-            );
-            const indicator = analysis?.indicators[0];
-            const corrected = state.expiry_facts.some(
-              (f) => f.donation_id === d.id && f.edited_by,
-            );
-            return (
-              <Button
-                key={d.id}
-                variant="soft"
-                aria-pressed={donation?.id === d.id}
-                onClick={() => setSelected(d.id)}
-              >
-                {photo && (
-                  <Image
-                    unoptimized
-                    className="console-photo"
-                    src={photo.content_url}
-                    alt=""
-                    width={40}
-                    height={40}
+          {offers.map((o) => (
+            <div
+              key={o.id}
+              className={`restored-review-row${offer?.id === o.id ? " is-selected" : ""}`}
+            >
+              <div className="restored-review-thumbnail">
+                {o.evidence_snapshot.photos[0] ? (
+                  <AuthPhoto
+                    photo={{
+                      content_url: `/api/v1/photos/${encodeURIComponent(o.evidence_snapshot.photos[0].photo_id)}/content`,
+                    }}
+                    alt={`Photo included in the offer for ${itemName(o)}`}
+                    size={40}
+                  />
+                ) : (
+                  <span
+                    className="restored-review-photo-empty"
+                    aria-hidden="true"
                   />
                 )}
+              </div>
+              <Button
+                variant="soft"
+                aria-pressed={offer?.id === o.id}
+                onClick={() => setSelected(o.id)}
+              >
                 <span>
                   <strong>
-                    {itemName(d)} × {d.quantity}
+                    {itemName(o)} × {Number(o.quantity)}
                   </strong>
-                  <span className="console-meta" style={{ display: "block" }}>
-                    {d.company_name ??
-                      (d.category
-                        ? CATEGORY_LABELS[d.category]
-                        : "Individual donor")}
+                  <span className="console-meta restored-review-meta">
+                    {CATEGORY_LABELS[o.category]}
+                    {o.created_at ? `, ${timeAgo(o.created_at)}` : ""}
                   </span>
-                  {corrected ? (
-                    <Chip variant="caution">Date changed</Chip>
-                  ) : indicator ? (
-                    <Chip
-                      variant={
-                        indicator.level === "high" ? "danger" : "warning"
-                      }
-                    >
-                      {indicatorLabel(indicator.key)}
-                      {indicator.probability !== undefined
-                        ? ` ${new Intl.NumberFormat("en-GB", { style: "percent", maximumFractionDigits: 2 }).format(indicator.probability)}`
-                        : ""}
-                    </Chip>
-                  ) : (
-                    <Chip variant="caution">{STATUS_LABELS[d.status]}</Chip>
-                  )}
+                  <span className="restored-review-chips">
+                    {o.computed.manual_review_required && (
+                      <Chip variant="caution">Manual review required</Chip>
+                    )}
+                    {o.computed.category_mismatch && (
+                      <Chip variant="warning">Category differs</Chip>
+                    )}
+                    <ExpiryChip expiry={o.computed.expiry} />
+                  </span>
                 </span>
               </Button>
-            );
-          })}
+            </div>
+          ))}
         </div>
-        {!donations.length && <EmptyState title="No offers match this view" />}
+        {!resource.loading && !resource.error && !offers.length && (
+          <p className="restored-review-empty">
+            {query
+              ? "No loaded offers match your search."
+              : "No offers in this view."}
+          </p>
+        )}
+        <div className="console-review-queue-header">
+          <More {...resource} />
+        </div>
       </section>
-      {donation ? (
-        <ReviewDetail key={donation.id} donation={donation} />
+      {offer ? (
+        <ReviewDetail
+          key={offer.id + offer.revision}
+          offer={offer}
+          refresh={resource.refresh}
+        />
       ) : (
         <section className="console-review-body">
-          <EmptyState title="Review queue clear" />
+          <p className="console-meta">
+            {resource.loading
+              ? "Loading offers…"
+              : resource.error
+                ? "Offers could not be loaded."
+                : "No offers in this view."}
+          </p>
         </section>
       )}
     </div>
   );
 }
-
-function ReviewDetail({ donation }: { donation: Donation }) {
-  const { dispatch } = useDemo();
-  const [revision, setRevision] = useState(donation.revision);
-  const [checks, setChecks] = useState<IntakeChecks>({
-    not_medicine: null,
-    food_nonperishable_room_temperature: null,
-    packaged_unopened: null,
-  });
-  const [feedback, setFeedback] = useState("");
-  const [error, setError] = useState(false);
-  const food = donation.category === "food";
-  const packaged = food || donation.category === "para";
-  const canApprove =
-    checks.not_medicine === true &&
-    (!food || checks.food_nonperishable_room_temperature === true) &&
-    (!packaged || checks.packaged_unopened === true);
-  const stale = revision !== donation.revision;
-  function decide(decision: "approved" | "refused") {
-    try {
-      dispatch({
-        type: "decision",
-        id: donation.id,
-        decision,
-        checks,
-        expected_revision: revision,
-      });
-      setError(false);
-      setFeedback(`Offer ${decision} by Léa Martin.`);
-    } catch (cause) {
-      setError(true);
-      setFeedback(
-        cause instanceof Error
-          ? cause.message
-          : "The decision could not be saved.",
-      );
-    }
-  }
-  function checkbox(key: keyof IntakeChecks, label: string) {
-    return (
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={checks[key] === true}
-          onChange={(event) =>
-            setChecks({ ...checks, [key]: event.target.checked ? true : null })
-          }
-          disabled={donation.status !== "offered"}
-        />
-        {label}
-      </label>
-    );
-  }
+function ReviewDetail({
+  offer,
+  refresh,
+}: {
+  offer: Offer;
+  refresh: () => Promise<void>;
+}) {
+  const command = useCommand();
+  const [decision, setDecision] = useState("approved");
+  const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const required = requiredReviewChecks(offer);
   return (
-    <section className="console-review-detail">
-      <div className="console-review-body">
+    <section className="console-review-detail restored-review-detail">
+      <div className="restored-review-heading">
         <h2 className="console-item-title">
-          {itemName(donation)} × {donation.quantity}
+          {itemName(offer)} × {Number(offer.quantity)}
         </h2>
-        <p className="console-meta" style={{ marginTop: 4, marginBottom: 20 }}>
-          {donation.category
-            ? CATEGORY_LABELS[donation.category]
-            : "Unknown category"}
-          , {donation.company_name ?? "individual donor"}
-        </p>
-        <Feedback message={feedback} error={error} />
-        {stale && donation.status === "offered" && (
-          <Notice>
-            This offer changed.{" "}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setRevision(donation.revision);
-                setChecks({
-                  not_medicine: null,
-                  food_nonperishable_room_temperature: null,
-                  packaged_unopened: null,
-                });
-                setFeedback("");
-              }}
-            >
-              Refresh offer
-            </Button>
-          </Notice>
-        )}
-        <Evidence donation={donation} />
-        {donation.status === "offered" && (
-          <fieldset className="console-checks">
-            <legend>Review checklist</legend>
-            {checkbox("not_medicine", "I confirm this item is not a medicine.")}
-            {food &&
-              checkbox(
-                "food_nonperishable_room_temperature",
-                "I confirm the food is non-perishable and stored at room temperature.",
-              )}
-            {packaged &&
-              checkbox(
-                "packaged_unopened",
-                "I confirm the original packaging is unopened.",
-              )}
-          </fieldset>
-        )}
+        <StateChip state={offer.computed.effective_state} />
       </div>
-      <div className="console-decision">
-        {donation.status === "offered" ? (
-          <>
-            <p className="console-meta">Staff decision</p>
-            <div className="console-actions" style={{ marginTop: 8 }}>
-              <Button
-                variant="soft"
-                disabled={stale}
-                onClick={() => decide("refused")}
-              >
-                Refuse
-              </Button>
-              <Button
-                disabled={!canApprove || stale}
-                onClick={() => decide("approved")}
-              >
-                Approve
-              </Button>
-              {!canApprove && (
-                <span className="console-meta">
-                  Complete all intake checks.
-                </span>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <Chip
-              variant={donation.decision === "refused" ? "danger" : "success"}
+      <Evidence offer={offer} />
+      {offer.computed.effective_state === "pending_review" && (
+        <div className="console-decision">
+          <h2>Staff decision</h2>
+          <CommandForm
+            submit="Record staff decision"
+            successMessage="Staff decision recorded."
+            submitDisabled={
+              decision === "approved" && required.some((key) => !checks[key])
+            }
+            onSubmit={async (data) => {
+              const decision = text(data, "decision");
+              if (
+                decision === "approved" &&
+                required.some((key) => !checks[key])
+              )
+                throw new Error(
+                  "Complete each required staff check before approval.",
+                );
+              await command(`/offers/${offer.id}/decision`, {
+                expected_revision: offer.revision,
+                decision,
+                ...(decision === "approved"
+                  ? { intake_checks: reviewChecks(checks) }
+                  : {}),
+                ...(text(data, "reason")
+                  ? { reason: text(data, "reason") }
+                  : {}),
+              });
+              await refresh();
+            }}
+          >
+            <SelectField
+              label="Staff decision"
+              name="decision"
+              value={decision}
+              onChange={(e) => setDecision(e.target.value)}
             >
-              {STATUS_LABELS[donation.status]}
-            </Chip>
-            {donation.decided_by && (
-              <p className="console-meta" style={{ marginTop: 8 }}>
-                Human decision by{" "}
-                {donation.decided_by === DEMO_STAFF_ID
-                  ? "Léa Martin"
-                  : "association staff"}
-                {donation.decided_at ? `, ${instant(donation.decided_at)}` : ""}
-                .
-              </p>
-            )}
-          </>
-        )}
-      </div>
+              <option value="approved">Approve</option>
+              <option value="refused">Refuse</option>
+            </SelectField>
+            {[...required, "date_label_correction_confirmed"].map((key) => (
+              <label className="check" key={key}>
+                <input
+                  type="checkbox"
+                  checked={!!checks[key]}
+                  onChange={(e) =>
+                    setChecks({ ...checks, [key]: e.target.checked })
+                  }
+                />{" "}
+                {CHECK_LABELS[key] ?? key}
+              </label>
+            ))}
+            <Field
+              label="Reason (required for manual review, date checks or label correction)"
+              name="reason"
+              maxLength={240}
+            />
+          </CommandForm>
+        </div>
+      )}
+      {offer.computed.effective_state === "approved" && (
+        <CommandForm
+          submit="Cancel this offer"
+          successMessage="Offer cancelled."
+          onSubmit={async (data) => {
+            await command(`/offers/${offer.id}/cancellation`, {
+              expected_revision: offer.revision,
+              reason: text(data, "reason"),
+            });
+            await refresh();
+          }}
+        >
+          <Field
+            label="Cancellation reason"
+            name="reason"
+            required
+            maxLength={240}
+          />
+        </CommandForm>
+      )}
     </section>
   );
 }

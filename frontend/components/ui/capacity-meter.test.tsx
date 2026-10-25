@@ -26,7 +26,7 @@ it("announces paused intake without representing a positive progress value", () 
     <CapacityMeter label="Shoes" inStock="0" reserved="0" limit="0" />,
   );
   expect(html).toContain('value="0"');
-  expect(html).toContain('aria-valuetext="Paused, no intake capacity"');
-  expect(html).toContain("Paused. No intake capacity.");
+  expect(html).toContain('aria-valuetext="Paused, no storage space available"');
+  expect(html).toContain("Paused. No storage space available.");
   expect(html).not.toContain("NaN");
 });

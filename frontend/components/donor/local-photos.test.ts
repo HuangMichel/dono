@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   createPhotoController,
   photoSignatureMatches,
-  DEMO_ITEM_PHOTO_LIMIT,
+  ITEM_PHOTO_LIMIT,
   type PhotoSnapshot,
 } from "./local-photos";
 function fixture() {
@@ -35,6 +35,22 @@ function fixture() {
 }
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 describe("local multi-photo lifecycle", () => {
+  it("reads an exact 4 MiB image but rejects one extra byte before reading", () => {
+    const f = fixture();
+    f.manager.addFiles(
+      [
+        f.file("exact.jpg", "image/jpeg", 4_194_304),
+        f.file("large.jpg", "image/jpeg", 4_194_305),
+      ],
+      "item",
+    );
+    expect(f.pending.has("exact.jpg")).toBe(true);
+    expect(f.pending.has("large.jpg")).toBe(false);
+    expect(f.snapshot.photos.map((photo) => photo.name)).toEqual(["exact.jpg"]);
+    expect(f.snapshot.errors).toEqual([
+      "large.jpg: Choose a photo up to 4 MiB.",
+    ]);
+  });
   it("appends batches and reports each invalid file without losing good images", async () => {
     const f = fixture();
     f.manager.addFiles(
@@ -126,14 +142,14 @@ describe("local multi-photo lifecycle", () => {
   it("bounds pending item reads and keeps the label separate", () => {
     const f = fixture();
     f.manager.addFiles(
-      Array.from({ length: DEMO_ITEM_PHOTO_LIMIT + 1 }, (_, i) =>
+      Array.from({ length: ITEM_PHOTO_LIMIT + 1 }, (_, i) =>
         f.file(`item${i}.jpg`),
       ),
       "item",
     );
     f.manager.addFiles([f.file("label.jpg")], "label");
     expect(f.snapshot.photos.filter((p) => p.kind === "item")).toHaveLength(
-      DEMO_ITEM_PHOTO_LIMIT,
+      ITEM_PHOTO_LIMIT,
     );
     expect(f.snapshot.photos.filter((p) => p.kind === "label")).toHaveLength(1);
   });

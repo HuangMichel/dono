@@ -1,4 +1,6 @@
-export const DEMO_ITEM_PHOTO_LIMIT = 6;
+import { MAX_PHOTO_BYTES, MAX_PHOTO_SIZE_LABEL } from "@/lib/photo-limits";
+
+export const ITEM_PHOTO_LIMIT = 3;
 export type PhotoKind = "item" | "label";
 export type LocalPhoto = {
   id: string;
@@ -13,8 +15,9 @@ export function photoFileError(
   file: Pick<File, "type" | "size">,
 ): string | null {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
-    return "Choose a JPEG, PNG or WebP image.";
-  if (file.size > 5 * 1024 * 1024) return "Choose an image up to 5 MB.";
+    return "Choose a JPEG, PNG or WebP photo.";
+  if (file.size > MAX_PHOTO_BYTES)
+    return `Choose a photo up to ${MAX_PHOTO_SIZE_LABEL}.`;
   return null;
 }
 export function photoSignatureMatches(
@@ -37,14 +40,16 @@ async function readPhoto(file: File): Promise<string> {
   if (invalid) throw Error(invalid);
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
   if (!photoSignatureMatches(file.type, bytes))
-    throw Error("This file does not match its image type.");
+    throw Error(
+      "This file is not in the photo format it claims. Choose another photo.",
+    );
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () =>
-      reject(Error("Could not read this image. Choose it again."));
+      reject(Error("Could not read this photo. Choose it again."));
     reader.onabort = () =>
-      reject(Error("Reading was interrupted. Choose the image again."));
+      reject(Error("Reading was interrupted. Choose the photo again."));
     reader.readAsDataURL(file);
   });
 }
@@ -88,7 +93,7 @@ export function createPhotoController(
       );
       failFile(
         file.name,
-        cause instanceof Error ? cause.message : "Could not read this image.",
+        cause instanceof Error ? cause.message : "Could not read this photo.",
       );
     }
   }
@@ -100,12 +105,12 @@ export function createPhotoController(
         failFile(file.name, invalid);
         continue;
       }
-      const limit = kind === "item" ? DEMO_ITEM_PHOTO_LIMIT : 1;
+      const limit = kind === "item" ? ITEM_PHOTO_LIMIT : 1;
       if (photos.filter((p) => p.kind === kind).length >= limit) {
         failFile(
           file.name,
           kind === "item"
-            ? `Demo limit: ${limit} item photos. Remove a photo first.`
+            ? `Photo limit: ${limit} item photos. Remove a photo first.`
             : "Replace the existing label photo instead.",
         );
         continue;
@@ -160,38 +165,10 @@ export function createPhotoController(
       emit();
     }
   }
-  function addSamples(category: string) {
-    errors = [];
-    const sideSvg =
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180"><rect width="240" height="180" fill="#f9f9f8"/><path d="m94 35 38 12 22 26-14 14-13-12 8 76-36 2 7-80-13 18-14-13 18-31z" fill="#e9e8e6" stroke="#63635e"/><path d="m111 45 5 105m2-79 23 11" fill="none" stroke="#63635e"/><text x="120" y="171" text-anchor="middle" font-size="12" fill="#63635e">Illustration only</text></svg>';
-    const samples = [
-      { name: "Sample illustration 1", src: `/item-${category}.svg` },
-      {
-        name: "Sample illustration 2",
-        src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(sideSvg)}`,
-      },
-    ];
-    for (const sample of samples) {
-      if (
-        photos.filter((p) => p.kind === "item").length >= DEMO_ITEM_PHOTO_LIMIT
-      ) {
-        failFile(
-          sample.name,
-          `Demo limit: ${DEMO_ITEM_PHOTO_LIMIT} item photos.`,
-        );
-        continue;
-      }
-      photos = [
-        ...photos,
-        { ...sample, id: makeId(), kind: "item", loading: false, version: 1 },
-      ];
-    }
-    emit();
-  }
   function dispose() {
     ++epoch;
     photos = [];
     errors = [];
   }
-  return { addFiles, replace, remove, makePrimary, addSamples, dispose };
+  return { addFiles, replace, remove, makePrimary, dispose };
 }

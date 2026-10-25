@@ -1,0 +1,16 @@
+.capacity-category-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.capacity-category-list > li {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.capacity-category-list > li:last-child {
+  border-bottom: none;
+}

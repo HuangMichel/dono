@@ -4,7 +4,7 @@
 :root {
   --primary: #2a7e3b;
   --primary-hover: #203c25;
-  --focus: #65ba74;
+  --focus: #2a7e3b;
   --background: #fdfdfc;
   --subtle: #f9f9f8;
   --component: #f1f0ef;
@@ -275,6 +275,14 @@ textarea {
 .notice.success {
   background: var(--success-bg);
   color: var(--primary);
+}
+.notice.caution {
+  background: var(--caution-bg);
+  color: var(--caution-text);
+}
+.notice.danger {
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 .item-image {
   width: 72px;
@@ -596,6 +604,74 @@ textarea.field {
   color: var(--muted);
   font-size: 14px;
   line-height: 20px;
+}
+.impact {
+  max-width: 1120px;
+  margin: auto;
+  padding: 32px 24px 40px;
+  border-top: 0.5px solid var(--border);
+}
+.impact h2 {
+  margin-bottom: 24px;
+  font-size: 16px;
+  line-height: 24px;
+}
+.impact-chain {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 32px;
+  margin: 0;
+  padding: 0;
+}
+.impact-chain li {
+  position: relative;
+  display: grid;
+  grid-row: span 4;
+  grid-template-rows: subgrid;
+  row-gap: 12px;
+}
+.impact-chain li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 13.75px;
+  left: 36px;
+  right: -24px;
+  height: 0.5px;
+  background: var(--border);
+}
+.impact-chain h3 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+}
+.impact-chain p {
+  font-size: 14px;
+  line-height: 20px;
+}
+.impact-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--border);
+}
+.impact-evidence p {
+  color: var(--muted);
+}
+.impact-evidence strong {
+  display: block;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.impact-evidence figcaption {
+  color: var(--muted);
+}
+.impact-evidence a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .category-strip {
   max-width: 880px;
@@ -988,7 +1064,7 @@ textarea.field {
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 0.5px solid var(--border);
-  border-radius: 24px;
+  border-radius: 24px 24px 12px 12px;
   background: var(--background);
   color: var(--text);
   padding: 24px;
@@ -1281,6 +1357,36 @@ textarea.field {
     grid-template-columns: 1fr 1fr;
     gap: 24px;
     display: block;
+  }
+  .impact {
+    padding: 24px 20px 32px;
+  }
+  .impact-chain {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .impact-chain li {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    grid-row: auto;
+    padding: 0 0 28px 40px;
+  }
+  .impact-chain li:last-child {
+    padding-bottom: 0;
+  }
+  .impact-chain .step-number {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .impact-chain li:not(:last-child)::after {
+    top: 28px;
+    bottom: 0;
+    left: 13.75px;
+    right: auto;
+    width: 0.5px;
+    height: auto;
   }
   .public-header {
     padding: 16px 20px;

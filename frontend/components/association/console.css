@@ -105,7 +105,7 @@
   }
   .console.is-nav-collapsed .console-organization,
   .console.is-nav-collapsed .console-nav-text,
-  .console.is-nav-collapsed .console-sidebar > .demo-tools {
+  .console.is-nav-collapsed .console-sidebar > .console-tools {
     display: none;
   }
   .console.is-nav-collapsed .console-sidebar nav a {
@@ -541,6 +541,9 @@
 .console-calendar-dot.is-full {
   background: var(--danger);
 }
+.console-calendar-dot.is-busy {
+  background: var(--warning-solid);
+}
 .console-calendar-dot.is-closed {
   background: var(--muted);
 }
@@ -975,4 +978,189 @@
   .console-posted-grid {
     gap: 12px 8px;
   }
+}
+
+/* API console uses the same surfaces for live configuration and scoped evidence. */
+.console-split {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(0, 2fr);
+  gap: 24px;
+  align-items: start;
+}
+.console-main > .card,
+.console-main > .console-stack,
+.console-main > .field-label,
+.console-main > details,
+.console-main > .console-split {
+  margin-block: 16px;
+}
+.console-main .card {
+  padding: 24px;
+}
+.console-main fieldset {
+  min-width: 0;
+}
+.console-main dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding-block: 8px;
+  border-bottom: 0.5px solid var(--border);
+}
+.console-main dt {
+  color: var(--muted);
+}
+.console-main dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .console-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* Restore the queue and evidence hierarchy while retaining API state owners. */
+.restored-review {
+  margin: -24px;
+  min-width: 0;
+}
+.restored-review .console-review-queue {
+  min-width: 0;
+}
+.restored-review .console-review-list .button {
+  white-space: normal;
+  height: auto;
+}
+.restored-review-meta {
+  display: block;
+  margin-top: 4px;
+}
+.restored-review-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.restored-review-empty {
+  padding: 12px 16px;
+  color: var(--muted);
+}
+.restored-review-detail {
+  padding: 24px;
+  gap: 24px;
+}
+.restored-review-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.restored-review-detail > .console-decision {
+  padding: 20px 0 0;
+}
+.restored-review-detail > .console-decision h2 {
+  margin-bottom: 16px;
+}
+.console-photos {
+  flex-wrap: wrap;
+}
+.console-evidence-section > h2 {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+.console-evidence-indicators {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+.console-evidence-indicators li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.console-evidence-facts {
+  margin: 0;
+}
+.console-evidence-facts dd {
+  text-align: right;
+}
+@media (max-width: 767px) {
+  .restored-review {
+    margin: -16px;
+  }
+  .restored-review .console-review-list {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .restored-review-detail {
+    padding: 20px 16px;
+  }
+  .console-photos > div {
+    max-width: 100%;
+  }
+}
+.restored-review-categories {
+  justify-content: flex-start;
+}
+.restored-review-categories .button {
+  flex: 0 1 auto;
+  min-height: 32px;
+  white-space: normal;
+}
+.restored-review-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 0.5px solid var(--border);
+}
+.restored-review-row.is-selected {
+  background: var(--subtle);
+}
+.restored-review-thumbnail {
+  flex: 0 0 40px;
+  padding-top: 2px;
+}
+.restored-review-photo-empty {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: var(--component);
+}
+.restored-review .console-review-list .restored-review-row > .button {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  min-height: 44px;
+  background: transparent;
+}
+.auth-photo-thumbnail {
+  display: grid;
+  place-items: center;
+  background: var(--component);
+  border-radius: 6px;
+}
+.auth-photo-thumbnail a,
+.auth-photo-thumbnail .console-photo {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+}
+.auth-photo-thumbnail > .button {
+  padding: 0 2px;
+  font-size: 12px;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+}
+.auth-photo-thumbnail > p {
+  margin: 0;
 }

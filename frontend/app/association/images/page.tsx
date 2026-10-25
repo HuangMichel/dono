@@ -1,251 +1,203 @@
 "use client";
-import { formatCount, indicatorLabel } from "@/lib/ui-text";
-
-import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useApiPage, useApiResource } from "@/lib/api-hooks";
+import type {
+  StockLot,
+  Photo,
+  Indicator,
+  ExpiryBucket,
+} from "@/lib/api-contracts";
+import { Button, Chip, SelectField } from "@/components/ui";
 import {
-  associationGallery,
-  filterGalleryDonations,
-} from "@/lib/association-gallery";
-import { useDemo } from "@/lib/demo-context";
+  ConsoleTitle,
+  useAssociation,
+  ResourceStatus,
+  More,
+} from "@/components/association/shell";
 import {
-  CATEGORY_LABELS,
-  DEMO_ASSOCIATION_ID,
-  DEMO_STAFF_ID,
-  STATUS_LABELS,
-  getInventory,
-} from "@/lib/demo-store";
-import {
-  Button,
-  Card,
-  CardActions,
-  Chip,
-  EmptyState,
-  SelectField,
-} from "@/components/ui";
-import { ConsoleTitle } from "@/components/association/shell";
-import {
-  Evidence,
-  dateLabel,
-  instant,
+  AuthPhoto,
   itemName,
   probabilityLabel,
+  instant,
 } from "@/components/association/evidence";
-
-export default function ImagesPage() {
-  const { state } = useDemo();
-  const [category, setCategory] = useState("all");
+import { ExpiryChip, expiryLabel } from "@/components/association/status";
+import { indicatorLabel, formatCount } from "@/lib/ui-text";
+import { CATEGORY_LABELS } from "@/lib/labels";
+import "./images.css";
+type Gallery = { lot: StockLot; photos: Photo[]; indicators: Indicator[] };
+const INDICATOR_FILTERS: [string, string][] = [
+  ["looks_like_medicine", "Medicine"],
+  ["chilled_or_frozen", "Chilled or frozen"],
+  ["stains_visible", "Stains"],
+  ["seal_broken", "Broken seal"],
+  ["label_unreadable", "Unreadable date"],
+];
+export default function Images() {
+  const { id } = useAssociation();
+  const [category, setCategory] = useState("");
   const [indicator, setIndicator] = useState("");
-  const [level, setLevel] = useState("");
-  const [selected, setSelected] = useState("");
-  const gallery = useMemo(
-    () =>
-      associationGallery(
-        {
-          donations: state.donations,
-          analyses: state.analyses,
-          photos: state.photos,
-          expiry_facts: state.expiry_facts,
-        },
-        DEMO_ASSOCIATION_ID,
-      ),
-    [state.donations, state.analyses, state.photos, state.expiry_facts],
+  const [expiry, setExpiry] = useState("");
+  const query = new URLSearchParams();
+  if (category) query.set("category", category);
+  if (indicator) query.set("indicator_key", indicator);
+  if (expiry) query.set("expiry_filter", expiry);
+  const resource = useApiPage<Gallery>(`/associations/${id}/images?${query}`);
+  const counts = useApiResource<{
+    buckets: { key: ExpiryBucket; count: number }[];
+    reference_date: string;
+    timezone: string;
+  }>(
+    `/associations/${id}/expiry-counts${category ? `?category=${category}` : ""}`,
   );
-  const { keys, analysisById, photoByDonationId, expiryByDonationId } = gallery;
-  const donations = filterGalleryDonations(gallery, category, indicator, level);
-  const detail = donations.find((d) => d.id === selected);
-  const stock = getInventory(state).filter(
-    (i) =>
-      i.donation.association_id === DEMO_ASSOCIATION_ID &&
-      Number(i.remaining_quantity) > 0,
+  const fefo = useApiPage<StockLot>(
+    `/associations/${id}/expiry?view=distribute_first&limit=3${category ? `&category=${category}` : ""}`,
   );
-  const unknownDates = stock.filter(
-    (i) => !expiryByDonationId.get(i.donation.id)?.expiry_date,
-  ).length;
   return (
     <>
-      <ConsoleTitle title="Images" detail={formatCount(donations.length)} />
-      <div className="console-actions" style={{ marginBottom: 16 }}>
-        <div
-          className="console-filter-strip console-category-tabs"
-          aria-label="Image categories"
-        >
-          {[
-            ["all", "All"],
-            ["food", "Food"],
-            ["para", "Hygiene & care"],
-            ["clothes", "Clothes"],
-            ["shoes", "Shoes"],
-            ["furniture", "Small furniture"],
-          ].map(([key, label]) => (
+      <ConsoleTitle
+        title="Images"
+        detail="Photos of received donations still in stock."
+      />
+      <div className="row wrap">
+        <div className="segmented" role="group" aria-label="Category">
+          <Button
+            type="button"
+            variant="soft"
+            aria-pressed={category === ""}
+            onClick={() => setCategory("")}
+          >
+            All
+          </Button>
+          {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
             <Button
-              size="sm"
+              key={key}
+              type="button"
               variant="soft"
               aria-pressed={category === key}
               onClick={() => setCategory(key)}
-              key={key}
             >
               {label}
             </Button>
           ))}
         </div>
-        {keys.slice(0, 4).map((key) => (
-          <Button
-            key={key}
-            variant={indicator === key ? "outline" : "soft"}
-            size="sm"
-            aria-pressed={indicator === key}
-            onClick={() => setIndicator(indicator === key ? "" : key)}
-          >
-            {indicatorLabel(key)}
-          </Button>
-        ))}
+        <div className="row wrap" role="group" aria-label="Indicator">
+          {INDICATOR_FILTERS.map(([key, label]) => (
+            <Button
+              key={key}
+              type="button"
+              variant="soft"
+              aria-pressed={indicator === key}
+              onClick={() => setIndicator(indicator === key ? "" : key)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
         <SelectField
-          label="Indicator level"
-          value={level}
-          onChange={(e) => setLevel(e.target.value)}
+          label="Expiry"
+          value={expiry}
+          onChange={(e) => setExpiry(e.target.value)}
         >
-          <option value="">All levels</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
+          <option value="">All date groups</option>
+          {[
+            "expired",
+            "today",
+            "lt_7",
+            "lt_30",
+            "lt_90",
+            "at_90",
+            "gt_90",
+            "unknown",
+            "not_applicable",
+          ].map((b) => (
+            <option key={b} value={b}>
+              {expiryLabel(b as ExpiryBucket)}
+            </option>
+          ))}
         </SelectField>
       </div>
-      <div className="console-gallery-layout">
-        <div className="console-gallery-grid">
-          {donations.map((d) => {
-            const photo = photoByDonationId.get(d.id);
-            const analysis =
-              d.basis_analysis_id === null
-                ? undefined
-                : analysisById.get(d.basis_analysis_id);
-            const indicator = analysis?.indicators[0];
-            const facts = expiryByDonationId.get(d.id);
-            return (
-              <Card key={d.id}>
-                <div className="console-gallery-image">
-                  {photo && (
-                    <Image
-                      unoptimized
-                      className="console-photo"
-                      src={photo.content_url}
-                      alt={itemName(d)}
-                      width={320}
-                      height={320}
-                      loading="lazy"
-                    />
-                  )}
-                  <Chip>
-                    {d.category ? CATEGORY_LABELS[d.category] : "Unknown"}
-                  </Chip>
-                  {indicator && (
-                    <Chip
-                      variant={
-                        indicator.level === "high" ? "danger" : "warning"
-                      }
-                    >
-                      {indicatorLabel(indicator.key)}
-                      {indicator.probability !== undefined
-                        ? ` ${probabilityLabel(indicator.probability)}`
-                        : ""}
-                    </Chip>
-                  )}
-                </div>
-                <div className="console-gallery-caption card-action-content">
-                  <h2>
-                    {itemName(d)} ×{d.quantity}
-                  </h2>
-                  <p className="console-meta">
-                    {facts?.expiry_date
-                      ? dateLabel(facts.expiry_date)
-                      : STATUS_LABELS[d.status]}
-                  </p>
-                  {d.decided_by && (
-                    <p className="console-meta">
-                      {d.decision === "refused" ? "Refused" : "Approved"} by{" "}
-                      {d.decided_by === DEMO_STAFF_ID ? "Léa" : "staff"}
-                      {d.decided_at ? `, ${instant(d.decided_at)}` : ""}
-                    </p>
-                  )}
-                  <CardActions>
-                    <Button
-                      variant="soft"
-                      size="sm"
-                      aria-pressed={selected === d.id}
-                      onClick={() => setSelected(d.id)}
-                    >
-                      Inspect
-                    </Button>
-                  </CardActions>
-                </div>
-              </Card>
-            );
-          })}
-          {!donations.length && (
-            <EmptyState title="No images match these filters" />
+      <div className="images-layout">
+        <div className="console-stack">
+          <ResourceStatus {...resource} empty={!resource.data.length} />
+          {!resource.loading && !resource.error && !resource.data.length && (
+            <p className="console-meta">No photos match these filters.</p>
           )}
-        </div>
-        <aside className="console-stack console-inspection">
-          {detail ? (
-            <Card className="console-panel">
-              <div className="console-title">
-                <h2>{itemName(detail)}</h2>
-                <Button
-                  size="sm"
-                  variant="soft"
-                  aria-label="Close inspection"
-                  onClick={() => setSelected("")}
-                >
-                  Close
-                </Button>
-              </div>
-              <Evidence donation={detail} />
-            </Card>
-          ) : (
-            <>
-              <Card className="console-panel">
-                <div className="console-title">
-                  <h2>Expiry groups</h2>
-                  <Chip variant="caution">Policy pending</Chip>
-                </div>
-                <dl>
-                  {[
-                    "Expired",
-                    "Under 7 days",
-                    "7–30 days",
-                    "30–90 days",
-                    "Over 90 days",
-                  ].map((label) => (
-                    <div key={label}>
-                      <dt>{label}</dt>
-                      <dd>—</dd>
+          <div className="images-gallery">
+            {resource.data.map((row) => {
+              const firstIndicator = row.indicators[0];
+              return (
+                <figure className="images-tile" key={row.lot.receipt.id}>
+                  <div className="images-tile-photo">
+                    {row.photos[0] ? (
+                      <AuthPhoto
+                        photo={row.photos[0]}
+                        alt={`${row.photos[0].kind === "label" ? "Printed label" : "Item"} photo of ${itemName(row.lot.offer)}`}
+                      />
+                    ) : (
+                      <p className="meta muted">No photo available</p>
+                    )}
+                    <div className="images-tile-chips">
+                      <Chip>{CATEGORY_LABELS[row.lot.offer.category]}</Chip>
+                      <ExpiryChip expiry={row.lot.expiry} />
                     </div>
-                  ))}
-                  <div>
-                    <dt>Date not available</dt>
-                    <dd>{unknownDates}</dd>
                   </div>
-                </dl>
-                <p className="console-meta" style={{ marginTop: 8 }}>
-                  Received, undistributed stock only.
-                </p>
-              </Card>
-              <Card variant="subtle" className="console-panel">
-                <h2>Quality metrics</h2>
-                <dl>
-                  <div>
-                    <dt>Average shelf life</dt>
-                    <dd>—</dd>
-                  </div>
-                  <div>
-                    <dt>AI vs staff agreement</dt>
-                    <dd>—</dd>
-                  </div>
-                </dl>
-                <span className="console-meta">Metrics unavailable.</span>
-              </Card>
-            </>
-          )}
+                  <figcaption>
+                    <strong>{itemName(row.lot.offer)}</strong>
+                    <p className="meta muted">
+                      {formatCount(row.lot.remaining_quantity)}{" "}
+                      {row.photos.length === 1
+                        ? ""
+                        : `, ${row.photos.length} photos`}
+                    </p>
+                    {firstIndicator && (
+                      <p className="meta muted">
+                        {indicatorLabel(firstIndicator.key)}
+                        {firstIndicator.probability == null
+                          ? (firstIndicator.value ?? "")
+                          : ` ${probabilityLabel(firstIndicator.probability)}`}
+                      </p>
+                    )}
+                    <p className="meta muted">
+                      Received {instant(row.lot.receipt.created_at)}
+                    </p>
+                  </figcaption>
+                </figure>
+              );
+            })}
+          </div>
+          <More {...resource} />
+        </div>
+        <aside className="console-stack images-aside">
+          <section className="card">
+            <h2>Expiry buckets</h2>
+            <ResourceStatus {...counts} />
+            {counts.data && (
+              <ul className="images-buckets">
+                {counts.data.buckets.map((bucket) => (
+                  <li key={bucket.key}>
+                    <span>{expiryLabel(bucket.key)}</span>
+                    <ExpiryChip
+                      expiry={{ bucket: bucket.key, days_left: null }}
+                    />
+                    <strong className="num">{bucket.count}</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section className="card">
+            <h2>Distribute first, FEFO</h2>
+            <ResourceStatus {...fefo} />
+            <ol className="images-fefo">
+              {fefo.data.map((lot, index) => (
+                <li key={lot.receipt.id}>
+                  <span className="num">{index + 1}</span>
+                  <span>{itemName(lot.offer)}</span>
+                  <ExpiryChip expiry={lot.expiry} />
+                </li>
+              ))}
+            </ol>
+          </section>
         </aside>
       </div>
     </>

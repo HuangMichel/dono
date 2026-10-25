@@ -208,3 +208,40 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.dashboard-preview-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+.dashboard-preview-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.dashboard-preview-list > li > div {
+  min-width: 0;
+}
+.dashboard-preview-list p {
+  margin: 4px 0 0;
+}
+.dashboard-preview-list strong,
+.dashboard-preview-list a {
+  overflow-wrap: anywhere;
+}
+.dashboard-section-link {
+  color: var(--primary);
+  font-weight: 500;
+}
+.dashboard-capacity {
+  grid-column: 1 / -1;
+}
+.dashboard-capacity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  margin-bottom: 20px;
+}

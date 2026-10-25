@@ -77,13 +77,13 @@
   gap: 4px;
 }
 .file-upload-multiple .file-upload-photo-actions {
-  grid-template-rows: 32px 32px;
+  grid-auto-rows: minmax(36px, auto);
 }
-.file-upload-photo-actions > .button:nth-child(3) {
+.file-upload-photo-actions > .button:nth-child(n + 3) {
   grid-column: 1 / -1;
 }
 .file-upload-photo-actions .button {
-  min-height: 32px;
+  min-height: 36px;
   padding: 5px 8px;
 }
 .file-upload-actions {

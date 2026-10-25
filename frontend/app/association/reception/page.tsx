@@ -1,407 +1,237 @@
 "use client";
-import { formatCount } from "@/lib/ui-text";
-
-import { Button, Card, Chip, EmptyState, Field, Icon } from "@/components/ui";
-
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { Booking, Donation } from "@/lib/contracts";
-import { useDemo } from "@/lib/demo-context";
-import { DEMO_ASSOCIATION_ID } from "@/lib/demo-store";
-import { ConsoleTitle, Feedback, Notice } from "@/components/association/shell";
-import { instant, itemName } from "@/components/association/evidence";
+import { useRef, useState } from "react";
+import { api } from "@/lib/api";
+import { useApiPage } from "@/lib/api-hooks";
+import type { Offer, Booking } from "@/lib/api-contracts";
+import { Button, Field, Icon } from "@/components/ui";
 import {
-  resolveDemoArrival,
-  validQuantity,
-} from "@/components/association/interaction";
-
-export default function ReceptionPage() {
-  const { state } = useDemo();
-  const [reference, setReference] = useState("");
-  const [resolved, setResolved] = useState("");
-  const [message, setMessage] = useState("");
-  const [day, setDay] = useState("");
-  const bookings = state.bookings.filter(
-    (b) => b.association_id === DEMO_ASSOCIATION_ID,
+  ConsoleTitle,
+  useAssociation,
+  ResourceStatus,
+  More,
+} from "@/components/association/shell";
+import {
+  CommandForm,
+  text,
+  useCommand,
+} from "@/components/association/command";
+import { Evidence, itemName, instant } from "@/components/association/evidence";
+import { DateChecks, dateCommand } from "@/components/association/date-checks";
+import { StateChip, ExpiryChip } from "@/components/association/status";
+import { formatCount, enumLabel } from "@/lib/ui-text";
+import "@/components/association/reception-stock.css";
+type Arrival = { booking: Booking; offer: Offer };
+type Resolved = Arrival & { receivable: boolean; blocking_codes: string[] };
+export default function Reception() {
+  const { id } = useAssociation();
+  const [day, setDay] = useState(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(
+      new Date(),
+    ),
   );
-  function resolve(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const match = resolveDemoArrival(reference, bookings, state.slots);
-    if (!match) {
-      setResolved("");
-      setMessage("Unknown demo booking reference. No stock was changed.");
-      return;
-    }
-    setMessage("");
-    setDay(match.arrival_date);
-    setResolved(match.booking.id);
-  }
-  const arrivals = bookings.filter((booking) => {
-    const slot = state.slots.find((s) => s.id === booking.slot_id);
-    return (
-      !day ||
-      (slot &&
-        new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(
-          new Date(slot.starts_at),
-        ) === day)
-    );
-  });
+  const resource = useApiPage<Arrival>(
+    `/associations/${id}/arrivals?date=${day}`,
+  );
+  const [resolved, setResolved] = useState<Resolved | null>(null);
+  const [payload, setPayload] = useState("");
+  const [resolvedPayload, setResolvedPayload] = useState("");
+  const command = useCommand();
+  const verification = useRef(0);
   return (
     <>
       <ConsoleTitle
-        title="Drop-offs"
-        detail={`${formatCount(arrivals.length, "appointment")}, Europe/Paris`}
+        title="Reception"
+        detail="Use a QR reader on your device, then paste the donor's QR code content below."
       />
-      <div className="console-reception-layout">
-        <div className="console-stack">
-          <Card className="console-panel">
-            <div className="console-scan-area">
-              <Icon name="scan" />
-              <span>Look up a drop-off</span>
-              <span className="console-meta">Demo references only</span>
+      <div className="reception-workspace">
+        <div className="reception-verification console-stack">
+          <section className="card">
+            <div className="reception-qr-heading">
+              <Icon name="scan" size={32} />
+              <h2>Check donor QR code</h2>
             </div>
-            <form
-              onSubmit={resolve}
-              className="console-stack"
-              style={{ marginTop: 16 }}
+            <p className="console-meta">
+              Paste the donor&apos;s QR code content to check this appointment.
+            </p>
+            <CommandForm
+              submit="Check QR code"
+              successMessage="QR verification complete."
+              onSubmit={async () => {
+                setResolved(null);
+                const generation = ++verification.current;
+                const result = await api<Resolved>(
+                  `/associations/${id}/qr/resolve`,
+                  { method: "POST", body: { payload } },
+                );
+                if (generation !== verification.current) return false;
+                setResolvedPayload(payload);
+                setResolved(result);
+              }}
             >
               <Field
-                label="Demo booking reference"
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
-                placeholder="DEMO-ONLY:…"
+                label="QR code content"
+                value={payload}
+                maxLength={2048}
                 required
-              />
-              <Button>Look up booking</Button>
-              <Feedback message={message} error />
-            </form>
-            <p className="console-meta" style={{ marginTop: 12 }}>
-              Check the goods before confirming reception.
-            </p>
-          </Card>
-          <Field
-            label="Arrival date, Paris"
-            type="date"
-            value={day}
-            onChange={(e) => setDay(e.target.value)}
-          />
-          {day && (
-            <Button variant="soft" size="sm" onClick={() => setDay("")}>
-              Show all dates
-            </Button>
-          )}
-        </div>
-        <section className="console-reception-rows">
-          {arrivals.map((booking) => {
-            const donation = state.donations.find(
-              (d) => d.id === booking.donation_id,
-            );
-            if (!donation) return null;
-            return (
-              <ReceiveCard
-                key={booking.id}
-                booking={booking}
-                donation={donation}
-                expanded={resolved === booking.id}
-                onToggle={() => {
-                  if (resolved === booking.id) {
-                    setResolved("");
-                    return;
-                  }
-                  setReference(booking.id);
-                  setResolved(booking.id);
-                  setMessage("");
+                onChange={(e) => {
+                  verification.current++;
+                  setPayload(e.target.value);
+                  setResolved(null);
                 }}
               />
-            );
-          })}
-          {!arrivals.length && <EmptyState title="No drop-offs on this date" />}
+            </CommandForm>
+          </section>
+        </div>
+        <section
+          className="reception-arrivals console-stack"
+          aria-label="Arrivals"
+        >
+          <div className="reception-arrivals-heading">
+            <h2>
+              Drop-offs
+              {!resource.loading &&
+                !resource.error &&
+                resource.data.length > 0 && (
+                  <span className="console-meta">
+                    {" "}
+                    {formatCount(resource.data.length, "expected drop-off")}
+                    {resource.hasMore ? " and more available" : ""}
+                  </span>
+                )}
+            </h2>
+            <Field
+              label="Drop-off date (Europe/Paris)"
+              type="date"
+              value={day}
+              onChange={(e) => {
+                if (e.target.value) setDay(e.target.value);
+              }}
+            />
+          </div>
+          <ResourceStatus {...resource} />
+          {!resource.loading && !resource.error && !resource.data.length && (
+            <p className="reception-empty">No drop-offs on this date.</p>
+          )}
+          {resolved && (
+            <section
+              key={`${resolved.booking.id}:${resolved.booking.revision}`}
+              className="card reception-resolved"
+            >
+              <div className="console-status-line">
+                <h2>{itemName(resolved.offer)}</h2>
+                <StateChip state={resolved.booking.computed.effective_state} />
+              </div>
+              <p className="console-meta">
+                {instant(resolved.booking.computed.starts_at)},{" "}
+                {formatCount(resolved.offer.quantity)}
+              </p>
+              <Evidence offer={resolved.offer} />
+              {!resolved.receivable ? (
+                <p role="alert">
+                  Reception unavailable:{" "}
+                  {resolved.blocking_codes.map(enumLabel).join(", ")}.
+                </p>
+              ) : (
+                <CommandForm
+                  submit={`Receive all ${formatCount(resolved.offer.quantity)} into stock`}
+                  successMessage="Full quantity received into stock."
+                  onSubmit={async (data) => {
+                    await command(
+                      `/bookings/${resolved.booking.id}/reception`,
+                      {
+                        expected_revision: resolved.booking.revision,
+                        payload: resolvedPayload,
+                        confirm_full_received: true,
+                        ...dateCommand(data),
+                      },
+                    );
+                    setResolved((current) =>
+                      current === resolved ? null : current,
+                    );
+                    setPayload((current) =>
+                      current === resolvedPayload ? "" : current,
+                    );
+                    await resource.refresh();
+                  }}
+                >
+                  <DateChecks expiry={resolved.offer.computed.expiry} />
+                  <label>
+                    <input type="checkbox" required /> I checked the physical
+                    item and received the full offered quantity.
+                  </label>
+                </CommandForm>
+              )}
+              <p>
+                For a quantity or item mismatch, cancel the appointment before
+                receiving any items and ask the donor to correct and offer the
+                item again.
+              </p>
+              <CommandForm
+                submit="Cancel appointment"
+                successMessage="Appointment and offer cancelled."
+                onSubmit={async (data) => {
+                  await command(
+                    `/bookings/${resolved.booking.id}/cancellation`,
+                    {
+                      expected_revision: resolved.booking.revision,
+                      reason: text(data, "reason"),
+                    },
+                  );
+                  setResolved((current) =>
+                    current === resolved ? null : current,
+                  );
+                  setPayload((current) =>
+                    current === resolvedPayload ? "" : current,
+                  );
+                  await resource.refresh();
+                }}
+              >
+                <Field
+                  label="Cancellation reason"
+                  name="reason"
+                  required
+                  maxLength={240}
+                />
+              </CommandForm>
+              <Button variant="soft" onClick={() => setResolved(null)}>
+                Close
+              </Button>
+            </section>
+          )}
+          <div className="reception-arrival-list">
+            {resource.data.map((arrival) => (
+              <article
+                className="card reception-arrival"
+                key={arrival.booking.id}
+              >
+                <div className="reception-arrival-main">
+                  <time dateTime={arrival.booking.computed.starts_at}>
+                    {new Intl.DateTimeFormat("en-GB", {
+                      timeZone: "Europe/Paris",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(new Date(arrival.booking.computed.starts_at))}
+                  </time>
+                  <div>
+                    <h3>{itemName(arrival.offer)}</h3>
+                    <p className="console-meta">
+                      {formatCount(arrival.offer.quantity)}
+                    </p>
+                  </div>
+                  <StateChip state={arrival.booking.computed.effective_state} />
+                </div>
+                <div className="reception-arrival-meta">
+                  <ExpiryChip expiry={arrival.offer.computed.expiry} />
+                  <span className="console-meta">
+                    {instant(arrival.booking.computed.starts_at)}
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+          <More {...resource} />
         </section>
       </div>
     </>
-  );
-}
-
-function ReceiveCard({
-  booking,
-  donation,
-  expanded,
-  onToggle,
-}: {
-  booking: Booking;
-  donation: Donation;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const { state, dispatch } = useDemo();
-  const inspectionRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (expanded) inspectionRef.current?.focus();
-  }, [expanded]);
-  const [reason, setReason] = useState("");
-  const [confirmRefusal, setConfirmRefusal] = useState(false);
-  const refusal = state.reception_refusals[booking.id];
-  const refused = donation.status === "refused";
-  const [quantity, setQuantity] = useState(donation.quantity ?? "1");
-  const [revision, setRevision] = useState(donation.revision);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState(false);
-  const receipt = state.movements.find(
-    (m) => m.donation_id === donation.id && m.movement_type === "receipt",
-  );
-  const original = state.receipt_originals[donation.id] ?? donation.quantity;
-  const slot = state.slots.find((item) => item.id === booking.slot_id);
-  const detailsId = `reception-details-${booking.id}`;
-  function receive(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      if (!validQuantity(quantity, donation.quantity ?? "0"))
-        throw new Error(
-          "Enter a positive whole quantity no greater than the offered quantity.",
-        );
-      dispatch({
-        type: "receive",
-        booking_id: booking.id,
-        quantity,
-        expected_revision: revision,
-      });
-      setError(false);
-      setMessage("Reception and stock recorded.");
-    } catch (cause) {
-      setError(true);
-      setMessage(
-        cause instanceof Error
-          ? cause.message
-          : "Reception could not be recorded.",
-      );
-    }
-  }
-  function refuse(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      dispatch({
-        type: "refuseReception",
-        booking_id: booking.id,
-        reason,
-        confirm_refusal: confirmRefusal,
-        expected_revision: revision,
-      });
-      setError(false);
-      setMessage("Donation refused at reception. No stock was recorded.");
-    } catch (cause) {
-      setError(true);
-      setMessage(
-        cause instanceof Error
-          ? cause.message
-          : "Refusal could not be recorded.",
-      );
-    }
-  }
-  return (
-    <article className="card console-panel">
-      <div className="console-reception-header">
-        <div>
-          <h2>
-            {itemName(donation)} × {donation.quantity}
-          </h2>
-          <p className="console-meta">
-            {slot ? instant(slot.starts_at) : "Slot unavailable"},{" "}
-            {formatCount(original)} originally offered
-          </p>
-        </div>
-        <div className="console-actions">
-          <Chip variant={refused ? "danger" : receipt ? "success" : "caution"}>
-            {refused
-              ? "Refused at reception"
-              : receipt
-                ? "Received"
-                : "Expected"}
-          </Chip>
-          <Button
-            variant="soft"
-            size="sm"
-            aria-expanded={expanded}
-            aria-controls={detailsId}
-            onClick={onToggle}
-          >
-            {expanded ? "Hide details" : "More details"}
-          </Button>
-        </div>
-      </div>
-      <div
-        id={detailsId}
-        className="console-reception-details"
-        hidden={!expanded}
-        tabIndex={-1}
-        ref={inspectionRef}
-        aria-label={`Details for ${itemName(donation)}`}
-      >
-        <div className="console-stack">
-          <p className="console-meta">{booking.id}</p>
-          <Feedback message={message} error={error} />
-          <dl>
-            <div>
-              <dt>Originally offered</dt>
-              <dd>{formatCount(original)}</dd>
-            </div>
-            <div>
-              <dt>Status</dt>
-              <dd>
-                {refused
-                  ? "Refused at reception"
-                  : receipt
-                    ? "Received"
-                    : "Awaiting reception"}
-              </dd>
-            </div>
-          </dl>
-          {refused ? (
-            <>
-              <Chip variant="danger">Refused at reception</Chip>
-              {refusal && (
-                <dl>
-                  <div>
-                    <dt>Staff reason</dt>
-                    <dd>{refusal.reason}</dd>
-                  </div>
-                  <div>
-                    <dt>Refused by</dt>
-                    <dd>
-                      Léa Martin, {instant(refusal.refused_at)}
-                      <span className="console-meta">
-                        {" "}
-                        ({refusal.refused_by})
-                      </span>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Original approval</dt>
-                    <dd>
-                      {instant(refusal.original_approval.decided_at)}, staff{" "}
-                      {refusal.original_approval.decided_by}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Quantity refused</dt>
-                    <dd>{formatCount(refusal.original_quantity)}</dd>
-                  </div>
-                </dl>
-              )}
-              <p>
-                No receipt or stock movement was recorded. This appointment
-                remains in history.
-              </p>
-            </>
-          ) : receipt ? (
-            <>
-              <Chip variant="success">Received</Chip>
-              <dl>
-                <div>
-                  <dt>Quantity received</dt>
-                  <dd>{formatCount(receipt.quantity)}</dd>
-                </div>
-                <div>
-                  <dt>Received by</dt>
-                  <dd>Léa Martin, {instant(receipt.created_at)}</dd>
-                </div>
-                <div>
-                  <dt>Receipt reference</dt>
-                  <dd>{receipt.id}</dd>
-                </div>
-              </dl>
-            </>
-          ) : donation.status === "booked" ? (
-            <>
-              <form onSubmit={receive} className="console-stack">
-                <Field
-                  label="Actual quantity received"
-                  type="number"
-                  required
-                  min="1"
-                  max={donation.quantity ?? "0"}
-                  step="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                />
-                <p className="console-meta">
-                  Confirming a smaller quantity completes this booking. No
-                  remaining quantity stays pending.
-                </p>
-                {revision !== donation.revision && (
-                  <Notice>
-                    This donation changed.{" "}
-                    <Button
-                      variant="outline"
-                      type="button"
-                      onClick={() => {
-                        setRevision(donation.revision);
-                        setQuantity(donation.quantity ?? "1");
-                      }}
-                    >
-                      Refresh quantity
-                    </Button>
-                  </Notice>
-                )}
-                <Button
-                  variant="primary"
-                  disabled={
-                    revision !== donation.revision ||
-                    !validQuantity(quantity, donation.quantity ?? "0")
-                  }
-                >
-                  Confirm reception and stock
-                </Button>
-              </form>
-              <form
-                onSubmit={refuse}
-                className="console-stack"
-                style={{ marginTop: 24 }}
-              >
-                <h3>Refuse at reception</h3>
-                <p className="console-meta">
-                  Refuse the entire donation after inspection. No receipt or
-                  stock is recorded.
-                </p>
-                <Field
-                  label="Reason for refusal"
-                  value={reason}
-                  required
-                  onChange={(event) => setReason(event.target.value)}
-                />
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={confirmRefusal}
-                    onChange={(event) =>
-                      setConfirmRefusal(event.target.checked)
-                    }
-                  />
-                  I confirm that staff refuse this donation of{" "}
-                  {formatCount(donation.quantity)} at reception.
-                </label>
-                <Button
-                  variant="danger"
-                  disabled={
-                    !reason.trim() ||
-                    !confirmRefusal ||
-                    revision !== donation.revision
-                  }
-                >
-                  Refuse entire donation
-                </Button>
-                <details className="demo-tools">
-                  <summary>Local demo limitation</summary>
-                  <p className="console-meta">
-                    Reception refusal is stored only in this browser. The
-                    proposed API does not yet define this action.
-                  </p>
-                </details>
-              </form>
-            </>
-          ) : (
-            <p>This donation cannot be received in its current state.</p>
-          )}
-        </div>
-      </div>
-    </article>
   );
 }

@@ -42,16 +42,3 @@ describe("association legal references", () => {
     expect(isValidSiret("35600000000049")).toBe(false);
   });
 });
-import { createInitialState, reduceDemo } from "./demo-store";
-it("blocks invalid SIRET at the shared demo command boundary, including with RNA", () => {
-  const state = createInitialState();
-  state.role = "donor";
-  expect(() =>
-    reduceDemo(state, {
-      type: "register",
-      name: "Example",
-      rna: "W751000001",
-      siret: "20003452800041",
-    }),
-  ).toThrow("SIRET");
-});

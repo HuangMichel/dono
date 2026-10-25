@@ -243,3 +243,29 @@
   max-width: 100%;
   overflow-wrap: anywhere;
 }
+.data-table-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 24px;
+  color: var(--muted);
+  text-align: center;
+}
+.data-table-empty-state svg {
+  color: var(--text-disabled, var(--muted));
+}
+.data-table-empty-state p {
+  margin: 0;
+  color: inherit;
+}
+/* The table shows the blocked-icon row on desktop; the block below only
+   repeats it for the mobile responsive list. */
+.data-table-responsive-list > .data-table-empty {
+  display: none;
+}
+@media (max-width: 767px) {
+  .data-table-responsive-list > .data-table-empty {
+    display: block;
+  }
+}

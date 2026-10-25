@@ -15,6 +15,7 @@ import {
 import {
   requiredFieldError,
   isControlDisabled,
+  nativeFieldError,
 } from "../../lib/field-validation";
 type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 type FeedbackProps = { label: string; error?: string; hideLabel?: boolean };
@@ -55,10 +56,7 @@ function useFieldFeedback<T extends Control>(
     setLocalValue(control.value);
     setNativeError({
       value: control.value,
-      message:
-        !control.validity.valid && !control.validity.valueMissing
-          ? control.validationMessage
-          : "",
+      message: nativeFieldError(control),
     });
   }
   useEffect(() => {
@@ -125,7 +123,23 @@ function useFieldFeedback<T extends Control>(
       if (touched) inspect(control);
     },
     blur: (event: FocusEvent<T>) => inspect(event.currentTarget),
-    invalidEvent: (event: FormEvent<T>) => inspect(event.currentTarget),
+    invalidEvent: (event: FormEvent<T>) => {
+      // Cancelling the bubble does not cancel native invalid-submit prevention.
+      event.preventDefault();
+      const control = event.currentTarget;
+      inspect(control);
+      const firstInvalid = control.form
+        ? Array.from(control.form.elements).find(
+            (element) =>
+              (element instanceof HTMLInputElement ||
+                element instanceof HTMLSelectElement ||
+                element instanceof HTMLTextAreaElement) &&
+              element.willValidate &&
+              !element.validity.valid,
+          )
+        : control;
+      if (firstInvalid === control) control.focus();
+    },
   };
 }
 export function Field({

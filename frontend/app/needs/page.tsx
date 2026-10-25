@@ -1,117 +1,151 @@
 "use client";
-import { formatCount } from "@/lib/ui-text";
-import { useState } from "react";
+import "./needs.css";
+import { useEffect, useState, type FormEvent } from "react";
 import { PublicShell } from "@/components/public-shell";
 import {
-  PageHeading,
-  Card,
-  CardActions,
   Button,
-  Field,
+  Card,
   Chip,
-  Icon,
+  Field,
+  PageHeading,
   LinkButton,
 } from "@/components/ui";
-import { CATEGORY_LABELS } from "@/lib/demo-store";
-import { Pagination } from "@/components/ui/pagination";
-import { paginateItems } from "@/components/ui/pagination-model";
+import { publicNeedsPage } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/api-error-messages";
+import { useAuth } from "@/lib/auth-context";
+import type { Category, Page, PublicNeed } from "@/lib/api-contracts";
+import { categories } from "@/components/donor/api-donation";
+import { enumLabel, factLabel, formatCount } from "@/lib/ui-text";
+import { categoryFields } from "@/lib/category-fields";
+import { accountHref, donationHref } from "@/lib/offer-intent";
 
-const PAGE_SIZE = 10;
-const examples = [
-  {
-    category: "clothes",
-    title: "Winter coats, adult M–XL",
-    name: "Example community wardrobe",
-    note: "Adult sizes M to XL",
-    progress: 12,
-    target: 40,
-  },
-  {
-    category: "food",
-    title: "Dry pasta, rice and cans",
-    name: "Example community pantry",
-    note: "Room temperature only",
-    progress: 24,
-    target: 80,
-  },
-  {
-    category: "shoes",
-    title: "Complete pairs, sizes 36–44",
-    name: "Example solidarity shop",
-    note: "Complete pairs only",
-    progress: 8,
-    target: 30,
-  },
-  {
-    category: "para",
-    title: "Unopened hygiene products",
-    name: "Example support centre",
-    note: "No medicines",
-    progress: 6,
-    target: 25,
-  },
-  {
-    category: "furniture",
-    title: "Small furniture, bedside tables",
-    name: "Example solidarity shop",
-    note: "Donor brings the item",
-    progress: 2,
-    target: 6,
-  },
-];
+function needAttribute(need: PublicNeed, key: string, value: unknown) {
+  const text = String(value);
+  const options = categoryFields[need.category][key];
+  return typeof value === "boolean" || options?.includes(text)
+    ? enumLabel(text)
+    : text;
+}
+
+function needTitle(need: PublicNeed) {
+  const facts = Object.entries(need.attributes)
+    .filter(([, value]) => typeof value === "string" && value.trim())
+    .map(([key, value]) => needAttribute(need, key, value))
+    .join(", ");
+  return facts || categories[need.category];
+}
+type Query = { location: string; category: Category | ""; cursors: string[] };
 export default function Needs() {
-  const [category, setCategory] = useState("all"),
-    [selected, setSelected] = useState("clothes"),
-    [location, setLocation] = useState(""),
-    [submittedLocation, setSubmittedLocation] = useState<string | null>(null),
-    [page, setPage] = useState(1);
-  const filtered = examples.filter(
-      (x) => category === "all" || x.category === category,
-    ),
-    results = paginateItems(filtered, page, PAGE_SIZE),
-    item =
-      results.items.find((x) => x.category === selected) ?? results.items[0];
+  const { user } = useAuth();
+  const [query, setQuery] = useState<Query>({
+    location: "",
+    category: "",
+    cursors: [],
+  });
+  const [result, setResult] = useState<{
+    query: Query;
+    page?: Page<PublicNeed>;
+    error?: string;
+  } | null>(null);
+  const [retry, setRetry] = useState(0);
+  const [locationError, setLocationError] = useState("");
+  const [selectedId, setSelectedId] = useState("");
+  const [accountFor, setAccountFor] = useState<string | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({ limit: "10" });
+    if (query.location) params.set("location", query.location);
+    if (query.category) params.set("category", query.category);
+    const cursor = query.cursors.at(-1);
+    if (cursor) params.set("cursor", cursor);
+    void publicNeedsPage<PublicNeed>(params.toString(), controller.signal).then(
+      (page) => {
+        if (!controller.signal.aborted) setResult({ query, page });
+      },
+      (error) => {
+        if (!controller.signal.aborted)
+          setResult({
+            query,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Cannot load needs. Try again.",
+          });
+      },
+    );
+    return () => controller.abort();
+  }, [query, retry]);
+  const current = result?.query === query ? result : null;
+  const loading = !current;
+  const needs = current?.page?.data ?? [];
+  const selected = needs.find((need) => need.id === selectedId) ?? needs[0];
+  const next = selected
+    ? donationHref({
+        need: selected.id,
+        category: selected.category,
+        location: query.location,
+      })
+    : "/donate";
+  function search(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const location = String(
+      new FormData(event.currentTarget).get("location") ?? "",
+    ).trim();
+    // Validate the trimmed value so optional whitespace still lists all needs.
+    if (
+      location &&
+      ([...location].length < 3 ||
+        [...location].length > 200 ||
+        !/^[\p{L}\p{N}]/u.test(location))
+    ) {
+      setLocationError(apiErrorMessage("invalid_location", 422));
+      const input = event.currentTarget.elements.namedItem("location");
+      if (input instanceof HTMLInputElement) input.focus();
+      return;
+    }
+    setLocationError("");
+    setQuery((old) => ({ ...old, location, cursors: [] }));
+    setSelectedId("");
+    setAccountFor(null);
+  }
   return (
     <PublicShell>
       <main id="main" className="container nearby-page">
         <PageHeading title="What is needed nearby?" />
-        <div className="needs-toolbar">
-          <form
-            className="location-search"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSubmittedLocation(location.trim());
-              setPage(1);
-              setSelected("");
-            }}
-          >
-            <div className="location-input location-field">
-              <Icon name="pin" />
-              <Field
-                label="Location (optional)"
-                hideLabel
-                id="location"
-                name="location"
-                aria-label="Location (optional)"
-                aria-describedby="needs-location-status"
-                placeholder="Location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </div>
-            <Button variant="outline">Search</Button>
+        <div className="row wrap needs-toolbar">
+          <form className="row wrap needs-search" onSubmit={search}>
+            <Field
+              label="Town or postcode (optional)"
+              name="location"
+              maxLength={200}
+              placeholder="Town or postcode"
+              error={locationError}
+              aria-describedby="location-hint"
+              onChange={() => setLocationError("")}
+            />
+            <Button type="submit" variant="outline">
+              Search
+            </Button>
           </form>
-          <div className="segmented category-filter" aria-label="Category">
-            {[["all", "All"], ...Object.entries(CATEGORY_LABELS)].map(
-              ([key, label]) => (
+          <div
+            className="row category-filter"
+            role="group"
+            aria-label="Category"
+          >
+            {[["", "All"], ...Object.entries(categories)].map(
+              ([category, label]) => (
                 <Button
-                  key={key}
-                  variant="soft"
-                  aria-pressed={category === key}
+                  key={category}
+                  variant={query.category === category ? "soft" : "outline"}
+                  aria-pressed={query.category === category}
                   onClick={() => {
-                    setCategory(key);
-                    setPage(1);
-                    setSelected("");
+                    setQuery((old) => ({
+                      ...old,
+                      category: category as Query["category"],
+                      cursors: [],
+                    }));
+                    setSelectedId("");
+                    setAccountFor(null);
                   }}
                 >
                   {label}
@@ -120,97 +154,191 @@ export default function Needs() {
             )}
           </div>
         </div>
-        <p
-          className="meta muted needs-note"
-          id="needs-location-status"
-          role="status"
-        >
-          {submittedLocation
-            ? "Location search is unavailable in this demo. Showing all sample needs in the selected category."
-            : `${formatCount(filtered.length, "sample need")}. Location is optional; no distance filtering in this demo.`}
+        <p id="location-hint" className="meta muted needs-note">
+          Enter a town with at least 3 characters or a full 5-digit postcode,
+          such as 68100. Search shows only that town or postcode. Leave blank to
+          browse all needs.
         </p>
-        <div className="needs-layout">
-          <div className="stack-sm needs-results">
-            <div className="stack-sm" role="group" aria-label="Sample needs">
-              {results.items.map((x) => (
-                <button
-                  key={x.category}
-                  className={`need-row ${item?.category === x.category ? "selected" : ""}`}
-                  onClick={() => setSelected(x.category)}
-                  aria-pressed={item?.category === x.category}
-                >
-                  <span className="need-row-heading">
-                    <span>
-                      <strong>{x.title}</strong>
-                      <span className="meta muted block">{x.name}</span>
-                    </span>
-                    {x.category === "clothes" && (
-                      <Chip variant="warning">Urgent example</Chip>
-                    )}
-                  </span>
-                  <span className="row wrap need-meta">
-                    <span>Paris example</span>
-                    <span>{x.note}</span>
-                    <span>
-                      {x.progress} of {x.target} received
-                    </span>
-                  </span>
-                  <span className="progress-track">
-                    <span
-                      style={{ width: `${(x.progress / x.target) * 100}%` }}
-                    />
-                  </span>
-                </button>
-              ))}
-              {results.totalItems === 0 && (
-                <p className="muted">No sample needs in this category.</p>
-              )}
-            </div>
-            <Pagination
-              page={results.page}
-              totalItems={results.totalItems}
-              pageSize={PAGE_SIZE}
-              label="Needs pages"
-              onPageChange={(nextPage) => {
-                setPage(nextPage);
-                setSelected("");
+        <p className="meta muted needs-note">
+          Browse needs without an account. Sign in to offer an item.
+        </p>
+        {loading ? (
+          <p role="status">Loading needs…</p>
+        ) : current.error ? (
+          <Card className="stack">
+            <p role="alert">{current.error}</p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResult(null);
+                setRetry((value) => value + 1);
               }}
-            />
-          </div>
-          {item && (
-            <Card className="need-detail stack-sm">
-              <Chip>
-                {CATEGORY_LABELS[item.category as keyof typeof CATEGORY_LABELS]}
-              </Chip>
-              <h2>{item.title}</h2>
-              <p className="meta muted">{item.name}, fictional listing</p>
-              <dl className="facts-list">
-                <div>
-                  <dt>Target</dt>
-                  <dd>{formatCount(item.target, "unit")}</dd>
-                </div>
-                <div>
-                  <dt>Received</dt>
-                  <dd>{formatCount(item.progress, "unit")}</dd>
-                </div>
-                <div>
-                  <dt>Location</dt>
-                  <dd>Paris example</dd>
-                </div>
-              </dl>
-              <p className="meta muted">{item.note}</p>
-              <CardActions>
+            >
+              Retry
+            </Button>
+          </Card>
+        ) : !needs.length ? (
+          <p role="status">
+            No open needs match this search. Try another town or category.
+          </p>
+        ) : (
+          <div className="needs-layout">
+            <div className="needs-results stack">
+              <ul className="stack" aria-label="Nearby needs">
+                {needs.map((need) => (
+                  <li key={need.id}>
+                    <button
+                      type="button"
+                      className={`need-row ${selected?.id === need.id ? "selected" : ""}`}
+                      aria-pressed={selected?.id === need.id}
+                      aria-controls="need-detail"
+                      onClick={() => {
+                        setSelectedId(need.id);
+                        setAccountFor(null);
+                        document
+                          .getElementById("need-detail")
+                          ?.scrollIntoView?.({ block: "nearest" });
+                      }}
+                    >
+                      <span className="need-row-heading">
+                        <span>
+                          <strong>{needTitle(need)}</strong>
+                          <span className="meta muted">
+                            {need.association.name},{" "}
+                            {need.association.display_address}
+                          </span>
+                        </span>
+                        <Chip>{categories[need.category]}</Chip>
+                      </span>
+                      <span className="row wrap need-meta">
+                        {need.distance_km !== null && (
+                          <span>{need.distance_km.toFixed(1)} km</span>
+                        )}
+                        <span>
+                          {formatCount(need.available_quantity)} still needed
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <nav className="row" aria-label="Results pages">
+                <Button
+                  variant="outline"
+                  disabled={!query.cursors.length}
+                  onClick={() =>
+                    setQuery((old) => ({
+                      ...old,
+                      cursors: old.cursors.slice(0, -1),
+                    }))
+                  }
+                >
+                  Previous
+                </Button>
+                <span className="meta">Page {query.cursors.length + 1}</span>
+                <Button
+                  variant="outline"
+                  disabled={
+                    !current.page?.page.has_more ||
+                    !current.page.page.next_cursor
+                  }
+                  onClick={() => {
+                    const cursor = current.page?.page.next_cursor;
+                    if (cursor)
+                      setQuery((old) => ({
+                        ...old,
+                        cursors: [...old.cursors, cursor],
+                      }));
+                  }}
+                >
+                  Next
+                </Button>
+              </nav>
+            </div>
+            {selected && (
+              <aside
+                id="need-detail"
+                aria-label="Selected need"
+                className="card need-detail stack-sm"
+              >
+                <Chip>{categories[selected.category]}</Chip>
+                <h2>{needTitle(selected)}</h2>
                 <p className="meta muted">
-                  Sample listing only. Your offer is matched against the demo
-                  association’s needs.
+                  {selected.association.name},{" "}
+                  {selected.association.display_address}
                 </p>
-                <LinkButton href="/donate" size="app">
-                  Prepare an offer
-                </LinkButton>
-              </CardActions>
-            </Card>
-          )}
-        </div>
+                <dl className="facts-list">
+                  <div>
+                    <dt>Total requested</dt>
+                    <dd>{formatCount(selected.target_quantity)}</dd>
+                  </div>
+                  <div>
+                    <dt>Still needed</dt>
+                    <dd>{formatCount(selected.available_quantity)}</dd>
+                  </div>
+                  {selected.distance_km !== null && (
+                    <div>
+                      <dt>Distance</dt>
+                      <dd>{selected.distance_km.toFixed(1)} km</dd>
+                    </div>
+                  )}
+                  {selected.seasons.length > 0 && (
+                    <div>
+                      <dt>Seasons</dt>
+                      <dd>{selected.seasons.map(enumLabel).join(", ")}</dd>
+                    </div>
+                  )}
+                  {Object.entries(selected.attributes)
+                    .filter(
+                      ([, value]) =>
+                        value !== null &&
+                        ["string", "number", "boolean"].includes(typeof value),
+                    )
+                    .map(([key, value]) => (
+                      <div key={key}>
+                        <dt>{factLabel(key)}</dt>
+                        <dd>{needAttribute(selected, key, value)}</dd>
+                      </div>
+                    ))}
+                </dl>
+                <p className="meta muted">
+                  We check matching and availability when you prepare your item.
+                </p>
+                {user ? (
+                  <LinkButton href={next}>Offer an item</LinkButton>
+                ) : (
+                  <Button
+                    variant={accountFor === selected.id ? "soft" : "primary"}
+                    aria-expanded={accountFor === selected.id}
+                    aria-controls={`account-${selected.id}`}
+                    onClick={() => setAccountFor(selected.id)}
+                  >
+                    Offer an item
+                  </Button>
+                )}
+                {!user && accountFor === selected.id && (
+                  <div
+                    id={`account-${selected.id}`}
+                    className="stack-sm"
+                    role="region"
+                    aria-label="Account needed to offer"
+                  >
+                    <p>Create an account or sign in to prepare your offer.</p>
+                    <LinkButton href={accountHref("signup", next)}>
+                      Create an account
+                    </LinkButton>
+                    <LinkButton
+                      href={accountHref("login", next)}
+                      variant="outline"
+                    >
+                      Sign in
+                    </LinkButton>
+                  </div>
+                )}
+              </aside>
+            )}
+          </div>
+        )}
       </main>
     </PublicShell>
   );

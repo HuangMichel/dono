@@ -1,366 +1,308 @@
 "use client";
-import { enumLabel } from "@/lib/ui-text";
+import { CATEGORY_LABELS } from "@/lib/labels";
+import { categoryFields } from "@/lib/category-fields";
+import { factLabel, enumLabel } from "@/lib/ui-text";
+import { useState } from "react";
+import { useApiPage } from "@/lib/api-hooks";
+import type { Need } from "@/lib/api-contracts";
 import { DataTable } from "@/components/ui/data-table";
-
-import { Button, Chip, Field, SelectField } from "@/components/ui";
-
-import { useRef, useState, type FormEvent } from "react";
-import type {
-  Category,
-  Need,
-  NeedInput,
-  NeedDraft,
-  Season,
-} from "@/lib/contracts";
-import { useDemo } from "@/lib/demo-context";
-import { NeedVoiceInput } from "@/components/association/need-voice-input";
 import {
-  CATEGORY_LABELS,
-  DEMO_ASSOCIATION_ID,
-  isNeedCriteriaLocked,
-  getNeeds,
-} from "@/lib/demo-store";
+  NeedParser,
+  ParsedNeedConfirmation,
+  type ParsedNeed,
+} from "@/components/association/need-parser";
+import { Button, SelectField } from "@/components/ui";
 import {
-  CategorySelect,
   ConsoleTitle,
-  Feedback,
+  CategorySelect,
+  useAssociation,
+  ResourceStatus,
+  More,
+  NumberInput,
 } from "@/components/association/shell";
-
-export default function NeedsPage() {
-  const { state, dispatch } = useDemo();
+import {
+  NeedFields,
+  needAttributes,
+} from "@/components/association/need-fields";
+import {
+  CommandForm,
+  text,
+  useCommand,
+} from "@/components/association/command";
+export default function Needs() {
+  const { id, membership } = useAssociation();
+  const resource = useApiPage<Need>(`/associations/${id}/needs`);
   const [editing, setEditing] = useState<Need | null>(null);
-  const [category, setCategory] = useState<Category>("clothes");
-  const [item, setItem] = useState("");
-  const [size, setSize] = useState("");
-  const [target, setTarget] = useState("12");
-  const [season, setSeason] = useState("");
-  const [feedback, setFeedback] = useState("");
-  const [error, setError] = useState(false);
-  const [draftSource, setDraftSource] = useState<string | null>(null);
-  const [voiceStatusVersion, setVoiceStatusVersion] = useState(0);
-  const formTitle = useRef<HTMLHeadingElement>(null);
-  const needs = getNeeds(state, DEMO_ASSOCIATION_ID);
-  const locked = editing ? isNeedCriteriaLocked(state, editing.id) : false;
-  function resetForm() {
-    setVoiceStatusVersion((current) => current + 1);
-    setEditing(null);
-    setCategory("clothes");
-    setItem("");
-    setSize("");
-    setTarget("12");
-    setSeason("");
-    setDraftSource(null);
-  }
-  function loadDraft(result: NeedDraft) {
-    resetForm();
-    setCategory(result.draft.category ?? "clothes");
-    setItem(String(result.draft.attributes?.product ?? ""));
-    setSize(String(result.draft.attributes?.size ?? ""));
-    setTarget(result.draft.target_quantity ?? "");
-    setSeason(result.draft.seasons?.[0] ?? "");
-    setDraftSource(result.source_text);
-    setError(false);
-    setFeedback("");
-    requestAnimationFrame(() => formTitle.current?.focus());
-  }
-  function selectNeed(id: string | null) {
-    if (!id) {
-      resetForm();
-      setFeedback("");
-      return;
-    }
-    const need = needs.find((need) => need.id === id);
-    if (need) edit(need);
-  }
-  function edit(need: Need) {
-    setVoiceStatusVersion((current) => current + 1);
-    setDraftSource(null);
-    setError(false);
-    setEditing(need);
-    setCategory(need.category);
-    setItem(String(need.attributes.type ?? need.attributes.product ?? ""));
-    setSize(String(need.attributes.size ?? ""));
-    setTarget(need.target_quantity);
-    setSeason(need.seasons?.[0] ?? "");
-    setFeedback("");
-  }
-  function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      if (
-        (!locked && !item.trim()) ||
-        !/^\d+$/.test(target) ||
-        Number(target) < 1 ||
-        Number(target) > 999999999
-      )
-        throw new Error("Enter an item and a positive whole-number target.");
-      const input: NeedInput = {
-        category,
-        attributes:
-          locked && editing
-            ? editing.attributes
-            : {
-                product: item.trim(),
-                ...(size.trim() ? { size: size.trim() } : {}),
-              },
-        seasons:
-          locked && editing
-            ? editing.seasons
-            : season
-              ? [season as Season]
-              : null,
-        target_quantity: target,
-        unit: "item",
-        active: editing?.active ?? true,
-        source_text: editing?.source_text ?? draftSource,
-      };
-      dispatch(
-        editing
-          ? {
-              type: "need",
-              id: editing.id,
-              patch: { ...input, expected_revision: editing.revision },
-            }
-          : { type: "need", id: crypto.randomUUID(), input },
-      );
-      setError(false);
-      setFeedback(
-        editing ? "Need updated in the demo." : "Need published in the demo.",
-      );
-      resetForm();
-    } catch (cause) {
-      setError(true);
-      setFeedback(
-        cause instanceof Error ? cause.message : "The need could not be saved.",
-      );
-    }
-  }
-  function toggle(need: Need) {
-    try {
-      dispatch({
-        type: "need",
-        id: need.id,
-        patch: { active: !need.active, expected_revision: need.revision },
-      });
-      // Rebase only our successful status change. Preserve the unsaved form values
-      // and do not mask an edit that was already stale before this action.
-      setEditing((current) =>
-        current?.id === need.id && current.revision === need.revision
-          ? {
-              ...current,
-              active: !need.active,
-              revision: String(BigInt(need.revision) + 1n),
-            }
-          : current,
-      );
-      setError(false);
-      setFeedback(need.active ? "Need paused." : "Need resumed.");
-    } catch (cause) {
-      setError(true);
-      setFeedback(
-        cause instanceof Error
-          ? cause.message
-          : "The need could not be changed.",
-      );
-    }
-  }
+  const [category, setCategory] = useState("clothes");
+  const [parsed, setParsed] = useState<{
+    result: ParsedNeed;
+    source: string;
+    key: number;
+  } | null>(null);
+  const command = useCommand();
+  const admin = membership.role === "assoc_admin";
+  const openCount = resource.data.filter((need) => need.active).length;
+  const pausedCount = resource.data.length - openCount;
   return (
     <>
       <ConsoleTitle
         title="Needs"
-        detail={`${needs.filter((n) => n.active).length} open, ${needs.filter((n) => !n.active).length} paused`}
-      />
-      <Feedback message={feedback} error={error} />
-      <NeedVoiceInput
-        onDraft={loadDraft}
-        disabled={!!editing}
-        statusResetKey={voiceStatusVersion}
+        detail={
+          resource.loading
+            ? undefined
+            : `${openCount} open, ${pausedCount} paused${resource.hasMore ? ", more available" : ""}`
+        }
       />
       <div className="console-columns">
-        <div className="console-table-wrap">
+        <div className="console-stack">
+          <ResourceStatus {...resource} empty={!resource.data.length} />
           <DataTable
-            rows={needs}
-            selectedRowId={editing?.id ?? null}
-            onSelectionChange={selectNeed}
-            getRowId={(need) => need.id}
-            getRowLabel={(need) =>
-              String(need.attributes.type ?? need.attributes.product ?? "Item")
+            rows={resource.data}
+            pageSize={25}
+            getRowId={(n) => n.id}
+            getRowLabel={(n) => `${CATEGORY_LABELS[n.category]} need`}
+            searchText={(n) =>
+              `${n.category} ${Object.values(n.attributes).join(" ")}`
             }
-            searchLabel="Search needs"
-            searchText={(need) =>
-              `${need.attributes.type ?? ""} ${need.attributes.product ?? ""} ${need.attributes.size ?? ""} ${CATEGORY_LABELS[need.category]} ${need.active ? "Open" : "Paused"}`
-            }
-            emptyMessage="No needs match this view."
+            searchLabel="Search loaded needs"
             columns={[
               {
                 id: "item",
                 label: "Need",
-                sortValue: (need) =>
-                  String(
-                    need.attributes.type ?? need.attributes.product ?? "Item",
-                  ),
-                cell: (need) => {
-                  const size = need.attributes.size
-                    ? `Size ${need.attributes.size}`
-                    : ["clothes", "shoes"].includes(need.category)
-                      ? "Size not specified"
-                      : null;
-                  const description = [
-                    size,
-                    need.seasons?.map(enumLabel).join(", "),
-                  ]
-                    .filter(Boolean)
-                    .join(", ");
-                  return (
-                    <>
-                      <strong>
-                        {String(
-                          need.attributes.type ??
-                            need.attributes.product ??
-                            "Item",
-                        )}
-                      </strong>
-                      {description && (
-                        <p className="console-meta">{description}</p>
-                      )}
-                    </>
-                  );
-                },
-              },
-              {
-                id: "category",
-                label: "Category",
-                sortValue: (need) => CATEGORY_LABELS[need.category],
-                cell: (need) => CATEGORY_LABELS[need.category],
-              },
-              {
-                id: "target",
-                label: "Received / target",
-                sortValue: (need) => Number(need.target_quantity),
-                cell: (need) => (
+                cell: (n) => (
                   <>
-                    {need.computed.fulfilled} / {need.target_quantity}
+                    <strong>{CATEGORY_LABELS[n.category]}</strong>
                     <p className="console-meta">
-                      {need.computed.pending_hold} reserved
+                      {Object.entries(n.attributes)
+                        .filter(([, v]) => v != null)
+                        .map(
+                          ([k, v]) =>
+                            `${factLabel(k)}: ${typeof v === "boolean" ? (v ? "Yes" : "No") : typeof v === "string" && categoryFields[n.category][k]?.includes(v) ? enumLabel(v) : v}`,
+                        )
+                        .join(", ")}
                     </p>
                   </>
                 ),
               },
               {
-                id: "status",
-                label: "Status",
-                sortValue: (need) => (need.active ? "Open" : "Paused"),
-                cell: (need) => (
-                  <Chip variant={need.active ? "success" : "neutral"}>
-                    {need.active ? "Open" : "Paused"}
-                  </Chip>
-                ),
+                id: "target",
+                label: "Items needed",
+                cell: (n) => n.target_quantity,
               },
               {
-                id: "actions",
-                label: "Actions",
-                cell: (need) => (
-                  <div className="console-actions">
-                    <Button variant="outline" onClick={() => toggle(need)}>
-                      {need.active ? "Pause" : "Resume"}
-                    </Button>
-                  </div>
-                ),
+                id: "held",
+                label: "Reserved",
+                cell: (n) => n.computed.held_quantity,
               },
+              {
+                id: "fulfilled",
+                label: "Received",
+                cell: (n) => n.computed.fulfilled_quantity,
+              },
+              {
+                id: "available",
+                label: "Still needed",
+                cell: (n) => n.computed.available_quantity,
+              },
+              {
+                id: "storage",
+                label: "Storage places per item",
+                cell: (n) => n.storage_units_per_item,
+              },
+              {
+                id: "active",
+                label: "Status",
+                cell: (n) => (n.active ? "Active" : "Paused"),
+              },
+              ...(admin
+                ? [
+                    {
+                      id: "actions",
+                      label: "Actions",
+                      cell: (n: Need) => (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setParsed(null);
+                            setEditing(n);
+                            setCategory(n.category);
+                          }}
+                        >
+                          Edit need
+                        </Button>
+                      ),
+                    },
+                  ]
+                : []),
             ]}
+            renderMobileRow={(n) => (
+              <>
+                <strong>{CATEGORY_LABELS[n.category]}</strong>
+                <p>
+                  {n.computed.available_quantity} still needed of{" "}
+                  {n.target_quantity} target items
+                </p>
+                {admin && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setParsed(null);
+                      setEditing(n);
+                      setCategory(n.category);
+                    }}
+                  >
+                    Edit need
+                  </Button>
+                )}
+              </>
+            )}
+            emptyMessage="No needs found."
           />
+          <More {...resource} />
         </div>
-        <form className="card console-panel console-stack" onSubmit={save}>
-          <h2 ref={formTitle} tabIndex={-1}>
-            {editing
-              ? "Edit need"
-              : draftSource !== null
-                ? "Review sample AI draft"
-                : "Add a need"}
-          </h2>
-          {draftSource !== null && (
-            <div className="need-draft-review">
-              <Chip variant="caution">Sample draft, not live AI</Chip>
-              <p className="console-meta">
-                Review every field. Nothing is published until you confirm and
-                submit.
-              </p>
-              <details>
-                <summary>Source description</summary>
-                <blockquote>{draftSource}</blockquote>
-              </details>
-            </div>
-          )}
-          <p className="console-meta">
-            Matching criteria are locked after an approval or receipt. Pause the
-            old need and create a new one to change them.
-          </p>
-          <fieldset
-            disabled={!!locked}
-            style={{ border: 0, padding: 0, margin: 0 }}
-            className="console-stack"
-          >
-            <Field
-              label="Item"
-              required
-              value={item}
-              onChange={(e) => setItem(e.target.value)}
-              maxLength={120}
-            />
-            <CategorySelect
-              value={category}
-              onChange={(value) => setCategory(value as Category)}
-            />
-            <Field
-              label="Size, optional"
-              value={size}
-              onChange={(e) => setSize(e.target.value)}
-              maxLength={30}
-            />
-            <SelectField
-              label="Season"
-              value={season}
-              onChange={(e) => setSeason(e.target.value)}
-            >
-              <option value="">All seasons</option>
-              {["spring", "summer", "autumn", "winter"].map((s) => (
-                <option key={s} value={s}>
-                  {enumLabel(s)}
-                </option>
-              ))}
-            </SelectField>
-          </fieldset>
-          <Field
-            label="Target, items"
-            required
-            type="number"
-            min="1"
-            max="999999999"
-            step="1"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-          />
-          <Button variant="primary" type="submit">
-            {editing
-              ? "Save need"
-              : draftSource !== null
-                ? "Confirm and publish need"
-                : "Publish need"}
-          </Button>
-          {(editing || draftSource !== null) && (
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => {
-                resetForm();
-                setFeedback("");
-                setError(false);
+        <div className="console-stack">
+          {admin && !editing && (
+            <NeedParser
+              id={id}
+              onDraft={(result, source) => {
+                setCategory(result.draft.category ?? "");
+                setParsed({ result, source, key: Date.now() });
               }}
-            >
-              {editing ? "Cancel editing" : "Discard sample draft"}
-            </Button>
+            />
           )}
-        </form>
+          {admin ? (
+            <section className="card">
+              <h2>
+                {editing
+                  ? "Edit need"
+                  : parsed
+                    ? "Review need draft"
+                    : "Create need"}
+              </h2>
+              <CommandForm
+                key={
+                  editing
+                    ? `${editing.id}:${editing.revision}`
+                    : `new:${parsed?.key ?? 0}`
+                }
+                submit="Save need"
+                successMessage="Need saved."
+                onSubmit={async (data) => {
+                  if (parsed && data.get("confirm_draft") !== "on")
+                    throw new Error(
+                      "Review and confirm the need draft before saving.",
+                    );
+                  if (!category)
+                    throw new Error("Select a category before saving.");
+                  const attributes = needAttributes(
+                    data,
+                    category,
+                    editing?.attributes ??
+                      (category === parsed?.result.draft.category
+                        ? parsed.result.draft.attributes
+                        : undefined),
+                  );
+                  const common = {
+                    attributes,
+                    seasons: data.getAll("seasons"),
+                    target_quantity: text(data, "target"),
+                    storage_units_per_item: Number(text(data, "storage")),
+                    active: text(data, "active") === "true",
+                  };
+                  await command(
+                    `/associations/${id}/needs${editing ? `/${editing.id}` : ""}`,
+                    editing
+                      ? { ...common, expected_revision: editing.revision }
+                      : {
+                          ...common,
+                          category,
+                          unit: "item",
+                          ...(parsed ? { source_text: parsed.source } : {}),
+                        },
+                    editing ? "PATCH" : "POST",
+                  );
+                  setEditing(null);
+                  setParsed(null);
+                  await resource.refresh();
+                }}
+              >
+                {parsed && (
+                  <ParsedNeedConfirmation warnings={parsed.result.warnings} />
+                )}
+                {!editing && (
+                  <CategorySelect value={category} onChange={setCategory} />
+                )}
+                <NeedFields
+                  category={category}
+                  attributes={
+                    editing?.attributes ??
+                    (category === parsed?.result.draft.category
+                      ? parsed.result.draft.attributes
+                      : undefined)
+                  }
+                />
+                <NumberInput
+                  label="Target items"
+                  name="target"
+                  min={1}
+                  value={
+                    editing?.target_quantity ??
+                    parsed?.result.draft.target_quantity
+                  }
+                />
+                <NumberInput
+                  label="Storage places per item"
+                  name="storage"
+                  min={1}
+                  value={
+                    editing?.storage_units_per_item ?? (parsed ? undefined : 1)
+                  }
+                />
+                <SelectField
+                  label="Status"
+                  name="active"
+                  defaultValue={String(editing?.active ?? true)}
+                >
+                  <option value="true">Active</option>
+                  <option value="false">Paused</option>
+                </SelectField>
+                <fieldset>
+                  <legend>
+                    Seasons (leave all unchecked for year-round needs)
+                  </legend>
+                  {["spring", "summer", "autumn", "winter"].map((s) => (
+                    <label key={s}>
+                      <input
+                        type="checkbox"
+                        name="seasons"
+                        value={s}
+                        defaultChecked={(
+                          editing?.seasons ??
+                          parsed?.result.draft.seasons ??
+                          []
+                        ).includes(s as never)}
+                      />{" "}
+                      {enumLabel(s)}{" "}
+                    </label>
+                  ))}
+                </fieldset>
+              </CommandForm>
+              {editing && (
+                <Button
+                  variant="soft"
+                  onClick={() => {
+                    setEditing(null);
+                    setParsed(null);
+                  }}
+                >
+                  Create another need
+                </Button>
+              )}
+            </section>
+          ) : (
+            <p>Only association administrators can change needs.</p>
+          )}
+        </div>
       </div>
     </>
   );

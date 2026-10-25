@@ -1,281 +1,223 @@
 "use client";
-import { formatCount } from "@/lib/ui-text";
+import { useState } from "react";
+import { useApiPage, useApiResource } from "@/lib/api-hooks";
+import type { StockLot, ExpiryBucket, Offer } from "@/lib/api-contracts";
 import { DataTable } from "@/components/ui/data-table";
-
-import { Button, Field } from "@/components/ui";
-
-import { useState, type FormEvent } from "react";
-import type { InventoryItem } from "@/lib/contracts";
-import { useDemo } from "@/lib/demo-context";
+import { SelectField } from "@/components/ui";
 import {
-  CATEGORY_LABELS,
-  DEMO_ASSOCIATION_ID,
-  getInventory,
-} from "@/lib/demo-store";
-import { ConsoleTitle, Feedback } from "@/components/association/shell";
-import { dateLabel, itemName } from "@/components/association/evidence";
-import { validQuantity } from "@/components/association/interaction";
-
-export default function InventoryPage() {
-  const { state } = useDemo();
-  const [category, setCategory] = useState("all");
-  const [policyMessage, setPolicyMessage] = useState("");
-  const [dateFilter, setDateFilter] = useState("all");
-  const [success, setSuccess] = useState("");
-  const inventory = getInventory(state).filter(
-    (i) =>
-      i.donation.association_id === DEMO_ASSOCIATION_ID &&
-      Number(i.remaining_quantity) > 0 &&
-      (category === "all" || i.donation.category === category) &&
-      (dateFilter !== "unknown" ||
-        !state.expiry_facts.find((f) => f.donation_id === i.donation.id)
-          ?.expiry_date),
+  ConsoleTitle,
+  CategorySelect,
+  useAssociation,
+  ResourceStatus,
+  More,
+} from "@/components/association/shell";
+import { CommandForm, useCommand } from "@/components/association/command";
+import { Evidence, itemName } from "@/components/association/evidence";
+import { DateChecks, dateCommand } from "@/components/association/date-checks";
+import {
+  ExpiryChip,
+  StateChip,
+  expiryLabel,
+} from "@/components/association/status";
+import { formatCount } from "@/lib/ui-text";
+import { CATEGORY_LABELS } from "@/lib/labels";
+import "@/components/association/reception-stock.css";
+export default function Inventory() {
+  const { id } = useAssociation();
+  const [category, setCategory] = useState("");
+  const [view, setView] = useState("distribute_first");
+  const filter = category ? `&category=${category}` : "";
+  const resource = useApiPage<StockLot>(
+    view === "distributed"
+      ? `/associations/${id}/inventory?inventory_state=distributed${filter}`
+      : `/associations/${id}/expiry?view=${view}${filter}`,
   );
-  const total = inventory.reduce(
-    (sum, i) => sum + Number(i.remaining_quantity),
-    0,
+  const counts = useApiResource<{
+    buckets: { key: ExpiryBucket; count: number }[];
+    reference_date: string;
+    timezone: string;
+  }>(
+    `/associations/${id}/expiry-counts${category ? `?category=${category}` : ""}`,
   );
+  const [selected, setSelected] = useState<string | null>(null);
+  const command = useCommand();
+  function details(lot: StockLot) {
+    if (lot.receipt.id !== selected) return null;
+    return (
+      <section
+        key={lot.receipt.id}
+        className="stock-lot-detail console-stack"
+        aria-label={`Distribution for ${itemName(lot.offer)}`}
+      >
+        <div className="console-status-line">
+          <h2>{itemName(lot.offer)}</h2>
+          <StateChip state={lot.inventory_state} />
+        </div>
+        <p>
+          {formatCount(lot.remaining_quantity)} remaining,{" "}
+          {formatCount(lot.receipt.quantity)} received
+        </p>
+        <StockEvidence offer={lot.offer} />
+        {lot.inventory_state === "in_stock" && (
+          <CommandForm
+            submit={`Record all items given out (${formatCount(lot.remaining_quantity)})`}
+            successMessage="Full quantity recorded as given out."
+            onSubmit={async (data) => {
+              await command(`/inventory/${lot.receipt.id}/distributions`, {
+                confirm_full_distribution: true,
+                ...dateCommand(data),
+              });
+              setSelected(null);
+              await Promise.all([resource.refresh(), counts.refresh()]);
+            }}
+          >
+            <DateChecks expiry={lot.expiry} />
+            <label className="check">
+              <input type="checkbox" required /> I confirm that the full
+              received quantity is being given out.
+            </label>
+          </CommandForm>
+        )}
+      </section>
+    );
+  }
   return (
     <>
-      <ConsoleTitle title="Stock" detail={`${formatCount(total)} remaining`} />
-      <div className="console-summary-tiles" aria-label="Stock categories">
-        {[
-          ["all", "All categories"],
-          ["clothes", "Clothes"],
-          ["shoes", "Shoes"],
-          ["food", "Dry food"],
-          ["para", "Hygiene & care"],
-          ["furniture", "Small furniture"],
-        ].map(([key, label]) => {
-          const count = getInventory(state)
-            .filter(
-              (i) =>
-                i.donation.association_id === DEMO_ASSOCIATION_ID &&
-                (key === "all" || i.donation.category === key),
-            )
-            .reduce((sum, i) => sum + Number(i.remaining_quantity), 0);
-          return (
-            <Button
-              key={key}
-              variant="outline"
-              aria-pressed={category === key}
-              onClick={() => setCategory(key)}
-            >
-              <strong>
-                {label}
-                <span>{count}</span>
-              </strong>
-              <span className="console-meta">
-                {count === 1 ? "item in stock" : "items in stock"}
-              </span>
-            </Button>
-          );
-        })}
-      </div>
-      <div className="console-stock-filter-row">
-        <div className="console-filter-strip" aria-label="Stock dates">
-          <Button
-            variant="soft"
-            size="sm"
-            aria-pressed={dateFilter === "all"}
-            onClick={() => setDateFilter("all")}
-          >
-            All
-          </Button>
-          {["Expired", "This week", "This month", "Later"].map((label) => (
-            <Button
-              key={label}
-              variant="soft"
-              size="sm"
-              onClick={() =>
-                setPolicyMessage("Expiry filters need an agreed date policy.")
-              }
-            >
-              {label}
-            </Button>
-          ))}
-          <Button
-            variant="soft"
-            size="sm"
-            aria-pressed={dateFilter === "unknown"}
-            onClick={() => setDateFilter("unknown")}
-          >
-            No date
-          </Button>
+      <ConsoleTitle title="Stock" />
+      <section className="stock-expiry-summary" aria-label="Expiry counts">
+        <div className="console-status-line">
+          <h2>Expiry overview</h2>
+          {counts.data && (
+            <span className="console-meta">
+              As of {counts.data.reference_date}, {counts.data.timezone}
+            </span>
+          )}
         </div>
-        <span className="console-meta">Date policy pending</span>
+        <ResourceStatus {...counts} />
+        {counts.data && (
+          <ul className="stock-expiry-counts">
+            {counts.data.buckets.map((bucket) => (
+              <li key={bucket.key}>
+                <ExpiryChip expiry={{ bucket: bucket.key, days_left: null }} />
+                <strong>{formatCount(bucket.count, "donation")}</strong>
+                <span className="sr-only">{expiryLabel(bucket.key)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <div className="stock-controls">
+        <CategorySelect
+          value={category}
+          onChange={(value) => {
+            setSelected(null);
+            setCategory(value);
+          }}
+          all
+        />
+        <SelectField
+          label="View"
+          value={view}
+          onChange={(e) => {
+            setSelected(null);
+            setView(e.target.value);
+          }}
+        >
+          <option value="distribute_first">Distribute first</option>
+          <option value="buckets">Date groups</option>
+          <option value="distributed">Given-out history</option>
+        </SelectField>
+        {view === "distribute_first" && (
+          <p className="console-meta">
+            Earliest dates first, then unknown dates and items with no expiry
+            date. Items with date restrictions appear last.
+          </p>
+        )}
       </div>
-      <Feedback message={policyMessage} error />
-      <Feedback message={success} />
-      <div className="console-table-wrap">
-        <DataTable
-          rows={inventory}
-          getRowId={(item) => item.donation.id}
-          getRowLabel={(item) => itemName(item.donation)}
-          searchLabel="Search stock"
-          searchText={(item) =>
-            `${itemName(item.donation)} ${item.donation.category ? CATEGORY_LABELS[item.donation.category] : ""}`
-          }
-          emptyMessage="No received stock matches this view."
-          columns={[
-            {
-              id: "item",
-              label: "Item",
-              sortValue: (item) => itemName(item.donation),
-              cell: (item) => (
-                <>
-                  <strong>{itemName(item.donation)}</strong>
-                  <p className="console-meta">
-                    {item.donation.category
-                      ? CATEGORY_LABELS[item.donation.category]
-                      : "Unknown category"}
-                  </p>
-                </>
-              ),
-            },
-            {
-              id: "date",
-              label: "Printed date",
-              sortValue: (item) => {
-                const facts = state.expiry_facts.find(
-                  (f) => f.donation_id === item.donation.id,
-                );
-                return facts?.expiry_date
-                  ? Date.parse(facts.expiry_date)
-                  : null;
-              },
-              cell: (item) => {
-                const facts = state.expiry_facts.find(
-                  (f) => f.donation_id === item.donation.id,
-                );
-                return (
+      <ResourceStatus {...resource} />
+      {!resource.loading && !resource.error && !resource.data.length && (
+        <p className="stock-empty">
+          {view === "distributed"
+            ? "No donations have been given out in this view."
+            : "No stock found."}
+        </p>
+      )}
+      {resource.data.length > 0 && (
+        <div className="stock-table">
+          <DataTable
+            rows={resource.data}
+            pageSize={25}
+            getRowId={(lot) => lot.receipt.id}
+            getRowLabel={(lot) => itemName(lot.offer)}
+            searchText={(lot) =>
+              `${itemName(lot.offer)} ${CATEGORY_LABELS[lot.offer.category]}`
+            }
+            searchLabel="Search loaded stock"
+            selectedRowId={selected}
+            onSelectionChange={setSelected}
+            columns={[
+              {
+                id: "item",
+                label: "Item",
+                cell: (lot) => (
                   <>
-                    {dateLabel(facts?.expiry_date)}
+                    <strong>{itemName(lot.offer)}</strong>
                     <p className="console-meta">
-                      {facts?.date_type ?? "Date not available"}
-                      {facts?.readability === "unreadable"
-                        ? ", unreadable"
-                        : ""}
+                      {CATEGORY_LABELS[lot.offer.category]}
                     </p>
                   </>
-                );
+                ),
               },
-            },
-            {
-              id: "days",
-              label: "Days left",
-              sortValue: (item) => item.expiry.days_left,
-              cell: (item) =>
-                item.expiry.days_left === null
-                  ? "Unknown"
-                  : formatCount(item.expiry.days_left, "day"),
-            },
-            {
-              id: "stock",
-              label: "Stock",
-              sortValue: (item) => Number(item.remaining_quantity),
-              cell: (item) => (
-                <>
-                  {item.remaining_quantity} remaining
-                  <p className="console-meta">
-                    {item.received_quantity} received,{" "}
-                    {item.distributed_quantity} given out
-                  </p>
-                </>
-              ),
-            },
-            {
-              id: "distribution",
-              label: "Distribution",
-              cell: (item) => (
-                <StockDistribution item={item} onDistributed={setSuccess} />
-              ),
-            },
-          ]}
-        />
-      </div>
+              {
+                id: "remaining",
+                label: "Remaining items",
+                cell: (lot) => lot.remaining_quantity,
+              },
+              {
+                id: "received",
+                label: "Received items",
+                cell: (lot) => lot.receipt.quantity,
+              },
+              {
+                id: "expiry",
+                label: "Expiry",
+                cell: (lot) => <ExpiryChip expiry={lot.expiry} />,
+              },
+              {
+                id: "state",
+                label: "Status",
+                cell: (lot) => <StateChip state={lot.inventory_state} />,
+              },
+            ]}
+            renderDetails={details}
+            renderMobileRow={(lot) => (
+              <div className="stock-mobile-row">
+                <strong>{itemName(lot.offer)}</strong>
+                <p className="console-meta">
+                  {formatCount(lot.remaining_quantity)} remaining
+                </p>
+                <div className="stock-mobile-chips">
+                  <ExpiryChip expiry={lot.expiry} />
+                  <StateChip state={lot.inventory_state} />
+                </div>
+                {details(lot)}
+              </div>
+            )}
+            emptyMessage="No stock matches your search."
+          />
+        </div>
+      )}
+      <More {...resource} />
     </>
   );
 }
 
-function StockDistribution({
-  item,
-  onDistributed,
-}: {
-  item: InventoryItem;
-  onDistributed: (message: string) => void;
-}) {
-  const { dispatch } = useDemo();
-  const [quantity, setQuantity] = useState("1");
-  const [revision, setRevision] = useState(item.donation.revision);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState(false);
-  function distribute(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      if (!validQuantity(quantity, item.remaining_quantity))
-        throw new Error(
-          "Quantity must be a positive whole number within remaining stock.",
-        );
-      dispatch({
-        type: "distribute",
-        id: item.donation.id,
-        quantity,
-        expected_revision: revision,
-      });
-      setRevision(String(BigInt(revision) + 1n));
-      setError(false);
-      setMessage(`${formatCount(quantity)} given out.`);
-      onDistributed(
-        `${formatCount(quantity)} of ${itemName(item.donation)} given out. Stock updated.`,
-      );
-    } catch (cause) {
-      setError(true);
-      setMessage(
-        cause instanceof Error
-          ? cause.message
-          : "Distribution could not be recorded.",
-      );
-    }
-  }
+function StockEvidence({ offer }: { offer: Offer }) {
+  const [open, setOpen] = useState(false);
   return (
-    <>
-      <form className="console-actions" onSubmit={distribute}>
-        <Field
-          label="Quantity"
-          style={{ width: 85 }}
-          type="number"
-          required
-          min="1"
-          max={item.remaining_quantity}
-          step="1"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          aria-label={`Quantity of ${itemName(item.donation)} to give out`}
-        />
-        <Button
-          variant="outline"
-          disabled={
-            !validQuantity(quantity, item.remaining_quantity) ||
-            revision !== item.donation.revision
-          }
-        >
-          Record distribution
-        </Button>
-        {revision !== item.donation.revision && (
-          <Button
-            variant="outline"
-            type="button"
-            onClick={() => {
-              setRevision(item.donation.revision);
-              setMessage("");
-            }}
-          >
-            Refresh stock
-          </Button>
-        )}
-      </form>
-      <Feedback message={message} error={error} />
-    </>
+    <details onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary>Item details, photos and AI indicators</summary>
+      {open && <Evidence offer={offer} />}
+    </details>
   );
 }

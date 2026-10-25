@@ -237,6 +237,12 @@ const paths: Record<string, ReactNode> = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  blocked: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m5.64 5.64 12.72 12.72" />
+    </>
+  ),
 };
 export function Icon({
   name,

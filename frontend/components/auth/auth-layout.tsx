@@ -11,9 +11,9 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <h1>Give what associations actually need.</h1>
         <ol>
           {[
-            "Photograph an item. AI returns indicators, never a verdict.",
-            "See associations that need it and have room.",
-            "Staff decide. On approval, book a slot and show a QR code.",
+            "Take photos of your item. Check the extracted details and warning indicators.",
+            "Find an association that needs your item and has space.",
+            "Association staff review your offer. If approved, book a drop-off time and show your QR code when you arrive.",
           ].map((s, i) => (
             <li key={s}>
               <span className="step-number">{i + 1}</span>

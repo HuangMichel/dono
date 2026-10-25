@@ -1,41 +1,31 @@
 "use client";
-
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useDemo } from "@/lib/demo-context";
 import {
-  CATEGORY_LABELS,
-  DEMO_ASSOCIATION_ID,
-  getWarnings,
-  type DemoNeed,
-} from "@/lib/demo-store";
-import { dashboardMetrics } from "@/lib/dashboard-metrics";
-import { enumLabel, formatCount } from "@/lib/ui-text";
+  ConsoleTitle,
+  ResourceStatus,
+  useAssociation,
+} from "@/components/association/shell";
+import { useApiPage, useApiResource } from "@/lib/api-hooks";
+import { api } from "@/lib/api";
+import type {
+  Booking,
+  Capacity,
+  Evidence as EvidenceDTO,
+  ExpiryCounts,
+  Need,
+  Offer,
+  StockLot,
+} from "@/lib/api-contracts";
+import { CATEGORY_LABELS } from "@/lib/labels";
+import { formatCount } from "@/lib/ui-text";
 import { CapacityMeter } from "@/components/ui/capacity-meter";
-import { Card, CardActions, Chip, Icon, LinkButton } from "@/components/ui";
-import { ConsoleTitle } from "@/components/association/shell";
-import { itemName } from "@/components/association/evidence";
+import { ExpiryChip, StateChip } from "@/components/association/status";
+import { instant, itemName } from "@/components/association/evidence";
+import { Icon, LinkButton } from "@/components/ui";
 import "./dashboard.css";
 
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Europe/Paris",
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-});
-const timeFormatter = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Europe/Paris",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-function shortDate(day: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "UTC",
-    day: "numeric",
-    month: "short",
-  }).format(new Date(`${day}T12:00:00Z`));
-}
-function needTitle(need: DemoNeed) {
+function needTitle(need: Need) {
   const title = String(
     need.attributes.product ??
       need.attributes.type ??
@@ -43,399 +33,352 @@ function needTitle(need: DemoNeed) {
   );
   return need.attributes.size ? `${title}, ${need.attributes.size}` : title;
 }
-
-function waitingTime(hours: number | null) {
-  if (hours === null) return "Waiting time not recorded";
-  if (hours < 1) return "Oldest offer: less than an hour";
-  return `Oldest offer: ${hours < 24 ? formatCount(Math.floor(hours), "hour") : formatCount(Math.floor(hours / 24), "day")}`;
+/** Counts stay on the client: the API has no aggregate endpoint. */
+function countLabel(resource: {
+  data: unknown[];
+  loading: boolean;
+  hasMore: boolean;
+}) {
+  if (resource.loading) return null;
+  return `${resource.data.length}${resource.hasMore ? "+" : ""}`;
 }
-
-export default function DashboardPage() {
-  const { state, ready } = useDemo();
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    const refresh = () => setNow(new Date());
-    const initial = window.setTimeout(refresh, 0);
-    const interval = window.setInterval(refresh, 30000);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      window.clearTimeout(initial);
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", refresh);
-    };
-  }, []);
-  if (!ready || !now)
-    return (
-      <>
-        <ConsoleTitle title="Dashboard" />
-        <p role="status" className="console-meta">
-          Loading dashboard…
-        </p>
-      </>
-    );
-  const metrics = dashboardMetrics(state, DEMO_ASSOCIATION_ID, now);
-  const medicineWarnings = metrics.offered.filter((donation) =>
-    getWarnings(state, donation.id).includes("medicine_concern"),
-  ).length;
-  const cards = [
-    {
-      href: "/association/review",
-      value: metrics.offered.length,
-      label: "Offers waiting for review",
-      detail: metrics.offered.length
-        ? waitingTime(metrics.oldestWaitingHours)
-        : "No offers waiting",
-    },
-    {
-      href: "/association/reception",
-      value: metrics.expectedToday.length,
-      label: "Expected drop-offs today",
-      detail: "Appointments still awaiting reception",
-    },
-    {
-      href: "/association/needs",
-      value: metrics.uncoveredNeedCount,
-      label: "Needs still uncovered",
-      detail: "After received and reserved items",
-    },
-    {
-      href: "/association/capacity",
-      value: metrics.nearCapacityCount,
-      label: "Categories near capacity",
-      detail: "Above 85%, including reservations",
-    },
-  ];
-  const maxActivity = Math.max(
-    1,
-    ...metrics.week.days.flatMap((day) => [day.received, day.givenOut]),
+export default function Dashboard() {
+  const { id, association } = useAssociation();
+  const day = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Paris",
+  }).format(new Date());
+  const offers = useApiPage<Offer>(
+    `/associations/${id}/offers?effective_state=pending_review&limit=100`,
   );
-  const weekLabel = `${shortDate(metrics.week.startDay)} to ${shortDate(metrics.today)}`;
+  const arrivals = useApiPage<{ booking: Booking; offer: Offer }>(
+    `/associations/${id}/arrivals?date=${day}&limit=100`,
+  );
+  const needs = useApiPage<Need>(`/associations/${id}/needs?limit=100`);
+  const stock = useApiPage<StockLot>(
+    `/associations/${id}/expiry?view=distribute_first&limit=5`,
+  );
+  const capacity = useApiPage<Capacity>(`/associations/${id}/capacity`);
+  const counts = useApiResource<ExpiryCounts>(
+    `/associations/${id}/expiry-counts`,
+  );
+  const urgent = counts.data?.buckets
+    .filter((b) => ["today", "lt_7", "lt_30"].includes(b.key))
+    .reduce((sum, b) => sum + b.count, 0);
+  const uncovered = needs.data.filter(
+    (need) => need.active && Number(need.computed.available_quantity) > 0,
+  );
+  const nearCapacity = capacity.data.filter((c) => {
+    const limit = c.limit_storage_units;
+    const used =
+      c.computed.occupied_storage_units + c.computed.reserved_storage_units;
+    return limit > 0 && used / limit > 0.85;
+  });
+  const waitingCount = countLabel(offers);
+  const arrivalsCount = countLabel(arrivals);
+  const uncoveredCount = countLabel({ ...needs, data: uncovered });
+  const [medicineCount, setMedicineCount] = useState<number | null>(null);
+  useEffect(() => {
+    let active = true;
+    const pending = offers.data
+      .filter((offer) => offer.computed.effective_state === "pending_review")
+      .slice(0, 8);
+    const count = pending.length
+      ? Promise.all(
+          pending.map((offer) =>
+            api<EvidenceDTO>(`/offers/${offer.id}/evidence`).catch(
+              () => null as EvidenceDTO | null,
+            ),
+          ),
+        ).then(
+          (results) =>
+            results.filter((evidence) =>
+              evidence?.analyses.some((analysis) =>
+                analysis.indicators.some(
+                  (indicator) =>
+                    indicator.key === "looks_like_medicine" &&
+                    ((indicator.probability ?? 0) >= 0.5 ||
+                      indicator.level === "high"),
+                ),
+              ),
+            ).length,
+        )
+      : Promise.resolve(0);
+    void count.then((value) => {
+      if (active) setMedicineCount(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [offers.data]);
+  const oldestWaiting = offers.data.reduce<string | null>(
+    (oldest, offer) =>
+      oldest === null || offer.created_at < oldest ? offer.created_at : oldest,
+    null,
+  );
   return (
     <>
       <ConsoleTitle
         title="Dashboard"
-        detail={`${dateFormatter.format(now)}, Paris time`}
+        detail={`${association.name}, ${day}, Paris time`}
       />
-      <div className="console-metrics dashboard-metrics">
-        {cards.map((card) => (
-          <Link
-            href={card.href}
-            key={card.href}
-            className="card console-panel dashboard-action-card"
-          >
-            <span className="console-metric num">{card.value}</span>
-            <strong>{card.label}</strong>
-            <span className="console-meta">{card.detail}</span>
-          </Link>
-        ))}
-      </div>
-      {metrics.unknownOfferAgeCount > 0 && (
-        <p className="console-meta dashboard-age-note">
-          Waiting time unavailable for{" "}
-          {formatCount(metrics.unknownOfferAgeCount, "offer")}.
-        </p>
-      )}
-      {medicineWarnings > 0 && (
+      <nav
+        className="console-metrics dashboard-metrics"
+        aria-label="Today's priorities"
+      >
+        <Link
+          className="card console-panel dashboard-action-card"
+          href="/association/review"
+        >
+          {waitingCount && (
+            <span className="console-metric num">{waitingCount}</span>
+          )}
+          <strong>Review offers</strong>
+          <span className="console-meta">
+            {waitingCount === null
+              ? "Loading offers…"
+              : offers.data.length
+                ? `Oldest offer ${instant(oldestWaiting ?? "")}`
+                : "No offers waiting"}
+          </span>
+        </Link>
+        <Link
+          className="card console-panel dashboard-action-card"
+          href="/association/reception"
+        >
+          {arrivalsCount && (
+            <span className="console-metric num">{arrivalsCount}</span>
+          )}
+          <strong>Receive drop-offs</strong>
+          <span className="console-meta">
+            {arrivalsCount === null
+              ? "Loading appointments…"
+              : arrivals.data.length
+                ? "Appointments still awaiting reception"
+                : "No drop-offs scheduled today."}
+          </span>
+        </Link>
+        <Link
+          className="card console-panel dashboard-action-card"
+          href="/association/inventory"
+        >
+          {urgent !== undefined ? (
+            <span className="console-metric num">{urgent}</span>
+          ) : null}
+          <strong>Distribute first</strong>
+          <span className="console-meta">
+            {urgent === undefined
+              ? "Expiry priorities"
+              : formatCount(urgent, "donation")}{" "}
+            expiring within 30 days
+          </span>
+        </Link>
+        <Link
+          className="card console-panel dashboard-action-card"
+          href="/association/needs"
+        >
+          {uncoveredCount && (
+            <span className="console-metric num">{uncoveredCount}</span>
+          )}
+          <strong>Manage needs</strong>
+          <span className="console-meta">
+            {uncoveredCount === null
+              ? "Loading needs…"
+              : uncovered.length
+                ? "After received and reserved items"
+                : "No uncovered needs"}
+          </span>
+        </Link>
+      </nav>
+      {medicineCount ? (
         <div className="notice warning console-status-line dashboard-notice">
           <span className="row">
             <Icon name="warning" />
-            {formatCount(medicineWarnings, "offer")}{" "}
-            {medicineWarnings === 1 ? "has" : "have"} a medicine concern. Check
-            the original evidence.
+            {`${medicineCount} ${medicineCount === 1 ? "offer is" : "offers are"} flagged as a possible medicine. Review the indicators before accepting.`}
           </span>
           <LinkButton href="/association/review" variant="outline" size="sm">
             Open review
           </LinkButton>
         </div>
-      )}
+      ) : null}
       <div className="dashboard-grid">
-        <Card className="console-panel dashboard-panel">
-          <h2>Capacity</h2>
-          <div className="dashboard-list">
-            {metrics.capacities.map((capacity) => (
-              <CapacityMeter
-                key={capacity.category}
-                label={CATEGORY_LABELS[capacity.category]}
-                inStock={String(capacity.inStock)}
-                reserved={String(capacity.reserved)}
-                limit={String(capacity.limit)}
-                description={`${formatCount(capacity.inStock)} in stock, ${formatCount(capacity.reserved)} reserved, limit ${capacity.limit}`}
-              />
-            ))}
-            {!metrics.capacities.length && (
-              <p className="console-meta">No capacity limits configured.</p>
-            )}
-          </div>
-          <CardActions>
-            <LinkButton
-              href="/association/capacity"
-              variant="outline"
-              size="sm"
-            >
-              Edit capacity <Icon name="arrow-right" />
-            </LinkButton>
-          </CardActions>
-        </Card>
-        <Card className="console-panel dashboard-panel">
-          <h2>Active needs</h2>
-          <div className="dashboard-list">
-            {metrics.needs
-              .slice(0, 5)
-              .map(
-                ({
-                  need,
-                  received,
-                  reserved,
-                  target,
-                  stillNeeded,
-                  receivedPercentage,
-                }) => (
-                  <div className="dashboard-need" key={need.id}>
-                    <strong>{needTitle(need)}</strong>
-                    {need.seasons && need.seasons.length > 0 && (
-                      <span className="console-meta">
-                        {need.seasons.map(enumLabel).join(", ")}
-                      </span>
-                    )}
-                    <span className="console-meta">
-                      {formatCount(target)} needed
+        <section className="card console-panel dashboard-panel">
+          <h2>Waiting for review</h2>
+          <ResourceStatus {...offers} />
+          {!offers.loading && !offers.error && !offers.data.length && (
+            <p className="console-meta">No offers waiting for review.</p>
+          )}
+          <ul className="dashboard-preview-list">
+            {offers.data.slice(0, 5).map((o) => (
+              <li key={o.id}>
+                <Link href="/association/review">
+                  {itemName(o)} × {Number(o.quantity)}
+                </Link>
+                <div>
+                  <span className="console-meta">
+                    {CATEGORY_LABELS[o.category]}
+                  </span>
+                  {o.computed.manual_review_required && (
+                    <span className="chip chip-caution">
+                      Manual review required
                     </span>
-                    <progress
-                      value={Math.min(received, target)}
-                      max={target || 1}
-                      aria-label={`${needTitle(need)}${need.seasons?.length ? `, ${need.seasons.map(enumLabel).join(", ")}` : ""} received`}
-                      aria-valuetext={`${formatCount(received)} received of ${formatCount(target)}, ${Math.round(receivedPercentage)}%`}
-                    />
-                    <dl className="dashboard-need-counts">
-                      <div>
-                        <dt>Received</dt>
-                        <dd>{received}</dd>
-                      </div>
-                      <div>
-                        <dt>Reserved</dt>
-                        <dd>{reserved}</dd>
-                      </div>
-                      <div>
-                        <dt>Still needed</dt>
-                        <dd>{stillNeeded}</dd>
-                      </div>
-                    </dl>
-                  </div>
-                ),
-              )}
-            {!metrics.needs.length && (
-              <p className="console-meta">No active needs.</p>
-            )}
-            {metrics.needs.length > 5 && (
-              <p className="console-meta">
-                {formatCount(metrics.needs.length - 5, "more active need")}.
-              </p>
-            )}
-          </div>
-          <CardActions>
-            <LinkButton href="/association/needs" variant="outline" size="sm">
-              Review needs <Icon name="arrow-right" />
-            </LinkButton>
-          </CardActions>
-        </Card>
-        <Card className="console-panel dashboard-panel">
-          <h2>Expected drop-offs today</h2>
-          <p className="console-meta">{shortDate(metrics.today)}, Paris time</p>
-          <div className="dashboard-list">
-            {metrics.expectedToday
-              .slice(0, 5)
-              .map(({ booking, donation, slot }) => (
-                <div className="dashboard-arrival" key={booking.id}>
-                  <div>
-                    <strong className="num">
-                      {timeFormatter.format(new Date(slot.starts_at))}
-                    </strong>
-                    <span>{itemName(donation)}</span>
-                    <span className="console-meta">
-                      {formatCount(donation.quantity)}
-                    </span>
-                  </div>
-                  <Chip variant="caution">Expected</Chip>
+                  )}
                 </div>
-              ))}
-            {!metrics.expectedToday.length && (
-              <p className="console-meta">
-                No drop-offs awaiting reception today.
-              </p>
-            )}
-            {metrics.expectedToday.length > 5 && (
-              <p className="console-meta">
-                {formatCount(
-                  metrics.expectedToday.length - 5,
-                  "more appointment",
-                )}
-                .
-              </p>
-            )}
-          </div>
-          <CardActions>
-            <LinkButton
-              href="/association/reception"
-              variant="outline"
-              size="sm"
-            >
-              Open reception <Icon name="arrow-right" />
-            </LinkButton>
-          </CardActions>
-        </Card>
-      </div>
-      <div className="dashboard-week-heading">
-        <h2>This week</h2>
-        <span className="console-meta">
-          {weekLabel}, up to {timeFormatter.format(now)} today, Paris time
-        </span>
-      </div>
-      <div className="dashboard-week-grid">
-        <Card className="console-panel dashboard-panel">
-          <h2>Received and given out</h2>
-          <p className="console-meta">
-            {formatCount(metrics.week.received)} received,{" "}
-            {formatCount(metrics.week.givenOut)} given out
-          </p>
-          <div className="dashboard-legend">
-            <span>
-              <i className="dashboard-received" />
-              Received
-            </span>
-            <span>
-              <i className="dashboard-given" />
-              Given out
-            </span>
-          </div>
-          <div
-            className="dashboard-chart"
-            role="img"
-            aria-label={`Daily items, Monday to Sunday. ${metrics.week.days.map((day) => `${shortDate(day.date)}: ${day.received} received, ${day.givenOut} given out`).join(". ")}. Future days have no recorded activity.`}
-          >
-            {metrics.week.days.map((day) => (
-              <div className="dashboard-chart-day" key={day.date}>
-                <div className="dashboard-chart-pair">
-                  <span
-                    className="dashboard-received"
-                    style={{ height: `${(day.received / maxActivity) * 100}%` }}
-                  />
-                  <span
-                    className="dashboard-given"
-                    style={{ height: `${(day.givenOut / maxActivity) * 100}%` }}
-                  />
-                </div>
-                <span className="console-meta">
-                  {new Intl.DateTimeFormat("en-GB", {
-                    weekday: "short",
-                    timeZone: "UTC",
-                  }).format(new Date(`${day.date}T12:00:00Z`))}
-                </span>
-              </div>
+              </li>
             ))}
-          </div>
-          <details className="dashboard-daily-details">
-            <summary>Daily quantities</summary>
-            <table className="dashboard-table">
-              <caption className="sr-only">
-                Daily items received and given out this week
-              </caption>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Received</th>
-                  <th>Given out</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metrics.week.days
-                  .filter((day) => day.date <= metrics.today)
-                  .map((day) => (
-                    <tr key={day.date}>
-                      <th scope="row">{shortDate(day.date)}</th>
-                      <td>{day.received}</td>
-                      <td>{day.givenOut}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </details>
-          {metrics.week.unknownMovementTimeCount > 0 && (
+          </ul>
+          {offers.data.length > 5 && (
             <p className="console-meta">
-              {formatCount(
-                metrics.week.unknownMovementTimeCount,
-                "inventory record",
-              )}{" "}
-              without a valid date excluded from this week.
+              {formatCount(offers.data.length - 5, "more offer")} in Review.
             </p>
           )}
-        </Card>
-        <Card className="console-panel dashboard-panel">
-          <h2>By category</h2>
-          <table className="dashboard-table">
-            <caption className="sr-only">
-              Items received and given out by category this week
-            </caption>
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Received</th>
-                <th>Given out</th>
-              </tr>
-            </thead>
-            <tbody>
-              {metrics.week.byCategory.map((row) => (
-                <tr key={row.category}>
-                  <th scope="row">{CATEGORY_LABELS[row.category]}</th>
-                  <td>{row.received}</td>
-                  <td>{row.givenOut}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <CardActions>
-            <LinkButton
-              href="/association/inventory"
-              variant="outline"
-              size="sm"
-            >
-              Open stock <Icon name="arrow-right" />
-            </LinkButton>
-          </CardActions>
-        </Card>
-        <Card className="console-panel dashboard-panel">
-          <h2>Refused at reception</h2>
-          <p className="dashboard-refusal-total">
-            {formatCount(metrics.week.refusals.length, "drop-off")}
-          </p>
-          <div className="dashboard-list">
-            {metrics.week.refusals.map((refusal) => (
-              <div className="dashboard-refusal" key={refusal.booking_id}>
+          <Link className="dashboard-section-link" href="/association/review">
+            Open review
+          </Link>
+        </section>
+        <section className="card console-panel dashboard-panel">
+          <h2>Distribute first</h2>
+          <ResourceStatus {...stock} />
+          <ResourceStatus {...counts} />
+          {!stock.loading && !stock.error && !stock.data.length && (
+            <p className="console-meta">No stock awaiting distribution.</p>
+          )}
+          <ul className="dashboard-preview-list">
+            {stock.data.map((lot) => (
+              <li key={lot.receipt.id}>
                 <strong>
-                  {itemName(
-                    state.donations.find(
-                      (donation) => donation.id === refusal.donation_id,
-                    )!,
-                  )}
+                  {itemName(lot.offer)} × {Number(lot.remaining_quantity)}
                 </strong>
-                <p>{refusal.reason || "Reason not recorded"}</p>
-              </div>
+                <ExpiryChip expiry={lot.expiry} />
+              </li>
             ))}
-            {!metrics.week.refusals.length && (
-              <p className="console-meta">
-                No reception refusals recorded this week.
-              </p>
-            )}
+          </ul>
+          {stock.hasMore && (
+            <p className="console-meta">
+              More stock is available in the distribution list.
+            </p>
+          )}
+          <Link
+            className="dashboard-section-link"
+            href="/association/inventory"
+          >
+            Open stock
+          </Link>
+        </section>
+        <section className="card console-panel dashboard-panel">
+          <h2>Today&apos;s drop-offs</h2>
+          <ResourceStatus {...arrivals} />
+          {!arrivals.loading && !arrivals.error && !arrivals.data.length && (
+            <p className="console-meta">No drop-offs scheduled today.</p>
+          )}
+          <ul className="dashboard-preview-list">
+            {arrivals.data.slice(0, 5).map(({ booking, offer }) => (
+              <li key={booking.id}>
+                <div>
+                  <strong>{itemName(offer)}</strong>
+                  <p className="console-meta">
+                    {instant(booking.computed.starts_at)},{" "}
+                    {formatCount(offer.quantity)}
+                  </p>
+                </div>
+                <StateChip state={booking.computed.effective_state} />
+              </li>
+            ))}
+          </ul>
+          {arrivals.data.length > 5 && (
+            <p className="console-meta">
+              {formatCount(arrivals.data.length - 5, "more appointment")} in
+              reception.
+            </p>
+          )}
+          <Link
+            className="dashboard-section-link"
+            href="/association/reception"
+          >
+            Open reception
+          </Link>
+        </section>
+        <section className="card console-panel dashboard-panel dashboard-capacity">
+          <h2>Storage capacity</h2>
+          <ResourceStatus {...capacity} />
+          {!capacity.loading && !capacity.error && !capacity.data.length && (
+            <p className="console-meta">No storage limits configured.</p>
+          )}
+          {!capacity.loading && !capacity.error && nearCapacity.length > 0 && (
+            <p className="console-meta">
+              {nearCapacity.length === 1
+                ? "1 category is above 85% capacity, including reservations."
+                : `${nearCapacity.length} categories are above 85% capacity, including reservations.`}
+            </p>
+          )}
+          <div className="dashboard-capacity-grid">
+            {capacity.data.map((c) => (
+              <CapacityMeter
+                key={c.category}
+                label={CATEGORY_LABELS[c.category]}
+                inStock={String(c.computed.occupied_storage_units)}
+                reserved={String(c.computed.reserved_storage_units)}
+                limit={String(c.limit_storage_units)}
+                description={`${c.computed.occupied_storage_units} occupied, ${c.computed.reserved_storage_units} reserved, ${c.computed.available_storage_units} available places`}
+              />
+            ))}
           </div>
-          <CardActions>
-            <LinkButton
-              href="/association/reception"
-              variant="outline"
-              size="sm"
-            >
-              Open reception <Icon name="arrow-right" />
-            </LinkButton>
-          </CardActions>
-        </Card>
+          <Link className="dashboard-section-link" href="/association/capacity">
+            View capacity and intake
+          </Link>
+        </section>
+      </div>
+      <div className="dashboard-grid">
+        <section className="card console-panel dashboard-panel">
+          <h2>Active needs</h2>
+          <ResourceStatus {...needs} />
+          {!needs.loading && !needs.error && !uncovered.length && (
+            <p className="console-meta">No active needs.</p>
+          )}
+          <div className="dashboard-list">
+            {uncovered.slice(0, 5).map((need) => {
+              const received = Number(need.computed.fulfilled_quantity);
+              const reserved = Number(need.computed.held_quantity);
+              const stillNeeded = Number(need.computed.available_quantity);
+              const target = Number(need.target_quantity);
+              return (
+                <div className="dashboard-need" key={need.id}>
+                  <strong>{needTitle(need)}</strong>
+                  <span className="console-meta">
+                    {formatCount(need.target_quantity)} needed
+                  </span>
+                  <progress
+                    value={Math.min(received, target)}
+                    max={target || 1}
+                    aria-label={`${needTitle(need)} received`}
+                    aria-valuetext={`${received} received of ${target}, reserved ${reserved}, ${stillNeeded} still needed`}
+                  />
+                  <dl className="dashboard-need-counts">
+                    <div>
+                      <dt>Received</dt>
+                      <dd>{received}</dd>
+                    </div>
+                    <div>
+                      <dt>Reserved</dt>
+                      <dd>{reserved}</dd>
+                    </div>
+                    <div>
+                      <dt>Still needed</dt>
+                      <dd>{stillNeeded}</dd>
+                    </div>
+                  </dl>
+                </div>
+              );
+            })}
+          </div>
+          {uncovered.length > 5 && (
+            <p className="console-meta">
+              {formatCount(uncovered.length - 5, "more active need")} in Needs.
+            </p>
+          )}
+          <Link className="dashboard-section-link" href="/association/needs">
+            Review needs
+          </Link>
+        </section>
       </div>
     </>
   );

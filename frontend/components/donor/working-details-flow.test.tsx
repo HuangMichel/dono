@@ -1,395 +1,265 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isValidElement, type ReactElement, type ReactNode } from "react";
-import {
-  createInitialState,
-  fixtureId,
-  reduceDemo,
-  type DemoState,
-} from "../../lib/demo-store";
-
-const harness = vi.hoisted(() => ({
-  values: [] as unknown[],
-  cursor: 0,
-  effects: [] as (() => void)[],
-  state: null as unknown as DemoState,
-  dispatch: vi.fn(),
-  failSave: false,
-}));
-vi.mock("react", async (original) => ({
-  ...(await original<typeof import("react")>()),
-  useState: (initial: unknown) => {
-    const index = harness.cursor++;
-    if (!(index in harness.values))
-      harness.values[index] =
-        typeof initial === "function" ? initial() : initial;
-    return [
-      harness.values[index],
-      (next: unknown) => {
-        harness.values[index] =
-          typeof next === "function" ? next(harness.values[index]) : next;
-      },
-    ];
-  },
-  useRef: (initial: unknown) => {
-    const index = harness.cursor++;
-    if (!(index in harness.values))
-      harness.values[index] = { current: initial };
-    return harness.values[index];
-  },
-  useEffect: (effect: () => void) => {
-    harness.effects.push(effect);
-  },
+// @vitest-environment jsdom
+import { act, StrictMode, type ReactNode } from "react";
+import { beforeEach, expect, it, vi } from "vitest";
+import { render } from "@/test/render";
+const mocks = vi.hoisted(() => ({
+  user: null as { id: string } | null,
+  donationId: null as string | null,
+  api: vi.fn(),
+  apiPage: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams({ id: fixtureId("coat") }),
+  useRouter: () => ({ refresh: vi.fn() }),
+  useSearchParams: () =>
+    new URLSearchParams(mocks.donationId ? { id: mocks.donationId } : {}),
 }));
-vi.mock("@/lib/demo-context", () => ({
-  useDemo: () => ({
-    state: harness.state,
-    dispatch: harness.dispatch,
-    ready: true,
-  }),
+vi.mock("@/lib/auth-context", () => ({
+  useAuth: () => ({ user: mocks.user, loading: false }),
 }));
+vi.mock("@/lib/api", () => ({ api: mocks.api, apiPage: mocks.apiPage }));
 vi.mock("@/components/public-shell", () => ({
-  PublicShell: "PublicShell",
-  DemoTools: "DemoTools",
+  PublicShell: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
-vi.mock("@/components/ui", () => ({
-  Button: "Button",
-  Card: "Card",
-  Chip: "Chip",
-  Field: "Field",
-  SelectField: "SelectField",
-  PageHeading: "PageHeading",
-  Icon: "Icon",
-  LinkButton: "LinkButton",
-}));
-vi.mock("@/components/ui/step-actions", () => ({ StepActions: "StepActions" }));
-vi.mock("@/components/ui/stepper", () => ({ Stepper: "Stepper" }));
-vi.mock("@/components/ui/file-upload", () => ({ FileUpload: "FileUpload" }));
-vi.mock("@/lib/demo-store", async () => import("../../lib/demo-store"));
-vi.mock(
-  "@/components/donor/working-details",
-  async () => import("./working-details"),
-);
-vi.mock("@/components/donor/donation-home", () => ({
-  DonationHome: "DonationHome",
-}));
-vi.mock("@/components/donor/flow-states", () => ({
-  AnalysisState: "AnalysisState",
-  PhotoProblem: "PhotoProblem",
-  SafetyWarning: "SafetyWarning",
-  OfferSent: "OfferSent",
-}));
-vi.mock("@/components/donor/local-photos", () => ({
-  DEMO_ITEM_PHOTO_LIMIT: 6,
-  createPhotoController: (publish: (snapshot: unknown) => void) => ({
-    addFiles: () =>
-      publish({
-        photos: [{ id: "sample", kind: "item", src: "/item-clothes.svg" }],
-        errors: [],
-      }),
-    dispose: vi.fn(),
-  }),
-}));
-import Donate from "../../app/donate/page";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Inspect event props at mocked component boundaries.
-type Node = ReactElement<Record<string, any>>;
-function nodes(node: ReactNode): Node[] {
-  if (Array.isArray(node)) return node.flatMap(nodes);
-  if (!isValidElement(node)) return [];
-  const element = node as Node;
-  return [element, ...nodes(element.props.children)];
-}
-function render() {
-  harness.cursor = 0;
-  harness.effects = [];
-  const route = (Donate().props.children as ReactElement)
-    .type as () => ReactElement;
-  const flow = route();
-  const tree = nodes((flow.type as (props: unknown) => ReactNode)(flow.props));
-  for (const node of tree) {
-    if (node.type === "dialog")
-      node.props.ref.current = {
-        showModal: vi.fn(),
-        close: vi.fn(),
-        open: true,
-      };
-  }
-  for (const effect of harness.effects) effect();
-  return tree;
-}
-function find(
-  tree: Node[],
-  type: string,
-  match: (props: Node["props"]) => boolean = () => true,
-) {
-  const node = tree.find((node) => node.type === type && match(node.props));
-  if (!node) throw Error("Missing " + type);
-  return node.props;
-}
-function change(tree: Node[], id: string, value: string) {
-  find(tree, "Field", (props) => props.id === id).onChange({
-    target: { value },
-  });
-}
-function open(tree: Node[]) {
-  find(
-    tree,
-    "Button",
-    (props) => props.children === "Correct details",
-  ).onClick();
-}
-function submit(tree: Node[]) {
-  find(tree, "form", (props) => props.id === "donation-corrections").onSubmit({
-    preventDefault: vi.fn(),
-  });
-}
+import Donate from "@/app/donate/page";
+import { useDonationSession } from "./donation-session-hook";
 beforeEach(() => {
-  vi.useFakeTimers();
-  harness.values = [];
-  harness.failSave = false;
-  harness.state = createInitialState();
-  harness.state.role = "donor";
-  const donation = harness.state.donations.find(
-    (item) => item.id === fixtureId("coat"),
-  )!;
-  Object.assign(donation, {
-    status: "draft",
-    decision: null,
-    association_id: null,
-    need_id: null,
-  });
-  harness.dispatch.mockReset().mockImplementation((command) => {
-    if (command.type === "patch" && harness.failSave)
-      throw Error("Save failed. Try again.");
-    harness.state = reduceDemo(harness.state, command);
-  });
+  mocks.user = null;
+  mocks.donationId = null;
+  mocks.api.mockReset();
+  mocks.apiPage.mockReset();
 });
-afterEach(() => {
-  vi.useRealTimers();
-});
-function review() {
-  let tree = render();
-  find(tree, "FileUpload", (props) => props.id === "item-photo").onFilesChange(
-    [],
+it("requires sign-in before exposing photo or offer controls", async () => {
+  const screen = await render(<Donate />);
+  expect(screen.container.textContent).toContain(
+    "Create an account or sign in to prepare a donation.",
   );
-  tree = render();
-  find(tree, "form", (props) => props.id === "donation-photo-step").onSubmit({
-    preventDefault: vi.fn(),
-  });
-  vi.advanceTimersByTime(650);
-  return render();
-}
-describe("donation corrections at mocked React boundaries", () => {
-  it.each([
-    ["food", "food", "Sealed pasta, 500 g"],
-    ["shoes", "shoes", "Demo item"],
-    ["medicine", "para", "Demo item"],
-    ["cold", "food", "Sealed pasta, 500 g"],
-  ])(
-    "shows the %s sample identity on first analysis",
-    (scenario, category, product) => {
-      const donation = harness.state.donations.find(
-        (item) => item.id === fixtureId("coat"),
-      )!;
-      donation.basis_analysis_id = null;
-      donation.attributes = {};
-      let tree = render();
-      find(tree, "select", (props) => props.value === "clothes").onChange({
-        target: { value: scenario },
+  expect(screen.container.querySelector('input[type="file"]')).toBeNull();
+  expect(
+    screen.container.querySelector('a[href^="/signup?next="]'),
+  ).not.toBeNull();
+  expect(
+    screen.container.querySelector('a[href^="/login?next="]'),
+  ).not.toBeNull();
+  expect(mocks.api).not.toHaveBeenCalled();
+});
+it("keeps valid photos when an oversized selection is rejected before any request", async () => {
+  mocks.user = { id: "donor" };
+  const screen = await render(<Donate />);
+  const input = screen.container.querySelector<HTMLInputElement>("#photos")!;
+  const selectFiles = async (files: File[]) => {
+    await act(async () => {
+      Object.defineProperty(input, "files", {
+        configurable: true,
+        value: files,
       });
-      tree = review();
-      const warning = tree.find((node) => node.type === "SafetyWarning");
-      if (warning) {
-        warning.props.review();
-        tree = render();
-      }
-      expect(
-        find(tree, "Field", (props) => props.id === "working-product").value,
-      ).toBe(product);
-      expect(
-        find(tree, "SelectField", (props) => props.label === "Category").value,
-      ).toBe(category);
-    },
-  );
-  it("retains a company product on first analysis", () => {
-    const donation = harness.state.donations.find(
-      (item) => item.id === fixtureId("coat"),
-    )!;
-    donation.basis_analysis_id = null;
-    donation.donor_kind = "company";
-    donation.company_name = "Example shop";
-    donation.attributes = { product: "Our coats" };
-    const tree = review();
-    expect(
-      find(tree, "Field", (props) => props.id === "working-product").value,
-    ).toBe("Our coats");
-    expect(
-      harness.state.donations.find((item) => item.id === donation.id)
-        ?.attributes.product,
-    ).toBe("Our coats");
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  };
+  const exact = new File([new Uint8Array(4_194_304)], "exact.jpg", {
+    type: "image/jpeg",
   });
-  it.each(["Back", "Escape"])(
-    "restores every correction on %s without changing stored facts",
-    (dismissal) => {
-      let tree = review();
-      open(tree);
-      const initialProduct = find(
-        tree,
-        "Field",
-        (props) => props.id === "working-product",
-      ).value;
-      change(tree, "working-product", "Different coat");
-      change(tree, "working-quantity", "4");
-      change(tree, "working-size", "XL");
-      find(tree, "SelectField", (props) => props.label === "Category").onChange(
-        { target: { value: "para" } },
-      );
-      tree = render();
-      change(tree, "working-expiry", "2027-03-15");
-      tree = render();
-      find(
-        tree,
-        "SelectField",
-        (props) => props.label === "Printed date type",
-      ).onChange({ target: { value: "PAO" } });
-      tree = render();
-      change(tree, "pao-months", "12");
-      tree = render();
-      if (dismissal === "Escape") find(tree, "dialog").onCancel();
-      else
-        find(
-          tree,
-          "StepActions",
-          (props) => props.backLabel === "Back",
-        ).onBack();
-      tree = render();
-      expect(
-        find(tree, "Field", (props) => props.id === "working-product").value,
-      ).toBe(initialProduct);
-      expect(
-        find(tree, "Field", (props) => props.id === "working-quantity").value,
-      ).toBe("1");
-      expect(
-        find(tree, "Field", (props) => props.id === "working-size").value,
-      ).toBe("M");
-      expect(
-        find(tree, "SelectField", (props) => props.label === "Category").value,
-      ).toBe("clothes");
-      open(tree);
-      find(tree, "SelectField", (props) => props.label === "Category").onChange(
-        { target: { value: "para" } },
-      );
-      tree = render();
-      expect(
-        find(
-          tree,
-          "SelectField",
-          (props) => props.label === "Printed date type",
-        ).value,
-      ).toBe("DDM");
-      expect(
-        find(tree, "Field", (props) => props.id === "working-expiry").value,
-      ).toBe("");
-      find(
-        tree,
-        "SelectField",
-        (props) => props.label === "Printed date type",
-      ).onChange({ target: { value: "PAO" } });
-      tree = render();
-      expect(
-        find(tree, "Field", (props) => props.id === "pao-months").value,
-      ).toBe("");
-      expect(
-        harness.dispatch.mock.calls.some(
-          ([command]) => command.type === "patch",
+  await selectFiles([exact]);
+  expect(screen.container.textContent).toContain("exact.jpg");
+  await selectFiles([
+    new File([new Uint8Array(4_194_305)], "large.jpg", { type: "image/jpeg" }),
+  ]);
+  expect(
+    screen.container.querySelector('[role="alert"]')?.textContent,
+  ).toContain("Each photo must be at most 4 MiB.");
+  expect(screen.container.textContent).toContain("exact.jpg");
+  expect(screen.container.textContent).not.toContain("large.jpg");
+  expect(mocks.api).not.toHaveBeenCalled();
+  expect(mocks.apiPage).not.toHaveBeenCalled();
+});
+it("resets private form entries when the account changes", async () => {
+  mocks.user = { id: "one" };
+  const screen = await render(<Donate />);
+  const manual = () =>
+    [...screen.container.querySelectorAll("button")]
+      .find((button) => button.textContent === "Enter details manually")!
+      .click();
+  await act(async () => {
+    manual();
+  });
+  const quantity =
+    screen.container.querySelector<HTMLInputElement>("#quantity")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value",
+    )!.set!.call(quantity, "7");
+    quantity.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(
+    screen.container.querySelector<HTMLInputElement>("#quantity")?.value,
+  ).toBe("7");
+  mocks.user = { id: "two" };
+  await screen.rerender(<Donate />);
+  expect(screen.container.querySelector("#quantity")).toBeNull();
+  await act(async () => {
+    manual();
+  });
+  expect(
+    screen.container.querySelector<HTMLInputElement>("#quantity")?.value,
+  ).toBe("1");
+});
+it("aborts old donation reads and ignores their late completion", async () => {
+  const pending = new Map<string, (value: unknown) => void>();
+  mocks.api.mockImplementation(
+    (path: string) => new Promise((resolve) => pending.set(path, resolve)),
+  );
+  mocks.apiPage.mockResolvedValue({ data: [], meta: { next_cursor: null } });
+  function Probe({ id }: { id: string }) {
+    const { state } = useDonationSession("donor", id);
+    return <p>{state.donation?.id ?? "Loading"}</p>;
+  }
+  const screen = await render(<Probe id="old" />);
+  const oldSignal = mocks.api.mock.calls[0][1].signal;
+  await screen.rerender(<Probe id="new" />);
+  expect(oldSignal.aborted).toBe(true);
+  const facts = {
+    category: "clothes",
+    attributes: {},
+    quantity: "1",
+    unit: "item",
+    expiry: {},
+  };
+  await act(async () => {
+    pending.get("/donations/new")!({ id: "new", facts, status: "draft" });
+  });
+  expect(screen.container.textContent).toBe("new");
+  await act(async () => {
+    pending.get("/donations/old")!({ id: "old", facts, status: "draft" });
+  });
+  expect(screen.container.textContent).toBe("new");
+  await screen.unmount();
+  expect(mocks.api.mock.calls[1][1].signal.aborted).toBe(true);
+});
+it("finishes hydration after Strict Mode effect replay", async () => {
+  mocks.api.mockResolvedValue({
+    id: "saved",
+    facts: {
+      category: "clothes",
+      attributes: {},
+      quantity: "1",
+      unit: "item",
+      expiry: {},
+    },
+    status: "ready",
+  });
+  mocks.apiPage.mockResolvedValue({ data: [], meta: { next_cursor: null } });
+  function Probe() {
+    const { state } = useDonationSession("donor", "saved");
+    return <p>{state.busy ? "Loading" : state.donation?.id}</p>;
+  }
+  const screen = await render(
+    <StrictMode>
+      <Probe />
+    </StrictMode>,
+  );
+  expect(screen.container.textContent).toBe("saved");
+});
+it("keeps item and label previews separate and supports local replacement and removal", async () => {
+  mocks.user = { id: "donor" };
+  const screen = await render(<Donate />);
+  async function select(selector: string, name: string) {
+    const input = screen.container.querySelector<HTMLInputElement>(selector)!;
+    await act(async () => {
+      Object.defineProperty(input, "files", {
+        configurable: true,
+        value: [new File(["photo"], name, { type: "image/jpeg" })],
+      });
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 15));
+    });
+  }
+  await select("#photos", "front.jpg");
+  await select("#label-photos", "date.jpg");
+  expect(screen.container.querySelectorAll("img")).toHaveLength(2);
+  expect(
+    screen.container.querySelector('[aria-labelledby="label-photos-title"]')
+      ?.textContent,
+  ).toContain("date.jpg");
+  await act(async () => {
+    screen.container
+      .querySelector<HTMLButtonElement>(
+        '[aria-label="Replace front.jpg, photo 1"]',
+      )!
+      .click();
+  });
+  await select('input[aria-label="Replace item photos"]', "side.jpg");
+  expect(screen.container.textContent).not.toContain("front.jpg");
+  expect(screen.container.textContent).toContain("side.jpg");
+  await act(async () => {
+    screen.container
+      .querySelector<HTMLButtonElement>(
+        '[aria-label="Remove date.jpg, photo 1"]',
+      )!
+      .click();
+  });
+  expect(screen.container.textContent).not.toContain("date.jpg");
+  expect(screen.container.querySelectorAll("img")).toHaveLength(1);
+  expect(mocks.api).not.toHaveBeenCalled();
+});
+it("applies the three-photo budget across item and label panels", async () => {
+  mocks.user = { id: "donor" };
+  const screen = await render(<Donate />);
+  async function select(id: string, names: string[]) {
+    const input = screen.container.querySelector<HTMLInputElement>(id)!;
+    await act(async () => {
+      Object.defineProperty(input, "files", {
+        configurable: true,
+        value: names.map(
+          (name) => new File(["photo"], name, { type: "image/jpeg" }),
         ),
-      ).toBe(false);
+      });
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }
+  await select("#photos", ["front.jpg", "side.jpg"]);
+  await select("#label-photos", ["date.jpg"]);
+  await select("#photos", ["fourth.jpg"]);
+  expect(
+    screen.container.querySelector('[role="alert"]')?.textContent,
+  ).toContain("Choose at most three photos.");
+  expect(screen.container.textContent).not.toContain("fourth.jpg");
+  expect(screen.container.textContent).toContain("date.jpg");
+  expect(mocks.api).not.toHaveBeenCalled();
+});
+it("hides edit controls after a saved draft load failure and retries the actual read", async () => {
+  mocks.user = { id: "donor" };
+  mocks.donationId = "existing";
+  mocks.api.mockRejectedValueOnce(Error("Draft unavailable"));
+  mocks.apiPage.mockResolvedValue({
+    data: [],
+    page: { has_more: false, next_cursor: null },
+  });
+  const screen = await render(<Donate />);
+  expect(screen.container.querySelector('input[type="file"]')).toBeNull();
+  expect(screen.container.textContent).toContain("Draft unavailable");
+  mocks.api.mockResolvedValueOnce({
+    id: "existing",
+    status: "draft",
+    facts: {
+      category: "clothes",
+      attributes: {},
+      quantity: "1",
+      unit: "item",
+      expiry: {},
     },
-  );
-  it("keeps unsaved values on external updates and failed Save, then saves with the current revision and retains original evidence", () => {
-    let tree = review();
-    const originalEvidence = structuredClone(harness.state.analyses);
-    open(tree);
-    change(tree, "working-product", "Blue coat");
-    change(tree, "working-quantity", "2");
-    const donation = harness.state.donations.find(
-      (item) => item.id === fixtureId("coat"),
-    )!;
-    harness.state = {
-      ...harness.state,
-      donations: harness.state.donations.map((item) =>
-        item.id === donation.id ? { ...item, revision: "8" } : item,
-      ),
-    };
-    harness.failSave = true;
-    tree = render();
-    submit(tree);
-    tree = render();
-    expect(
-      find(tree, "Field", (props) => props.id === "working-product").value,
-    ).toBe("Blue coat");
-    expect(
-      find(tree, "Field", (props) => props.id === "working-quantity").value,
-    ).toBe("2");
-    expect(find(tree, "div", (props) => props.role === "alert").children).toBe(
-      "Save failed. Try again.",
-    );
-    harness.failSave = false;
-    submit(tree);
-    expect(harness.dispatch).toHaveBeenLastCalledWith({
-      type: "patch",
-      id: donation.id,
-      expected_revision: "8",
-      patch: {
-        category: "clothes",
-        quantity: "2",
-        attributes: { product: "Blue coat", size: "M" },
-      },
-    });
-    expect(
-      harness.state.donations.find((item) => item.id === donation.id)
-        ?.attributes.product,
-    ).toBe("Blue coat");
-    expect(harness.state.analyses).toEqual(originalEvidence);
+    computed: { active_offer_id: null },
   });
-  it("clears the calendar date on PAO selection and sends only printed PAO evidence", () => {
-    let tree = review();
-    open(tree);
-    find(tree, "SelectField", (props) => props.label === "Category").onChange({
-      target: { value: "para" },
-    });
-    tree = render();
-    change(tree, "working-expiry", "2027-03-15");
-    tree = render();
-    find(
-      tree,
-      "SelectField",
-      (props) => props.label === "Printed date type",
-    ).onChange({ target: { value: "PAO" } });
-    tree = render();
-    change(tree, "pao-months", "12");
-    tree = render();
-    submit(tree);
-    expect(harness.dispatch).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        patch: {
-          category: "para",
-          quantity: "1",
-          attributes: { product: "Winter coat" },
-          expiry: {
-            expiry_date: null,
-            date_type: "PAO",
-            pao_months: 12,
-            date_precision: "unknown",
-            raw_label: null,
-            readability: "unknown",
-          },
-        },
-      }),
-    );
+  await act(async () => {
+    [...screen.container.querySelectorAll("button")]
+      .find((button) => button.textContent === "Retry loading donation")!
+      .click();
   });
+  expect(screen.container.textContent).not.toContain("Draft unavailable");
+  expect(screen.container.querySelector("#photos")).not.toBeNull();
+  expect(mocks.api.mock.calls.map(([path]) => path)).toEqual([
+    "/donations/existing",
+    "/donations/existing",
+  ]);
 });

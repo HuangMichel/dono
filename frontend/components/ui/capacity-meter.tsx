@@ -24,7 +24,7 @@ export function CapacityMeter({
       ? "Unavailable"
       : `${new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }).format(usage.percentage)}%`;
   const ranges = usage.paused
-    ? "Paused. No intake capacity."
+    ? "Paused. No storage space available."
     : `Green through ${CAPACITY_THRESHOLDS.warning}%; orange above ${CAPACITY_THRESHOLDS.warning}% through ${CAPACITY_THRESHOLDS.danger}%; red above ${CAPACITY_THRESHOLDS.danger}%.`;
   return (
     <div className={`capacity-meter capacity-meter-${usage.tone}`}>
@@ -42,7 +42,9 @@ export function CapacityMeter({
           value={Math.min(usage.used, usage.limit)}
           max={usage.limit || 1}
           aria-label={`${label} capacity used`}
-          aria-valuetext={usage.paused ? "Paused, no intake capacity" : text}
+          aria-valuetext={
+            usage.paused ? "Paused, no storage space available" : text
+          }
           aria-describedby={[description ? descriptionId : null, thresholdsId]
             .filter(Boolean)
             .join(" ")}

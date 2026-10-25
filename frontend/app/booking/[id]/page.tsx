@@ -1,354 +1,462 @@
 "use client";
-import { formatCount } from "@/lib/ui-text";
-import Link from "next/link";
+import { use, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { use, useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { PublicShell, DemoTools } from "@/components/public-shell";
+import { PublicShell } from "@/components/public-shell";
 import {
   Button,
   Card,
-  CardActions,
   Chip,
+  Field,
   PageHeading,
-  SelectField,
+  LinkButton,
 } from "@/components/ui";
+import { formatCount } from "@/lib/ui-text";
+import { useAuth } from "@/lib/auth-context";
+import { api } from "@/lib/api";
+import { useApiPage, useApiResource } from "@/lib/api-hooks";
 import { Calendar, useParisClock } from "@/components/ui/calendar";
-import { availableBookingSlots } from "@/lib/booking-availability";
-import { getOccupyingBookings } from "@/lib/demo-store";
-import { useDemo } from "@/lib/demo-context";
-const format = (value: string) =>
-  new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "full",
-    timeStyle: "short",
-    timeZone: "Europe/Paris",
-  }).format(new Date(value));
+import { useNotifications } from "@/components/ui/notifications";
+import "./booking.css";
+import {
+  createCommandKeys,
+  type Offer,
+  type Booking as BookingData,
+  type Slot,
+  parisTime,
+  statusLabel,
+  itemName,
+} from "@/components/donor/api-donation";
 export default function Booking({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params),
-    { state, dispatch, ready } = useDemo(),
+  const { id } = use(params);
+  const auth = useAuth();
+  return <BookingFlow key={`${auth.user?.id ?? "guest"}:${id}`} id={id} />;
+}
+function BookingFlow({ id }: { id: string }) {
+  const auth = useAuth();
+  const { notify } = useNotifications();
+  const commandKey = useRef(createCommandKeys());
+  const { today } = useParisClock();
+  const offer = useApiResource<Offer>(auth.user ? `/offers/${id}` : null);
+  const [booking, setBooking] = useState<BookingData | null>(null),
+    [checking, setChecking] = useState(true),
     [selected, setSelected] = useState(""),
-    [selectedDate, setSelectedDate] = useState(""),
+    [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [qr, setQr] = useState(""),
-    [failQr, setFailQr] = useState(false),
-    [attempt, setAttempt] = useState(0);
-  const { now, today } = useParisClock();
-  const day = selectedDate || today;
-  const d = state.donations.find((d) => d.id === id),
-    booking = state.bookings.find((b) => b.donation_id === id),
-    slot = state.slots.find((s) => s.id === booking?.slot_id),
-    association = state.associations.find((a) => a.id === d?.association_id);
-  const available = availableBookingSlots(
-    state.slots,
-    getOccupyingBookings(state),
-    d?.status === "approved" ? (d.association_id ?? undefined) : undefined,
-    day,
-    now ?? Number.POSITIVE_INFINITY,
+    [qrError, setQrError] = useState(""),
+    [attempt, setAttempt] = useState(0),
+    [reason, setReason] = useState("");
+  const [selectedDay, setSelectedDay] = useState("");
+  const slots = useApiPage<Slot>(
+    auth.user && offer.data?.computed.effective_state === "approved" && !booking
+      ? `/offers/${id}/slots`
+      : null,
   );
-  const refusal = booking ? state.reception_refusals[booking.id] : undefined;
-  const chosenSlot = available.find((candidate) => candidate.id === selected);
+  const day = selectedDay || slots.data[0]?.quota_date || today;
+  const daySlots = slots.data.filter((slot) => slot.quota_date === day);
+  const chosenSlot = daySlots.find((slot) => slot.id === selected);
   useEffect(() => {
-    let cancelled = false;
-    if (booking && d?.status !== "refused" && !failQr)
-      QRCode.toDataURL("DEMO-ONLY:" + booking.id, {
-        width: 220,
-        margin: 2,
-        color: { dark: "#21201C", light: "#FDFDFC" },
+    if (!auth.user) return;
+    const controller = new AbortController();
+    api<BookingData>(`/offers/${id}/booking`, { signal: controller.signal })
+      .then((data) => {
+        if (!controller.signal.aborted) setBooking(data);
       })
-        .then((url) => {
-          if (!cancelled) setQr(url);
-        })
-        .catch(() => {
-          if (!cancelled)
-            setError(
-              "Your appointment is saved. The demo QR could not be rendered. Retry below.",
-            );
-        });
-    return () => {
-      cancelled = true;
-    };
-  }, [booking, d?.status, failQr, attempt]);
-  function book() {
-    if (!d) return;
-    const current = availableBookingSlots(
-      state.slots,
-      getOccupyingBookings(state),
-      d.status === "approved" ? (d.association_id ?? undefined) : undefined,
-      day,
-      // Read the wall clock only when the user confirms, not while rendering.
-      // eslint-disable-next-line react-hooks/purity
-      Date.now(),
-    ).find((candidate) => candidate.id === selected);
-    if (!current) {
-      setSelected("");
-      setError("This time is no longer available. Choose an available time.");
-      return;
-    }
-    try {
-      dispatch({
-        type: "book",
-        id,
-        slot_id: selected,
-        expected_revision: d.revision,
+      .catch((e) => {
+        if (!controller.signal.aborted && e.status !== 404) setError(e.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setChecking(false);
       });
-      setError("");
+    return () => controller.abort();
+  }, [id, auth.user]);
+  useEffect(() => {
+    if (!booking || booking.computed.effective_state !== "booked") return;
+    let active = true;
+    api<{ payload: string }>(`/bookings/${booking.id}/qr`)
+      .then((data) => QRCode.toDataURL(data.payload, { width: 260, margin: 2 }))
+      .then((src) => {
+        if (active) setQr(src);
+      })
+      .catch((e) => {
+        if (active) setQrError(e.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [booking, attempt]);
+  async function book() {
+    if (!offer.data || !chosenSlot || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const next = await api<BookingData>(`/offers/${id}/bookings`, {
+        method: "POST",
+        idempotencyKey: commandKey.current(
+          JSON.stringify([id, offer.data.revision, selected]),
+        ),
+        body: {
+          expected_offer_revision: offer.data.revision,
+          slot_id: chosenSlot.id,
+        },
+      });
+      setBooking(next);
+      notify({ message: "Appointment confirmed.", tone: "success" });
+      await offer.refresh();
     } catch (e) {
-      setError((e as Error).message);
+      try {
+        const saved = await api<BookingData>(`/offers/${id}/booking`);
+        setBooking(saved);
+        setError("");
+        notify({
+          message:
+            saved.computed.effective_state === "booked"
+              ? "Appointment confirmed."
+              : "Appointment status refreshed.",
+          tone:
+            saved.computed.effective_state === "booked" ? "success" : "info",
+        });
+      } catch {
+        notify({
+          message:
+            e instanceof Error
+              ? e.message
+              : "Could not book the appointment. Try again.",
+          tone: "error",
+        });
+      }
+      await slots.refresh();
+      await offer.refresh();
+      setSelected("");
+    } finally {
+      setBusy(false);
     }
   }
+  async function cancel() {
+    if (!booking) return;
+    setBusy(true);
+    setError("");
+    setQr("");
+    setQrError("");
+    try {
+      const result = await api<{ booking: BookingData }>(
+        `/bookings/${booking.id}/cancellation`,
+        {
+          method: "POST",
+          body: { expected_revision: booking.revision, reason },
+          idempotencyKey: commandKey.current(
+            JSON.stringify(["cancel", booking.id, booking.revision, reason]),
+          ),
+        },
+      );
+      setBooking(result.booking);
+      notify({ message: "Appointment cancelled.", tone: "success" });
+      setQr("");
+      await offer.refresh();
+    } catch (e) {
+      try {
+        const saved = await api<BookingData>(`/bookings/${booking.id}`);
+        setBooking(saved);
+        if (saved.computed.effective_state === "cancelled")
+          notify({ message: "Appointment cancelled.", tone: "success" });
+        else
+          notify({
+            message:
+              e instanceof Error
+                ? e.message
+                : "Could not cancel the appointment. Try again.",
+            tone: "error",
+          });
+        await offer.refresh();
+      } catch {
+        notify({
+          message:
+            e instanceof Error
+              ? e.message
+              : "Could not cancel the appointment. Try again.",
+          tone: "error",
+        });
+        setQrError(
+          "We could not check your appointment status. Reload the QR code to check whether it is still valid.",
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+  const loading = auth.loading || offer.loading || checking;
   return (
     <PublicShell>
       <main id="main" className="container booking-page">
-        {!ready ? (
-          <p>Loading appointment…</p>
-        ) : !d || state.role !== "donor" ? (
-          <Card className="stack">
-            <h1>Appointment unavailable</h1>
-            <p>Choose donor demo and open an approved donation.</p>
-            <CardActions>
-              <Link href="/login" className="button button-primary">
-                Choose role
-              </Link>
-            </CardActions>
-          </Card>
-        ) : d.status === "refused" && booking ? (
-          <Card className="stack">
-            <Chip variant="danger">Refused at reception</Chip>
-            <h1>This donation was refused at drop-off</h1>
-            {refusal && (
-              <>
-                <p>{refusal.reason}</p>
-                <p className="meta muted">
-                  Refused by association staff {refusal.refused_by},{" "}
-                  {format(refusal.refused_at)}, Europe/Paris.
-                </p>
-                <p className="meta muted">
-                  Originally approved by staff{" "}
-                  {refusal.original_approval.decided_by},{" "}
-                  {format(refusal.original_approval.decided_at)}.
-                </p>
-                <p>
-                  Staff refused {formatCount(refusal.original_quantity)} at
-                  reception. Nothing was added to stock.
-                </p>
-              </>
-            )}
-            <h2>Appointment history</h2>
-            <p>
-              {slot ? format(slot.starts_at) : "Slot unavailable"}, Europe/Paris
-            </p>
-            <p>{association?.display_address}</p>
-            <p className="meta muted">
-              This appointment is closed. Its QR is unavailable.
-            </p>
-            <CardActions>
-              <Link className="button button-outline" href="/donations">
-                Back to my donations
-              </Link>
-            </CardActions>
-          </Card>
-        ) : !["approved", "booked", "received", "distributed"].includes(
-            d.status,
-          ) ? (
-          <Card className="stack">
-            <h1>Staff approval comes first</h1>
-            <p>You can book once the association approves your offer.</p>
-            <CardActions>
-              <Link href="/donations" className="button button-primary">
-                My donations
-              </Link>
-            </CardActions>
+        <PageHeading
+          title={booking ? "Your drop-off pass" : "Book your drop-off"}
+          description={
+            offer.data ? itemName(offer.data.facts_snapshot) : undefined
+          }
+        />
+        {auth.loading ? (
+          <p role="status">Loading account…</p>
+        ) : !auth.user ? (
+          <Card>
+            <p>Sign in to view your appointment.</p>
+            <LinkButton href="/login">Sign in</LinkButton>
           </Card>
         ) : (
-          <>
-            {!booking && <Chip variant="success">Approved by staff</Chip>}
-            <PageHeading
-              title={booking ? "Your drop-off pass" : "Book your drop-off"}
-              description={
-                String(d.attributes.product) + ", " + association?.name
-              }
-            />
-            {error && (
-              <p
-                className="notice error"
-                role="alert"
-                style={{ marginBottom: 24 }}
-              >
-                {error}
+          <div className="stack">
+            {loading && <p role="status">Loading appointment…</p>}
+            {(error || offer.error) && (
+              <p className="notice danger" role="alert">
+                {error || offer.error}
               </p>
             )}
-            {!booking ? (
+            {booking ? (
+              <div className="grid-two booking-layout">
+                <Card className="stack booking-pass">
+                  <Chip
+                    variant={
+                      booking.computed.effective_state === "booked" ||
+                      booking.computed.effective_state === "received"
+                        ? "success"
+                        : "neutral"
+                    }
+                  >
+                    {statusLabel(booking.computed.effective_state)}
+                  </Chip>
+                  <h2>
+                    {booking.computed.effective_state === "booked"
+                      ? "Show this at reception"
+                      : "Appointment status"}
+                  </h2>
+                  {booking.computed.effective_state === "booked" && (
+                    <>
+                      {qr ? (
+                        <Image
+                          src={qr}
+                          width={260}
+                          height={260}
+                          alt="QR code to show when you drop off your donation"
+                          unoptimized
+                        />
+                      ) : qrError ? (
+                        <div>
+                          <p role="alert">QR code unavailable. {qrError}</p>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setQrError("");
+                              setAttempt((a) => a + 1);
+                            }}
+                          >
+                            Reload QR code
+                          </Button>
+                        </div>
+                      ) : (
+                        <p role="status">Loading your QR code…</p>
+                      )}
+                    </>
+                  )}
+                </Card>
+                <Card className="stack" aria-label="Appointment summary">
+                  <h2>Your appointment</h2>
+                  <dl className="appointment-facts">
+                    {offer.data && (
+                      <div>
+                        <dt>Item</dt>
+                        <dd>
+                          {itemName(offer.data.facts_snapshot)},{" "}
+                          {formatCount(offer.data.quantity)}
+                        </dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt>When</dt>
+                      <dd>
+                        {parisTime(booking.computed.starts_at)} to{" "}
+                        {bookingTime(booking.computed.ends_at)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Where</dt>
+                      <dd>{booking.dropoff_address}</dd>
+                    </div>
+                  </dl>
+                  <p className="meta muted">Times are shown in Europe/Paris.</p>
+                  {booking.computed.effective_state === "booked" && (
+                    <details className="booking-cancellation">
+                      <summary>Cancel this appointment</summary>
+                      <form
+                        className="stack-sm"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void cancel();
+                        }}
+                      >
+                        <p className="meta muted">
+                          Cancelling also closes this offer. To arrange another
+                          drop-off, send a new offer for staff to review.
+                        </p>
+                        <Field
+                          id="cancel-reason"
+                          label="Cancellation reason"
+                          required
+                          maxLength={240}
+                          value={reason}
+                          disabled={busy}
+                          onChange={(e) => setReason(e.target.value)}
+                        />
+                        <Button disabled={busy} variant="outline">
+                          Cancel appointment
+                        </Button>
+                      </form>
+                    </details>
+                  )}
+                </Card>
+              </div>
+            ) : !loading &&
+              offer.data?.computed.effective_state === "approved" ? (
               <div className="grid-two booking-layout">
                 <Card className="stack">
                   <Calendar
                     label="Drop-off date"
-                    selected={day}
                     today={today}
-                    onSelect={(date) => {
-                      setSelectedDate(date);
+                    selected={day}
+                    onSelect={(next) => {
+                      setSelectedDay(next);
                       setSelected("");
                     }}
+                    dayDescription={(date) => {
+                      const count = slots.data.filter(
+                        (slot) => slot.quota_date === date,
+                      ).length;
+                      return count
+                        ? `${count} available ${count === 1 ? "time" : "times"} shown`
+                        : "No available times shown";
+                    }}
+                    renderDay={(date) =>
+                      slots.data.some((slot) => slot.quota_date === date) ? (
+                        <span className="booking-available-dot" />
+                      ) : null
+                    }
                   />
+                  {slots.error && (
+                    <p role="alert">
+                      {slots.error}{" "}
+                      <Button
+                        variant="outline"
+                        onClick={() => void slots.refresh()}
+                      >
+                        Retry
+                      </Button>
+                    </p>
+                  )}
+                  {slots.loading && (
+                    <p role="status">Loading available times…</p>
+                  )}
                   <fieldset className="stack-sm booking-slot-list">
                     <legend>Choose a time, Europe/Paris</legend>
-                    {available.map((s) => (
-                      <label className="choice" key={s.id}>
+                    {!slots.loading && !slots.error && !daySlots.length && (
+                      <p className="meta muted" role="status">
+                        {slots.hasMore
+                          ? "No times shown for this date. Choose another date or load more times."
+                          : "No available times on this date. Choose another date."}
+                      </p>
+                    )}
+                    {daySlots.map((slot) => (
+                      <label key={slot.id} className="choice">
                         <input
                           type="radio"
                           name="slot"
-                          value={s.id}
-                          checked={chosenSlot?.id === s.id}
-                          onChange={() => setSelected(s.id)}
+                          disabled={busy}
+                          checked={selected === slot.id}
+                          onChange={() => setSelected(slot.id)}
                         />
-                        <span>{format(s.starts_at)}</span>
+                        {bookingTime(slot.starts_at)} to{" "}
+                        {bookingTime(slot.ends_at)}
                       </label>
                     ))}
-                    {!available.length && (
-                      <p className="meta muted" role="status">
-                        No available times on this date. Choose another date.
-                      </p>
-                    )}
                   </fieldset>
+                  {slots.hasMore && (
+                    <Button
+                      variant="outline"
+                      disabled={slots.loading}
+                      onClick={() => void slots.loadMore()}
+                    >
+                      Load more available times
+                    </Button>
+                  )}
                 </Card>
-                <Card className="stack">
+                <Card className="stack" aria-label="Appointment summary">
+                  <Chip variant="success">Approved by staff</Chip>
                   <h2>Your appointment</h2>
                   <dl className="appointment-facts">
+                    <div>
+                      <dt>Item</dt>
+                      <dd>
+                        {itemName(offer.data.facts_snapshot)},{" "}
+                        {formatCount(offer.data.quantity)}
+                      </dd>
+                    </div>
                     <div>
                       <dt>When</dt>
                       <dd>
                         {chosenSlot
-                          ? format(chosenSlot.starts_at)
-                          : "Choose a time"}
-                        , Europe/Paris
+                          ? `${parisTime(chosenSlot.starts_at)} to ${bookingTime(chosenSlot.ends_at)}`
+                          : "Choose a date and time"}
                       </dd>
                     </div>
                   </dl>
-                  <SelectField
-                    id="booking-location"
-                    label="Drop-off location"
-                    value={association?.id ?? ""}
-                    onChange={() => {}}
-                  >
-                    <option value={association?.id ?? ""}>
-                      {association?.display_address || association?.name}
-                    </option>
-                  </SelectField>
                   <p className="meta muted">
-                    Your time is reserved after you confirm. Your demo QR code
-                    then appears.
+                    Confirm your appointment to reserve this time. Your pass
+                    will show the drop-off address and QR code.
                   </p>
-                  <DemoTools>
-                    <label className="check">
-                      <input
-                        type="checkbox"
-                        checked={failQr}
-                        onChange={(e) => setFailQr(e.target.checked)}
-                      />
-                      Simulate QR failure after booking
-                    </label>
-                  </DemoTools>
-                  <CardActions>
-                    <Button
-                      className="full"
-                      size="app"
-                      disabled={!chosenSlot}
-                      onClick={book}
-                    >
-                      Confirm booking
-                    </Button>
-                  </CardActions>
+                  <Button
+                    size="app"
+                    disabled={
+                      busy || !chosenSlot || slots.loading || !!slots.error
+                    }
+                    onClick={() => void book()}
+                  >
+                    Confirm appointment
+                  </Button>
                 </Card>
               </div>
             ) : (
-              <div className="grid-two booking-layout">
-                <Card className="stack" style={{ textAlign: "center" }}>
-                  <Chip variant="success">Booking saved</Chip>
-                  <h2>Show this at reception</h2>
-                  {failQr ? (
-                    <div className="notice warning">
-                      <p>QR unavailable. Your appointment is saved.</p>
-                      <Button
-                        style={{ marginTop: 12 }}
-                        variant="outline"
-                        onClick={() => {
-                          setFailQr(false);
-                          setAttempt((x) => x + 1);
-                        }}
-                      >
-                        Load QR again
-                      </Button>
-                    </div>
-                  ) : qr ? (
-                    <Image
-                      width={220}
-                      height={220}
-                      unoptimized
-                      className="qr"
-                      src={qr}
-                      alt="QR containing only a local demo booking reference"
-                    />
-                  ) : (
-                    <p aria-busy="true">Loading QR…</p>
-                  )}
-                  <code style={{ overflowWrap: "anywhere" }}>
-                    DEMO-ONLY:{booking.id}
-                  </code>
-                  <p className="meta muted">
-                    Local demo reference. No signature, security validity or
-                    real appointment.
-                  </p>
-                  <CardActions>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setQr("");
-                        setAttempt((x) => x + 1);
-                      }}
-                    >
-                      Reload QR
-                    </Button>
-                  </CardActions>
-                </Card>
-                <Card className="stack">
-                  <h2>Booking confirmed</h2>
+              !loading && (
+                <Card className="stack-sm">
+                  <h2>
+                    {offer.data
+                      ? statusLabel(offer.data.computed.effective_state)
+                      : "Offer unavailable"}
+                  </h2>
                   <p>
-                    {slot ? format(slot.starts_at) : "Slot unavailable"},
-                    Europe/Paris
+                    {offer.data &&
+                    ["refused", "cancelled", "expired", "withdrawn"].includes(
+                      offer.data.computed.effective_state,
+                    )
+                      ? "This offer is closed. The item stays in your donations, and you can offer it to another association."
+                      : "You can book a drop-off time once association staff approve your offer."}
                   </p>
-                  <p>{association?.display_address}</p>
-                  <p>
-                    {formatCount(d.quantity, "unit")},{" "}
-                    {String(d.attributes.product)}
-                  </p>
-                  <p className="notice">
-                    Bring your item for staff inspection. Staff confirm the
-                    quantity received.
-                  </p>
-                  <CardActions>
-                    <Link className="button button-primary" href="/donations">
-                      Back to my donations
-                    </Link>
-                    <Link href="/login" className="button button-outline">
-                      Switch to reception demo
-                    </Link>
-                  </CardActions>
                 </Card>
-              </div>
+              )
             )}
-            <DemoTools>
-              <p className="meta muted">
-                Appointment times and QR are illustrative. Production scheduling
-                and signing policies remain unresolved. Cancellation and
-                rescheduling are unavailable.
-              </p>
-            </DemoTools>
-          </>
+            <LinkButton href="/donations" variant="outline">
+              My donations
+            </LinkButton>
+          </div>
         )}
       </main>
     </PublicShell>
   );
+}
+
+function bookingTime(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeStyle: "short",
+    timeZone: "Europe/Paris",
+  }).format(new Date(value));
 }

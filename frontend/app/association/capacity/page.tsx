@@ -1,124 +1,146 @@
 "use client";
-
+import { useState } from "react";
+import { useApiPage } from "@/lib/api-hooks";
+import type { Capacity, IntakeQuota } from "@/lib/api-contracts";
+import { Field } from "@/components/ui";
 import { CapacityMeter } from "@/components/ui/capacity-meter";
-import { Button, CardActions, Chip, Field } from "@/components/ui";
-
-import { useState, type FormEvent } from "react";
-import type { Category } from "@/lib/contracts";
-import { useDemo } from "@/lib/demo-context";
-import { CATEGORY_LABELS, getCapacity } from "@/lib/demo-store";
+import { CATEGORY_LABELS } from "@/lib/labels";
 import {
-  CategorySelect,
   ConsoleTitle,
-  Feedback,
+  useAssociation,
+  ResourceStatus,
+  More,
+  NumberInput,
 } from "@/components/association/shell";
-
+import {
+  CommandForm,
+  text,
+  useCommand,
+} from "@/components/association/command";
+import "./capacity.css";
 export default function CapacityPage() {
-  const { state, dispatch } = useDemo();
-  const [category, setCategory] = useState<Category>("clothes");
-  const [quantity, setQuantity] = useState(
-    getCapacity(state, "clothes").limit_quantity,
+  const { id, membership } = useAssociation();
+  const [day, setDay] = useState(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Paris",
+    }).format(new Date()),
   );
-  const [revision, setRevision] = useState(
-    getCapacity(state, "clothes").revision,
+  const storage = useApiPage<Capacity>(
+    `/associations/${id}/capacity?limit=100`,
   );
-  const [feedback, setFeedback] = useState("");
-  const [error, setError] = useState(false);
-  function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      dispatch({
-        type: "capacity",
-        category,
-        quantity,
-        expected_revision: revision,
-      });
-      setRevision(String(BigInt(revision) + 1n));
-      setError(false);
-      setFeedback("Capacity updated in the demo.");
-    } catch (cause) {
-      setError(true);
-      setFeedback(
-        cause instanceof Error ? cause.message : "Capacity could not be saved.",
-      );
-    }
-  }
+  const quotas = useApiPage<IntakeQuota>(
+    `/associations/${id}/intake-quotas?from=${day}&to=${day}&limit=100`,
+  );
+  const command = useCommand();
+  const admin = membership.role === "assoc_admin";
   return (
     <>
-      <ConsoleTitle title="Capacity" />
-      <Feedback message={feedback} error={error} />
-      <div className="console-columns">
-        <section className="card console-panel">
-          {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
-            const capacity = getCapacity(state, key as Category);
-            const limit = Number(capacity.limit_quantity);
-            return (
-              <div className="console-row console-capacity-row" key={key}>
-                <div className="console-capacity-meter">
-                  <CapacityMeter
-                    label={label}
-                    inStock={capacity.computed.in_stock}
-                    reserved={capacity.computed.reserved}
-                    limit={capacity.limit_quantity}
-                    description={`${capacity.computed.in_stock} in stock, ${capacity.computed.reserved} reserved, ${capacity.limit_quantity} limit`}
-                  />
-                </div>
-                <Chip
-                  variant={
-                    Number(capacity.computed.available) > 0
-                      ? "success"
-                      : "neutral"
-                  }
-                >
-                  {limit === 0
-                    ? "Paused"
-                    : Number(capacity.computed.available) === 0
-                      ? "Full"
-                      : `${capacity.computed.available} available`}
-                </Chip>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCategory(key as Category);
-                    setQuantity(capacity.limit_quantity);
-                    setRevision(capacity.revision);
+      <ConsoleTitle title="Storage and daily intake" />
+      <section className="card">
+        <h2>Storage capacity</h2>
+        <ResourceStatus {...storage} />
+        {!storage.loading && !storage.error && !storage.data.length && (
+          <p>No storage limits configured.</p>
+        )}
+        <ul className="capacity-category-list">
+          {storage.data.map((capacity) => (
+            <li key={capacity.category}>
+              <CapacityMeter
+                label={CATEGORY_LABELS[capacity.category]}
+                inStock={String(capacity.computed.occupied_storage_units)}
+                reserved={String(capacity.computed.reserved_storage_units)}
+                limit={String(capacity.limit_storage_units)}
+                description={`${capacity.computed.occupied_storage_units} occupied, ${capacity.computed.reserved_storage_units} reserved, ${capacity.computed.available_storage_units} available places`}
+              />
+              {admin && (
+                <CommandForm
+                  key={capacity.category + capacity.revision}
+                  submit="Save storage limit"
+                  successMessage="Storage limit saved."
+                  onSubmit={async (data) => {
+                    await command(
+                      `/associations/${id}/capacity/${capacity.category}`,
+                      {
+                        expected_revision: capacity.revision,
+                        storage_unit: "item_slot",
+                        limit_storage_units: Number(text(data, "limit")),
+                      },
+                      "PUT",
+                    );
+                    await storage.refresh();
                   }}
                 >
-                  Edit
-                </Button>
-              </div>
-            );
-          })}
-        </section>
-        <form className="card console-panel console-stack" onSubmit={save}>
-          <h2>Edit category capacity</h2>
-          <CategorySelect
-            value={category}
-            onChange={(value) => {
-              setCategory(value as Category);
-              setQuantity(getCapacity(state, value as Category).limit_quantity);
-              setRevision(getCapacity(state, value as Category).revision);
-            }}
-          />
-          <Field
-            label="Limit, items"
-            required
-            type="number"
-            min="0"
-            step="1"
-            max="999999999"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-          />
-          <p className="console-meta">
-            The limit includes stock and approved reservations. Set zero to
-            close an empty category. Pause individual needs on the Needs page.
-          </p>
-          <CardActions>
-            <Button variant="primary">Save capacity</Button>
-          </CardActions>
-        </form>
-      </div>
+                  <NumberInput
+                    label="Maximum storage places"
+                    name="limit"
+                    value={capacity.limit_storage_units}
+                  />
+                </CommandForm>
+              )}
+            </li>
+          ))}
+        </ul>
+        <More {...storage} />
+      </section>
+      <section className="card">
+        <h2>Daily intake</h2>
+        <p className="console-meta">
+          Daily intake is a separate budget from storage places.
+        </p>
+        <Field
+          label="Drop-off date (Europe/Paris)"
+          type="date"
+          value={day}
+          onChange={(e) => {
+            if (e.target.value) setDay(e.target.value);
+          }}
+        />
+        <ResourceStatus {...quotas} />
+        {!quotas.loading && !quotas.error && !quotas.data.length && (
+          <p>No daily intake limits configured for this date.</p>
+        )}
+        <ul className="capacity-category-list">
+          {quotas.data.map((quota) => (
+            <li key={quota.category}>
+              <p>
+                <strong>{CATEGORY_LABELS[quota.category]}</strong>
+              </p>
+              <p className="console-meta">
+                Booked {quota.computed.booked_quantity}, received{" "}
+                {quota.computed.received_quantity}, available{" "}
+                {quota.computed.available_quantity} items of{" "}
+                {quota.limit_quantity}
+              </p>
+              {admin && (
+                <CommandForm
+                  key={quota.category + day + quota.revision}
+                  submit="Save daily intake limit"
+                  successMessage="Daily intake limit saved."
+                  onSubmit={async (data) => {
+                    await command(
+                      `/associations/${id}/intake-quotas/${quota.category}/${day}`,
+                      {
+                        expected_revision: quota.revision,
+                        unit: "item",
+                        limit_quantity: text(data, "limit"),
+                      },
+                      "PUT",
+                    );
+                    await quotas.refresh();
+                  }}
+                >
+                  <NumberInput
+                    label="Maximum items on this date"
+                    name="limit"
+                    value={quota.limit_quantity}
+                  />
+                </CommandForm>
+              )}
+            </li>
+          ))}
+        </ul>
+        <More {...quotas} />
+      </section>
     </>
   );
 }

@@ -39,10 +39,10 @@ export function validateRegistrationIdentity(
   if (!name.trim()) errors.name = "Enter your association name.";
   const normalized = normalizeSiret(siret);
   if (!rna.trim() && !normalized) {
-    errors.rna = "Enter an RNA or SIRET reference.";
-    errors.siret = "Enter an RNA or SIRET reference.";
+    errors.rna = "Enter your association's RNA or SIRET number.";
+    errors.siret = "Enter your association's RNA or SIRET number.";
   } else if (normalized && !isValidSiret(normalized)) {
-    errors.siret = "Enter a valid 14-digit SIRET with a valid checksum.";
+    errors.siret = "Check the SIRET number. It must contain 14 valid digits.";
   }
   return errors;
 }

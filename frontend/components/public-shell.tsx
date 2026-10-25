@@ -1,30 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useDemo } from "@/lib/demo-context";
+import { useAuth } from "@/lib/auth-context";
 import { Icon, LinkButton } from "@/components/ui";
-export function DemoTools({ children }: { children?: React.ReactNode }) {
-  const { reset } = useDemo();
-  return (
-    <details className="demo-tools">
-      <summary>
-        Local demo <span className="muted">Fictional data</span>
-      </summary>
-      <div className="demo-tools-content">
-        <p className="meta muted">
-          Roles, analysis and appointments are simulated in this browser.
-        </p>
-        {children}
-        <div className="row wrap">
-          <Link href="/login">Switch demo role</Link>
-          <button type="button" onClick={reset}>
-            Reset demo
-          </button>
-        </div>
-      </div>
-    </details>
-  );
-}
 export function PublicShell({
   children,
   donorBack,
@@ -32,7 +10,7 @@ export function PublicShell({
   children: React.ReactNode;
   donorBack?: { href: string; label: string };
 }) {
-  const { state } = useDemo(),
+  const { user, memberships } = useAuth(),
     path = usePathname();
   const donor = ["/donate", "/donations", "/booking/"].some((p) =>
     path.startsWith(p),
@@ -59,14 +37,14 @@ export function PublicShell({
               My donations
             </Link>
           )}
+          {memberships.some((member) => member.active) && (
+            <Link href="/association">Association</Link>
+          )}
           <LinkButton variant="outline" href="/login">
-            {state.role ? "Demo account" : "Sign in"}
+            {user ? "Account" : "Sign in"}
           </LinkButton>
         </nav>
       </header>
-      <div className="demo-disclosure">
-        <DemoTools />
-      </div>
       {donor && (
         <nav className="donor-topbar" aria-label="Donation navigation">
           <Link
@@ -95,8 +73,8 @@ export function PublicShell({
       {children}
       <footer className="public-footer">
         <Link href="/register-association">Register an association</Link>
-        <Link href="/company">Company offers</Link>
-        <span>Status stays in Dono.</span>
+        <Link href="/company">Company donations</Link>
+        <span>Track your donations in Dono.</span>
       </footer>
       {donor && (
         <nav className="donor-bottom-nav" aria-label="Donor navigation">
@@ -105,7 +83,7 @@ export function PublicShell({
             aria-current={path === "/donate" ? "page" : undefined}
           >
             <Icon name="scan" />
-            Home
+            Donate
           </Link>
           <Link href="/needs">
             <Icon name="needs" />
@@ -116,7 +94,7 @@ export function PublicShell({
             aria-current={path === "/donations" ? "page" : undefined}
           >
             <Icon name="inventory" />
-            Donations
+            My donations
           </Link>
         </nav>
       )}

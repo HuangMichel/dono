@@ -8,29 +8,6 @@ export function validQuantity(quantity: string, maximum: string): boolean {
 
 export { calendarMonth } from "../ui/calendar-model";
 
-export function resolveDemoBookingReference<T extends { id: string }>(
-  reference: string,
-  scopedBookings: readonly T[],
-): T | undefined {
-  const bookingId = reference.trim().replace(/^(?:DEMO-ONLY:|DEMO:)/, "");
-  return scopedBookings.find((booking) => booking.id === bookingId);
-}
-
-export function resolveDemoArrival<T extends { id: string; slot_id: string }>(
-  reference: string,
-  scopedBookings: readonly T[],
-  slots: readonly { id: string; starts_at: string }[],
-): { booking: T; arrival_date: string } | undefined {
-  const booking = resolveDemoBookingReference(reference, scopedBookings);
-  const slot =
-    booking && slots.find((candidate) => candidate.id === booking.slot_id);
-  if (!booking || !slot) return undefined;
-  return {
-    booking,
-    arrival_date: instantToParisInput(slot.starts_at).slice(0, 10),
-  };
-}
-
 // Find the instant whose Paris wall-clock fields match the input. The two
 // possible French offsets also reveal DST gaps and repeated local times.
 export function parisInputToInstant(value: string): string {

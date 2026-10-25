@@ -25,6 +25,7 @@ export type DataColumn<T> = {
   label: string;
   cell: (row: T) => ReactNode;
   sortValue?: (row: T) => SortValue;
+  width?: string;
 };
 export function DataTable<T>({
   rows,
@@ -204,6 +205,16 @@ export function DataTable<T>({
           <caption className="sr-only">
             {searchLabel.replace(/^Search /, "")}
           </caption>
+          {columns.some((column) => column.width) && (
+            <colgroup>
+              {columns.map((column) => (
+                <col
+                  key={column.id}
+                  style={column.width ? { width: column.width } : undefined}
+                />
+              ))}
+            </colgroup>
+          )}
           <thead>
             <tr>
               {columns.map((column) => (
@@ -241,6 +252,20 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody>
+            {!visible.length && (
+              <tr>
+                <td colSpan={columns.length}>
+                  <div
+                    className="data-table-empty-state"
+                    role="status"
+                    aria-label={emptyMessage}
+                  >
+                    <Icon name="blocked" size={28} />
+                    <p>{emptyMessage}</p>
+                  </div>
+                </td>
+              </tr>
+            )}
             {visible.map((row) => {
               const id = getRowId(row);
               const details = renderDetails?.(row);
@@ -332,8 +357,13 @@ export function DataTable<T>({
         onPageChange={setRequestedPage}
         label={`${searchLabel.replace(/^Search /, "")} pagination`}
       />
-      {!visible.length && (
-        <div className="console-empty data-table-empty">{emptyMessage}</div>
+      {!visible.length && renderMobileRow && (
+        <div className="console-empty data-table-empty">
+          <div className="data-table-empty-state" role="status">
+            <Icon name="blocked" size={28} />
+            <p>{emptyMessage}</p>
+          </div>
+        </div>
       )}
     </div>
   );
