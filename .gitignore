@@ -37,4 +37,5 @@ __pycache__/
 *.py[cod]
 .venv/
 
-# Diagram source JSON and current validation evidence are versioned.
+
+# Keep Archify sources/current validation evidence eligible for version control.
