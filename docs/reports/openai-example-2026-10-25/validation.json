@@ -1,0 +1,32 @@
+{
+  "valid": false,
+  "adapter_error": "provider_invalid_output",
+  "errors": [
+    {
+      "type": "value_error",
+      "loc": [],
+      "msg": "Value error, indicator keys mismatch",
+      "url": "https://errors.pydantic.dev/2.11/v/value_error"
+    }
+  ],
+  "expected_indicator_keys": [
+    "chilled_or_frozen",
+    "holes_visible",
+    "label_unreadable",
+    "looks_like_medicine",
+    "pilling_visible",
+    "stains_visible",
+    "wear_visible"
+  ],
+  "returned_indicator_keys": [
+    "holes_visible",
+    "looks_like_medicine",
+    "pilling_visible",
+    "stains_visible",
+    "wear_visible"
+  ],
+  "missing": [
+    "chilled_or_frozen",
+    "label_unreadable"
+  ]
+}

@@ -206,3 +206,7 @@ uv run pytest -q --cov=app --cov-report=term-missing
 Tests launch disposable embedded PostgreSQL using `pgserver`, create test-only Auth primitives and apply every migration. They require local process/socket permissions, not Docker or live credentials. Auth HTTP, the Supabase HTTP gateway and OpenAI responses are simulated; SQL constraints, commands, grants, RLS and concurrent connections execute in real PostgreSQL. Only synthetic tiny images are included. Tests must never use a production database.
 
 Formatting is configured with Black; Ruff and strict mypy are the required static checks. Test evidence and remaining gates are recorded in [readiness](readiness.md) and [handoff](handoff.md). No claim is made that connected frontend behavior, hosted email/password authentication, target-mobile camera/QR rendering, the full Supabase stack or live model evaluation have passed.
+
+## Plan de validation pas à pas
+
+Voir le [plan de test du backend](test-plan.md) pour les essais automatisés, les sessions Auth réelles, le parcours Swagger et les critères de passage en préproduction. Ce plan ne constitue pas une exécution des tests.
