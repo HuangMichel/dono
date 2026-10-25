@@ -1,0 +1,585 @@
+[
+ {
+  "file": "logo.svg",
+  "bytes": 1188,
+  "viewBox": [
+   0.0,
+   0.0,
+   768.0,
+   256.0
+  ],
+  "aspect": 3.0,
+  "aspect_class": "horizontal",
+  "colors": [
+   "#2a7e3b",
+   "#21201c"
+  ],
+  "gradients": 0,
+  "anchors": 54,
+  "library_anchor_percentiles": {
+   "p10": 23.0,
+   "p25": 37.0,
+   "median": 75.0,
+   "p75": 155.0,
+   "p90": 257.8,
+   "p95": 379.45
+  },
+  "content_bbox": [
+   32.0,
+   32.0,
+   727.06,
+   224.0
+  ],
+  "margins": {
+   "left": 32.0,
+   "right": 40.9,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.679,
+  "score": 100,
+  "findings": []
+ },
+ {
+  "file": "logo-mark.svg",
+  "bytes": 403,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#2a7e3b"
+  ],
+  "gradients": 0,
+  "anchors": 18,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   32.0,
+   32.0,
+   224.0,
+   224.0
+  ],
+  "margins": {
+   "left": 32.0,
+   "right": 32.0,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.562,
+  "score": 100,
+  "findings": []
+ },
+ {
+  "file": "logo-dark.svg",
+  "bytes": 1188,
+  "viewBox": [
+   0.0,
+   0.0,
+   768.0,
+   256.0
+  ],
+  "aspect": 3.0,
+  "aspect_class": "horizontal",
+  "colors": [
+   "#ffffff"
+  ],
+  "gradients": 0,
+  "anchors": 54,
+  "library_anchor_percentiles": {
+   "p10": 23.0,
+   "p25": 37.0,
+   "median": 75.0,
+   "p75": 155.0,
+   "p90": 257.8,
+   "p95": 379.45
+  },
+  "content_bbox": [
+   32.0,
+   32.0,
+   727.06,
+   224.0
+  ],
+  "margins": {
+   "left": 32.0,
+   "right": 40.9,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.679,
+  "score": 100,
+  "findings": []
+ },
+ {
+  "file": "favicon.svg",
+  "bytes": 370,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#2a7e3b",
+   "#ffffff"
+  ],
+  "gradients": 0,
+  "anchors": 27,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "margins": {
+   "left": 0.0,
+   "right": 0.0,
+   "top": 0.0,
+   "bottom": 0.0
+  },
+  "bbox_fill_ratio": 1.0,
+  "score": 99,
+  "findings": [
+   {
+    "level": "INFO",
+    "code": "on-tile",
+    "message": "White artwork on a full-canvas tile/container — fine for app icons and avatars; make sure a version without the tile exists for other uses."
+   }
+  ]
+ },
+ {
+  "file": "wordmark.svg",
+  "bytes": 948,
+  "viewBox": [
+   0.0,
+   0.0,
+   389.0,
+   156.0
+  ],
+  "aspect": 2.494,
+  "aspect_class": "wide",
+  "colors": [
+   "#21201c"
+  ],
+  "gradients": 0,
+  "anchors": 36,
+  "library_anchor_percentiles": {
+   "p10": 23.0,
+   "p25": 37.0,
+   "median": 75.0,
+   "p75": 155.0,
+   "p90": 257.8,
+   "p95": 379.45
+  },
+  "content_bbox": [
+   8.0,
+   12.0,
+   381.0,
+   148.0
+  ],
+  "margins": {
+   "left": 8.0,
+   "right": 8.0,
+   "top": 12.0,
+   "bottom": 8.0
+  },
+  "bbox_fill_ratio": 0.836,
+  "score": 100,
+  "findings": []
+ },
+ {
+  "file": "01-right-fit-black.svg",
+  "bytes": 431,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#21201c"
+  ],
+  "gradients": 0,
+  "anchors": 24,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   48.0,
+   32.0,
+   216.0,
+   224.0
+  ],
+  "margins": {
+   "left": 48.0,
+   "right": 40.0,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.492,
+  "score": 99,
+  "findings": [
+   {
+    "level": "INFO",
+    "code": "off-centre-x",
+    "message": "Horizontal margins differ (left 48.0, right 40.0). Intentional optical centring? Otherwise centre it."
+   }
+  ]
+ },
+ {
+  "file": "01-right-fit-lockup.svg",
+  "bytes": 1258,
+  "viewBox": [
+   0.0,
+   0.0,
+   768.0,
+   256.0
+  ],
+  "aspect": 3.0,
+  "aspect_class": "horizontal",
+  "colors": [
+   "#2a7e3b",
+   "#21201c"
+  ],
+  "gradients": 0,
+  "anchors": 60,
+  "library_anchor_percentiles": {
+   "p10": 23.0,
+   "p25": 37.0,
+   "median": 75.0,
+   "p75": 155.0,
+   "p90": 257.8,
+   "p95": 379.45
+  },
+  "content_bbox": [
+   48.0,
+   32.0,
+   727.06,
+   224.0
+  ],
+  "margins": {
+   "left": 48.0,
+   "right": 40.9,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.663,
+  "score": 100,
+  "findings": []
+ },
+ {
+  "file": "01-right-fit.svg",
+  "bytes": 431,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#2a7e3b"
+  ],
+  "gradients": 0,
+  "anchors": 24,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   48.0,
+   32.0,
+   216.0,
+   224.0
+  ],
+  "margins": {
+   "left": 48.0,
+   "right": 40.0,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.492,
+  "score": 99,
+  "findings": [
+   {
+    "level": "INFO",
+    "code": "off-centre-x",
+    "message": "Horizontal margins differ (left 48.0, right 40.0). Intentional optical centring? Otherwise centre it."
+   }
+  ]
+ },
+ {
+  "file": "02-reciprocal-black.svg",
+  "bytes": 374,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#21201c"
+  ],
+  "gradients": 0,
+  "anchors": 18,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   32.0,
+   32.0,
+   224.0,
+   224.0
+  ],
+  "margins": {
+   "left": 32.0,
+   "right": 32.0,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.562,
+  "score": 100,
+  "findings": []
+ },
+ {
+  "file": "02-reciprocal-lockup.svg",
+  "bytes": 1199,
+  "viewBox": [
+   0.0,
+   0.0,
+   768.0,
+   256.0
+  ],
+  "aspect": 3.0,
+  "aspect_class": "horizontal",
+  "colors": [
+   "#2a7e3b",
+   "#21201c"
+  ],
+  "gradients": 0,
+  "anchors": 54,
+  "library_anchor_percentiles": {
+   "p10": 23.0,
+   "p25": 37.0,
+   "median": 75.0,
+   "p75": 155.0,
+   "p90": 257.8,
+   "p95": 379.45
+  },
+  "content_bbox": [
+   32.0,
+   32.0,
+   727.06,
+   224.0
+  ],
+  "margins": {
+   "left": 32.0,
+   "right": 40.9,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.679,
+  "score": 100,
+  "findings": []
+ },
+ {
+  "file": "02-reciprocal.svg",
+  "bytes": 374,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#2a7e3b"
+  ],
+  "gradients": 0,
+  "anchors": 18,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   32.0,
+   32.0,
+   224.0,
+   224.0
+  ],
+  "margins": {
+   "left": 32.0,
+   "right": 32.0,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.562,
+  "score": 100,
+  "findings": []
+ },
+ {
+  "file": "03-converge-black.svg",
+  "bytes": 376,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#21201c"
+  ],
+  "gradients": 0,
+  "anchors": 14,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   32.0,
+   32.0,
+   224.0,
+   224.0
+  ],
+  "margins": {
+   "left": 32.0,
+   "right": 32.0,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.562,
+  "score": 100,
+  "findings": []
+ },
+ {
+  "file": "03-converge-lockup.svg",
+  "bytes": 1205,
+  "viewBox": [
+   0.0,
+   0.0,
+   768.0,
+   256.0
+  ],
+  "aspect": 3.0,
+  "aspect_class": "horizontal",
+  "colors": [
+   "#2a7e3b",
+   "#21201c"
+  ],
+  "gradients": 0,
+  "anchors": 50,
+  "library_anchor_percentiles": {
+   "p10": 23.0,
+   "p25": 37.0,
+   "median": 75.0,
+   "p75": 155.0,
+   "p90": 257.8,
+   "p95": 379.45
+  },
+  "content_bbox": [
+   32.0,
+   32.0,
+   727.06,
+   224.0
+  ],
+  "margins": {
+   "left": 32.0,
+   "right": 40.9,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.679,
+  "score": 100,
+  "findings": []
+ },
+ {
+  "file": "03-converge.svg",
+  "bytes": 376,
+  "viewBox": [
+   0.0,
+   0.0,
+   256.0,
+   256.0
+  ],
+  "aspect": 1.0,
+  "aspect_class": "square",
+  "colors": [
+   "#2a7e3b"
+  ],
+  "gradients": 0,
+  "anchors": 14,
+  "library_anchor_percentiles": {
+   "p10": 21.0,
+   "p25": 31.0,
+   "median": 53.0,
+   "p75": 95.5,
+   "p90": 194.0,
+   "p95": 274.0
+  },
+  "content_bbox": [
+   32.0,
+   32.0,
+   224.0,
+   224.0
+  ],
+  "margins": {
+   "left": 32.0,
+   "right": 32.0,
+   "top": 32.0,
+   "bottom": 32.0
+  },
+  "bbox_fill_ratio": 0.562,
+  "score": 100,
+  "findings": []
+ }
+]

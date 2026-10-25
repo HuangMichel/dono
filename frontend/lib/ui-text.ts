@@ -38,24 +38,89 @@ export function indicatorLabel(key: string): string {
   return indicatorLabels[key] ?? readableKey(key);
 }
 
-const concernIndicatorKeys = [
+const warningIndicatorKeys = [
   "looks_like_medicine",
+  "chilled_or_frozen",
   "cold_food",
-  "stains",
-  "packaging_open",
-  "damaged_packaging",
-  "sole_wear",
-  "worn_soles",
-  "damage",
+];
+const manualCheckIndicatorKeys = ["label_unreadable"];
+const positiveIndicatorKeys = [
+  "sealed",
+  "packaged_unopened",
+  "date_readable",
+  "pairs_complete",
 ];
 
-/** Who speaks: concern indicators are orange, medicine warnings red, the rest neutral. */
+export type Tone = "neutral" | "success" | "caution" | "warning" | "danger";
+
+/** Who speaks: medium/high concerns are orange, medicine and cold-food warnings red, unreadable labels amber, low or unassessed estimates neutral. */
 export function indicatorTone(
   key: string,
   level?: "low" | "medium" | "high",
-): "neutral" | "warning" | "danger" {
-  if (!concernIndicatorKeys.includes(key) || level === "low") return "neutral";
-  return key === "looks_like_medicine" ? "danger" : "warning";
+): Exclude<Tone, "success"> {
+  if (
+    (level !== "medium" && level !== "high") ||
+    positiveIndicatorKeys.includes(key)
+  )
+    return "neutral";
+  if (warningIndicatorKeys.includes(key)) return "danger";
+  if (manualCheckIndicatorKeys.includes(key)) return "caution";
+  return "warning";
+}
+
+const toneRank: Record<Tone, number> = {
+  danger: 4,
+  warning: 3,
+  caution: 2,
+  success: 1,
+  neutral: 0,
+};
+
+export function rankIndicators<
+  T extends {
+    key: string;
+    probability?: number | null;
+    level?: "low" | "medium" | "high";
+  },
+>(indicators: readonly T[]): T[] {
+  return [...indicators].sort(
+    (a, b) =>
+      toneRank[indicatorTone(b.key, b.level)] -
+        toneRank[indicatorTone(a.key, a.level)] ||
+      (b.probability ?? -1) - (a.probability ?? -1),
+  );
+}
+
+export function safetyWarnings<
+  T extends {
+    key: string;
+    probability?: number | null;
+    level?: "low" | "medium" | "high";
+  },
+>(indicators: readonly T[]): T[] {
+  const seen = new Set<string>();
+  return rankIndicators(indicators).filter((indicator) => {
+    if (
+      indicatorTone(indicator.key, indicator.level) !== "danger" ||
+      seen.has(indicator.key)
+    )
+      return false;
+    seen.add(indicator.key);
+    return true;
+  });
+}
+
+export function daysLeftText(days: number): string {
+  if (days < 0) return "date passed";
+  if (days === 0) return "expires today";
+  return `${days} ${days === 1 ? "day" : "days"} left`;
+}
+
+export function expiryTone(bucket: string): Tone {
+  if (bucket === "expired") return "danger";
+  if (["today", "lt_7", "lt_30"].includes(bucket)) return "warning";
+  if (["lt_90", "at_90", "unknown"].includes(bucket)) return "caution";
+  return bucket === "gt_90" ? "success" : "neutral";
 }
 
 const factLabels: Record<string, string> = {

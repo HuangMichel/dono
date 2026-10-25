@@ -102,7 +102,7 @@ export function ParsedNeedConfirmation({ warnings }: { warnings: string[] }) {
           ))}
         </ul>
       )}
-      <label>
+      <label className="check">
         <input name="confirm_draft" type="checkbox" required /> I checked and
         confirmed the need details.
       </label>

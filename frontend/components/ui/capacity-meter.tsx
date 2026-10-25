@@ -2,30 +2,41 @@ import { useId } from "react";
 import { capacityUsage, CAPACITY_THRESHOLDS } from "./capacity-meter-model";
 import "./capacity-meter.css";
 
+const RANGES = `Green through ${CAPACITY_THRESHOLDS.warning}%; orange above ${CAPACITY_THRESHOLDS.warning}% through ${CAPACITY_THRESHOLDS.danger}%; red above ${CAPACITY_THRESHOLDS.danger}%.`;
+
+export function CapacityRanges({ id }: { id: string }) {
+  return (
+    <p id={id} className="capacity-meter-ranges">
+      {RANGES}
+    </p>
+  );
+}
+
 export function CapacityMeter({
   label,
   inStock,
   reserved,
   limit,
   description,
+  rangesId,
 }: {
   label: string;
   inStock: string;
   reserved: string;
   limit: string;
   description?: string;
+  rangesId?: string;
 }) {
   const descriptionId = useId();
-  const thresholdsId = useId();
+  const ownRangesId = useId();
+  const thresholdsId = rangesId ?? ownRangesId;
   const usage = capacityUsage(Number(inStock), Number(reserved), Number(limit));
   const text = usage.paused
     ? "Paused"
     : usage.percentage === null
       ? "Unavailable"
       : `${new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }).format(usage.percentage)}%`;
-  const ranges = usage.paused
-    ? "Paused. No storage space available."
-    : `Green through ${CAPACITY_THRESHOLDS.warning}%; orange above ${CAPACITY_THRESHOLDS.warning}% through ${CAPACITY_THRESHOLDS.danger}%; red above ${CAPACITY_THRESHOLDS.danger}%.`;
+  const ranges = usage.paused ? "Paused. No storage space available." : RANGES;
   return (
     <div className={`capacity-meter capacity-meter-${usage.tone}`}>
       <div className="capacity-meter-heading">
@@ -61,9 +72,11 @@ export function CapacityMeter({
           ))}
         </div>
       </div>
-      <p id={thresholdsId} className="capacity-meter-ranges">
-        {ranges}
-      </p>
+      {!rangesId && (
+        <p id={thresholdsId} className="capacity-meter-ranges">
+          {ranges}
+        </p>
+      )}
     </div>
   );
 }

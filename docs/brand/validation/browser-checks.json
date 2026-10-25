@@ -1,0 +1,38 @@
+{
+  "mobile": {
+    "width": 390,
+    "scrollWidth": 390,
+    "cardWidths": [
+      340,
+      340,
+      340
+    ]
+  },
+  "theme_clicks": [
+    {
+      "theme": "dark",
+      "pressed": [
+        "dark"
+      ]
+    },
+    {
+      "theme": "green",
+      "pressed": [
+        "green"
+      ]
+    },
+    {
+      "theme": "mono",
+      "pressed": [
+        "mono"
+      ]
+    },
+    {
+      "theme": "light",
+      "pressed": [
+        "light"
+      ]
+    }
+  ],
+  "horizontal_overflow": false
+}

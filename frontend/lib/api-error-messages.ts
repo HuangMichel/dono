@@ -1,6 +1,8 @@
 import { MAX_PHOTO_SIZE_LABEL } from "./photo-limits";
 
 const messages: Record<string, string> = {
+  association_location_required:
+    "Set your association site address before browsing nearby items.",
   unauthenticated: "Sign in to continue.",
   invalid_token: "Your sign-in could not be verified. Sign in again.",
   account_disabled: "This account is disabled. You cannot make changes.",

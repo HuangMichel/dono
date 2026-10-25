@@ -88,7 +88,11 @@ def setup(connection: psycopg.Connection) -> dict:
         (association, day),
     )
     facts = Facts(
-        category="clothes", attributes={"type": "coat"}, quantity="1", unit="item"
+        name="Winter coat",
+        category="clothes",
+        attributes={"type": "coat"},
+        quantity="1",
+        unit="item",
     ).model_dump(mode="json")
     item = one(
         connection,

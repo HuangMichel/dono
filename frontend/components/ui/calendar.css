@@ -46,8 +46,11 @@
 .shared-calendar-day:hover {
   background: var(--subtle);
 }
-.shared-calendar-day[aria-current="date"] {
-  border-color: var(--primary);
+.shared-calendar-day[aria-current="date"] > span:first-child {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 .shared-calendar-day[aria-pressed="true"] {
   color: var(--success-text);

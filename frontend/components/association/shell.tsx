@@ -1,6 +1,7 @@
 "use client";
 import { CATEGORY_LABELS } from "@/lib/labels";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   createContext,
@@ -30,12 +31,12 @@ export function useAssociation() {
 const routes = [
   ["", "Dashboard", "dashboard"],
   ["/review", "Review", "review"],
+  ["/offers", "Offers nearby", "pin"],
   ["/reception", "Reception", "reception"],
   ["/inventory", "Stock", "inventory"],
   ["/needs", "Needs", "needs"],
-  ["/capacity", "Capacity and intake", "capacity"],
+  ["/capacity", "Storage and intake", "capacity"],
   ["/slots", "Site and appointments", "calendar"],
-  ["/images", "Photos", "images"],
 ];
 export function ConsoleShell({
   children,
@@ -111,7 +112,9 @@ export function ConsoleShell({
             ? "Your account does not have platform access."
             : "You need an active staff membership in an approved association."}
         </p>
-        <Link href="/register-association">Association registration</Link>
+        <Link className="text-link" href="/register-association">
+          Association registration
+        </Link>
       </main>
     );
   if (!admin && (resource.loading || !resource.data))
@@ -130,44 +133,50 @@ export function ConsoleShell({
   return (
     <div className="console">
       <header className="console-header">
-        <Button
-          variant="soft"
-          aria-label="Toggle navigation"
-          aria-expanded={menu}
-          onClick={() => setMenu(!menu)}
-        >
-          <Icon name="menu" />
-        </Button>
-        <span>
-          {auth.profile?.display_name ?? auth.user.email ?? "Your account"}
-        </span>
-        <Link href="/">Dono home</Link>
-        <Button
-          variant="soft"
-          onClick={() => {
-            void auth.signOut().catch((error) =>
-              notify({
-                message:
-                  error instanceof Error
-                    ? error.message
-                    : "Sign out failed. Try again.",
-                tone: "error",
-              }),
-            );
-          }}
-        >
-          Sign out
-        </Button>
+        <div className="console-header-start">
+          <Button
+            variant="soft"
+            className="console-menu-toggle"
+            aria-label="Toggle navigation"
+            aria-expanded={menu}
+            aria-controls="console-sidebar"
+            onClick={() => setMenu(!menu)}
+          >
+            <Icon name="menu" />
+          </Button>
+          <Link href="/" className="logo">
+            <Image src="/logo.svg" alt="Dono" width={96} height={32} />
+          </Link>
+          <span className="console-header-context">
+            {admin ? "Platform administration" : resource.data?.name}
+          </span>
+        </div>
+        <div className="console-header-end">
+          <span className="console-meta">
+            {auth.profile?.display_name ?? auth.user.email ?? "Your account"}
+          </span>
+          <Button
+            variant="soft"
+            onClick={() => {
+              void auth.signOut().catch((error) =>
+                notify({
+                  message:
+                    error instanceof Error
+                      ? error.message
+                      : "Sign out failed. Try again.",
+                  tone: "error",
+                }),
+              );
+            }}
+          >
+            Sign out
+          </Button>
+        </div>
       </header>
       <aside
         id="console-sidebar"
         className={`console-sidebar ${menu ? "is-open" : ""}`}
       >
-        <div className="console-organization">
-          <strong>
-            {admin ? "Platform administration" : resource.data?.name}
-          </strong>
-        </div>
         {!admin && memberships.length > 1 && (
           <SelectField
             label="Association"

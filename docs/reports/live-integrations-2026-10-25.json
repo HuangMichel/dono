@@ -1,0 +1,83 @@
+{
+  "live": true,
+  "database_writes": false,
+  "checks": [
+    {
+      "check": "configuration",
+      "status": "loaded",
+      "supabase_url_set": true,
+      "publishable_key_set": true,
+      "secret_key_set": true,
+      "openai_key_set": true,
+      "model": "gpt-5.4-mini"
+    },
+    {
+      "check": "supabase_auth_publishable",
+      "status_code": 200,
+      "google_enabled": true
+    },
+    {
+      "check": "supabase_auth_secret",
+      "status_code": 200,
+      "google_enabled": true
+    },
+    {
+      "check": "supabase_data_api",
+      "status_code": 200,
+      "dono_rpc_count": 22,
+      "rpc_names": [
+        "/rpc/dono_analysis_finish",
+        "/rpc/dono_analysis_start",
+        "/rpc/dono_association",
+        "/rpc/dono_budget_context",
+        "/rpc/dono_config",
+        "/rpc/dono_item",
+        "/rpc/dono_item_summary",
+        "/rpc/dono_item_withdrawal",
+        "/rpc/dono_match_context",
+        "/rpc/dono_offer_command",
+        "/rpc/dono_offer_context",
+        "/rpc/dono_offer_list",
+        "/rpc/dono_offer_slots",
+        "/rpc/dono_owner_summaries",
+        "/rpc/dono_photo",
+        "/rpc/dono_photo_content",
+        "/rpc/dono_profile",
+        "/rpc/dono_reconcile",
+        "/rpc/dono_retry_lookup",
+        "/rpc/dono_site",
+        "/rpc/dono_stock_command",
+        "/rpc/dono_stock_context"
+      ]
+    },
+    {
+      "check": "supabase_guarded_rpc",
+      "status_code": 400,
+      "code": "P0001",
+      "message": "account_disabled"
+    },
+    {
+      "check": "ban",
+      "status": "passed",
+      "coordinates_valid": true
+    },
+    {
+      "check": "openai_http",
+      "status_code": 200
+    },
+    {
+      "check": "openai_vision_structured_output",
+      "status": "passed",
+      "category": "clothes",
+      "indicator_count": 7,
+      "schema": "analysis-v1",
+      "no_decision_field": true
+    }
+  ],
+  "rpc_name_comparison": {
+    "expected_count": 22,
+    "actual_count": 22,
+    "missing": [],
+    "extra": []
+  }
+}

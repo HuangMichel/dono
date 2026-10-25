@@ -140,7 +140,7 @@
   flex-wrap: wrap;
 }
 .stock-mobile-row {
-  padding: 12px;
+  padding: 0;
 }
 .stock-mobile-chips {
   display: flex;

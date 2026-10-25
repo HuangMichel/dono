@@ -3,7 +3,7 @@ import { NotificationProvider } from "@/components/ui/notifications";
 import { act } from "react";
 import { expect, it, vi } from "vitest";
 import { render } from "@/test/render";
-const mocks = vi.hoisted(() => ({ api: vi.fn() }));
+const mocks = vi.hoisted(() => ({ api: vi.fn(), arrivals: [] as unknown[] }));
 vi.mock("@/lib/api", () => ({ api: mocks.api }));
 vi.mock("@/components/association/shell", () => ({
   ConsoleTitle: () => null,
@@ -14,7 +14,7 @@ vi.mock("@/components/association/shell", () => ({
 }));
 vi.mock("@/lib/api-hooks", () => ({
   useApiPage: () => ({
-    data: [],
+    data: mocks.arrivals,
     loading: false,
     error: null,
     refresh: vi.fn(),
@@ -30,6 +30,29 @@ vi.mock("@/components/association/date-checks", () => ({
   dateCommand: () => ({}),
 }));
 import Reception from "./page";
+it("counts only booked appointments as expected drop-offs", async () => {
+  const arrival = (id: string, state: string) => ({
+    booking: {
+      id,
+      computed: { effective_state: state, starts_at: "2026-10-25T14:00:00Z" },
+    },
+    offer: { quantity: "1", computed: { expiry: { bucket: "not_applicable" } } },
+  });
+  mocks.arrivals = [
+    arrival("a", "booked"),
+    arrival("b", "booked"),
+    arrival("c", "received"),
+    arrival("d", "cancelled"),
+  ];
+  const screen = await render(
+    <NotificationProvider>
+      <Reception />
+    </NotificationProvider>,
+  );
+  mocks.arrivals = [];
+  expect(screen.container.textContent).toContain("2 expected drop-offs");
+  expect(screen.container.textContent).not.toContain("4 expected drop-offs");
+});
 it("does not restore verification after the signed content changes during a request", async () => {
   let resolve!: (result: unknown) => void;
   mocks.api.mockReturnValue(

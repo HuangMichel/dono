@@ -40,6 +40,10 @@ export type DonationSessionApi = {
   api: <T>(path: string, options?: ApiOptions) => Promise<T>;
   apiPage: <T>(path: string, options?: ApiOptions) => Promise<Page<T>>;
 };
+function formFacts(facts: Facts): Facts {
+  // Match the category displayed by the form for an uncategorised draft.
+  return { ...facts, category: facts.category ?? "clothes" };
+}
 export class DonationSession {
   private state: DonationSessionState = {
     donation: null,
@@ -67,7 +71,17 @@ export class DonationSession {
   private lifecycle: AbortController | null = null;
   private commandKey = createCommandKeys();
   private pendingSave: PendingSave | null = null;
+  private pendingIdentity: {
+    before: Donation;
+    body: { expected_revision: string; facts: Donation["facts"] };
+    key: string;
+    photoIds: string[];
+  } | null = null;
   private createKey: string | null = null;
+  private createIdentity: {
+    name: string | null;
+    description: string | null;
+  } | null = null;
   private photoKinds = new Map<File, "item" | "label">();
   private uploaded = new Map<File, string>();
   private observedPhotoIds = new Set<string>();
@@ -99,7 +113,9 @@ export class DonationSession {
   }
   setFacts = (next: Facts | ((facts: Facts) => Facts)) => {
     this.update({
-      facts: typeof next === "function" ? next(this.state.facts) : next,
+      facts: formFacts(
+        typeof next === "function" ? next(this.state.facts) : next,
+      ),
     });
   };
   setStep = (step: number) => this.update({ step });
@@ -118,7 +134,7 @@ export class DonationSession {
   setAddress = (address: string) =>
     this.update({ address, matches: [], selected: "", matchesSearched: false });
   setSelected = (selected: string) => this.update({ selected });
-  private setDonation = (donation: Donation) => this.update({ donation });
+  setDonation = (donation: Donation) => this.update({ donation });
   private setAnalysis = (analysis: Analysis | null) =>
     this.update({ analysis });
   private setMatches = (matches: Match[]) => this.update({ matches });
@@ -160,7 +176,7 @@ export class DonationSession {
       this.observedPhotoIds = new Set(photos.data.map((photo) => photo.id));
       this.update({
         donation: item,
-        facts: item.facts,
+        facts: formFacts(item.facts),
         persistedPhotos: photos.data,
         analysis:
           analyses.data.find((a) => a.id === item.basis_analysis_id) ??
@@ -179,29 +195,105 @@ export class DonationSession {
     this.update({ busy: true, error: "" });
     try {
       await action();
+      if (!signal.aborted) return { error: null };
     } catch (error) {
-      if (!signal.aborted)
-        this.setError(
+      if (!signal.aborted) {
+        const message =
           error instanceof Error
             ? error.message
-            : "We could not complete this action. Please try again.",
-        );
+            : "We could not complete this action. Please try again.";
+        this.setError(message);
+        return { error: message };
+      }
     } finally {
       if (!signal.aborted) this.update({ busy: false });
     }
   };
   private async ensureDonation() {
-    if (this.state.donation) return this.state.donation;
+    if (this.state.donation) {
+      return this.pendingIdentity
+        ? this.replayPendingIdentity()
+        : this.state.donation;
+    }
     if (this.donationId)
       throw Error("Load your saved donation before making changes.");
     this.createKey ??= crypto.randomUUID();
+    this.createIdentity ??= this.identity();
     const item = await this.request<Donation>("/donations", {
       method: "POST",
-      body: {},
+      body: { facts: this.createIdentity },
       idempotencyKey: this.createKey,
     });
     this.setDonation(item);
     return item;
+  }
+  private identity() {
+    return {
+      name: this.state.facts.name?.trim() || null,
+      description: this.state.facts.description?.trim() || null,
+    };
+  }
+  private async persistIdentity(item: Donation) {
+    const identity = this.identity();
+    if (
+      identity.name === (item.facts.name ?? null) &&
+      identity.description === (item.facts.description ?? null)
+    )
+      return item;
+    const photoIds = [...this.uploaded.values()].filter(
+      (photoId) => !this.observedPhotoIds.has(photoId),
+    );
+    const ownPhotoIncrements = BigInt(new Set(photoIds).size);
+    const observed = {
+      ...item,
+      revision: String(BigInt(item.revision) + ownPhotoIncrements),
+      facts_revision: String(BigInt(item.facts_revision) + ownPhotoIncrements),
+    };
+    // Use the observed revision so a concurrent edit cannot be overwritten.
+    // Keep the saved category facts, allowing an empty draft to be AI-seeded.
+    const body = {
+      expected_revision: observed.revision,
+      facts: { ...item.facts, ...identity },
+    };
+    this.pendingIdentity = {
+      before: observed,
+      body,
+      key: this.commandKey(JSON.stringify(["identity", item.id, body])),
+      photoIds,
+    };
+    return this.replayPendingIdentity();
+  }
+  private async replayPendingIdentity() {
+    const pending = this.pendingIdentity;
+    if (!pending) throw Error("There are no item details to recover.");
+    let saved: Donation;
+    try {
+      saved = await this.request<Donation>(`/donations/${pending.before.id}`, {
+        method: "PATCH",
+        body: pending.body,
+        idempotencyKey: pending.key,
+      });
+    } catch (error) {
+      const status = (error as { status?: number })?.status;
+      if (status && status >= 400 && status < 500) this.pendingIdentity = null;
+      throw error;
+    }
+    this.pendingIdentity = null;
+    if (
+      BigInt(saved.revision) !== BigInt(pending.before.revision) + 1n ||
+      BigInt(saved.facts_revision) !==
+        BigInt(pending.before.facts_revision) + 1n
+    ) {
+      throw Error(
+        "The saved item details changed. Your entries are preserved. Reload the saved donation before editing again.",
+      );
+    }
+    this.setDonation(saved);
+    this.observedPhotoIds = new Set([
+      ...this.observedPhotoIds,
+      ...pending.photoIds,
+    ]);
+    return saved;
   }
   private async ensureUploadedPhotos(item: Donation) {
     validatePhotoFiles(this.state.files);
@@ -236,8 +328,10 @@ export class DonationSession {
     return photoIds;
   }
   analyse = async () => {
-    const item = await this.ensureDonation();
+    let item = await this.ensureDonation();
+    // Recover every upload outcome before counting its own revision increments.
     const photoIds = await this.ensureUploadedPhotos(item);
+    item = await this.persistIdentity(item);
     const result = await this.request<{ analysis: Analysis }>(
       `/donations/${item.id}/analyses`,
       {
@@ -254,7 +348,7 @@ export class DonationSession {
       ...this.uploaded.values(),
     ]);
     this.setDonation(current);
-    this.setFacts(current.facts);
+    this.setFacts({ ...current.facts, ...this.identity() });
     this.setAnalysis(result.analysis);
     this.setStep(1);
   };

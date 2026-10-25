@@ -6,7 +6,7 @@ Status: **FastAPI backend implemented**; all baseline catalog method/path combin
 
 The frontend calls FastAPI through a bearer-authenticated client for protected operations and an anonymous read helper for the public needs directory. It uses Supabase email/password authentication, provisions the donor profile, reads current memberships and renders empty/loading/error states from API responses. Runtime demo data, role switches and browser-local business persistence are removed.
 
-The connected screens follow the implemented separate donation/offer/booking contracts, three-photo limit and full-lot receipt/distribution commands. Public needs browsing uses the limited anonymous endpoint below. Company attribution and unmatched posted offers remain unsupported API gaps and have no simulated actions. Live deployment acceptance is recorded in [readiness](readiness.md).
+The connected screens follow the implemented separate donation/offer/booking contracts, three-photo limit and full-lot receipt/distribution commands. Public needs browsing uses the limited anonymous endpoint below. Company attribution remains unsupported. Explicit donor posting and association discovery use the separate posting contract below; claiming is unavailable. Live deployment acceptance is recorded in [readiness](readiness.md).
 
 ## Authentication, permissions and HTTP conventions
 
@@ -127,7 +127,8 @@ type ExpiryView = {as_of: Instant; timezone: string; reference_date: DateOnly;
   distribution_restriction: "date_passed"|"date_clarification_required"|"opened_food"|null;
   fefo_group: 0|1|2|3|null}; // group only for actual stock; all fields computed in Python, never stored
 // Exactly one bucket; date passed is not equivalent to unsafe or a human decision.
-type Facts = {category: Category | null; attributes: Attributes; quantity: Quantity | null; unit: Unit | null;
+type Facts = {name: string | null; description: string | null;
+  category: Category | null; attributes: Attributes; quantity: Quantity | null; unit: Unit | null;
   expiry: SourceDates};
 type OfferedFacts = Facts & {category: Category; quantity: Quantity; unit: Unit}; // validated ready snapshot
 type Donation = {id: UUID; donor_id: UUID; status: DonationState; facts: Facts;
@@ -291,6 +292,8 @@ Photo persistence is database-only: FastAPI retains multipart file input, valida
 
 A first successful analysis may attach basis_analysis_id even when human facts already exist. It seeds working facts only if facts_origin=empty, captured facts_revision still matches, no active offer exists, category confidence is at least 0.80 and no evidence conflict exists. Seed and basis attachment are separate; neither can alter item/offer/booking state, a prior basis, human edits or staff decisions. Append original indicators exactly once per request. Missing/failed output produces no successful analysis row. Category mismatch is computed against the current owner's category or the recipient's frozen category.
 
+`Facts.name` and `Facts.description` are donor-entered text, not category attributes or AI output. Both are trimmed; name is limited to 120 characters and description to 2,000. Blank values normalize to null in drafts; publication, restoration, posting and offer submission require a nonempty name. Creating a draft with only these fields keeps `facts_origin=empty`, so eligible analysis can seed structured facts without changing the text. Edits use the existing revision and active-offer guards. New offer snapshots include both fields; older snapshots may omit them and retain the product/type/category display fallback. No text field participates in matching.
+
 ## Offer, review and reservation routes
 
 | Method / path | Scope | Request | Response / guards | Requirements; entities |
@@ -360,6 +363,7 @@ UUIDs are illustrative; examples omit unrelated DTO fields only when explicitly 
 ```json
 {
   "facts": {
+    "name": "Blue winter coat", "description": "Small mark on the left sleeve.",
     "category": "clothes", "attributes": {"type": "coat", "size": "M"}, "quantity": "1.000", "unit": "item",
     "expiry": {"expiry_date": null, "raw_label": null, "date_type": null, "pao_months": null,
       "opened_on": null, "date_precision": "unknown", "readability": "unknown"}
@@ -451,3 +455,18 @@ A source with PAO but unknown opening state instead has bucket=unknown, unknown_
 ## Audited false date-label correction
 
 `DateReviewChecks` additionally accepts `date_label_correction_confirmed?: true` (and therefore `IntakeChecks` does too). This assertion is for an incorrectly detected original strict label, requires a nonempty `reason` and frozen human-confirmed source facts. Approval records the assertion, staff actor/reason and reviewed analysis IDs in the command audit context. Original AI extraction/indicators remain unchanged. It never bypasses expired/unresolved strict dates or PAO in corrected source facts. Booking may reuse the reviewed correction only with the identical completed evidence set; newly completed evidence invalidates it. Reception/distribution require a fresh assertion/reason. Invalid clarification returns `date_clarification_required`; passed strict dates return `intake_date_restriction`. Gallery indicator `source` includes `analysis_id` and original `category` alongside provider/model so category mismatch stays attributable. FR-011, FR-025, FR-038; donation_edits, donation_analysis, donation_offers, private.api_requests.
+
+## Explicit donor posting and association discovery
+
+Posting is separate from the existing `/donations/{id}/publication` ready-state command. All routes below use verified bearer authentication. Writes require `Idempotency-Key` and the current `expected_revision`.
+
+| Route | Input | Result |
+| --- | --- | --- |
+| POST `/donations/{id}/posting` | `{expected_revision, location}`; town or postcode | `Single<Donation>` with `posting: {posted_at, locality}` |
+| POST `/donations/{id}/unposting` | `{expected_revision}` | `Single<Donation>` with no active posting |
+| GET `/associations/{id}/posted-donations` | `category?`, `radius_km` (default 25), `limit`, `cursor?` | Paginated safe discovery rows |
+| GET `/associations/{id}/posted-donations/{donationId}/photos/{photoId}/content` | Current staff and posting scope | Metadata-free PNG derivative, at most 1600 px per side |
+
+Discovery rows contain `id`, `name`, `description`, `category`, `attributes`, decimal-string `quantity`, `unit`, source `expiry` without `raw_label`, `indicators`, `photos: [{id, content_url}]`, `posted_at`, `locality` and approximate `distance_km`. They exclude donor identity, private address, coordinates, raw extraction and label photos. Owner donation responses add nullable `posting: {posted_at, locality}`.
+
+Only explicitly posted eligible items are visible. Current approved-association membership and posting availability are checked on list and photo reads. Missing association coordinates return `association_location_required` (422). Posting guards and invalidation are defined in [requirements](requirements.md#restored-posting-and-nearby-browsing-2026-10-25). No claim route or budget reservation is introduced.

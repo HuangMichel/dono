@@ -14,11 +14,7 @@ import {
 import { CommandForm, useCommand } from "@/components/association/command";
 import { Evidence, itemName } from "@/components/association/evidence";
 import { DateChecks, dateCommand } from "@/components/association/date-checks";
-import {
-  ExpiryChip,
-  StateChip,
-  expiryLabel,
-} from "@/components/association/status";
+import { ExpiryChip, StateChip } from "@/components/association/status";
 import { formatCount } from "@/lib/ui-text";
 import { CATEGORY_LABELS } from "@/lib/labels";
 import "@/components/association/reception-stock.css";
@@ -84,28 +80,45 @@ export default function Inventory() {
   return (
     <>
       <ConsoleTitle title="Stock" />
-      <section className="stock-expiry-summary" aria-label="Expiry counts">
-        <div className="console-status-line">
-          <h2>Expiry overview</h2>
+      {(!counts.data ||
+        counts.data.buckets.some((bucket) => bucket.count > 0)) && (
+        <section className="stock-expiry-summary" aria-label="Expiry counts">
+          <div className="console-status-line">
+            <h2>Expiry overview</h2>
+            {counts.data && (
+              <span className="console-meta">
+                As of{" "}
+                {new Intl.DateTimeFormat("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                  timeZone: "UTC",
+                }).format(new Date(`${counts.data.reference_date}T00:00:00Z`))}
+                ,{" "}
+                {counts.data.timezone === "Europe/Paris"
+                  ? "Paris time"
+                  : counts.data.timezone}
+              </span>
+            )}
+          </div>
+          <ResourceStatus {...counts} />
           {counts.data && (
-            <span className="console-meta">
-              As of {counts.data.reference_date}, {counts.data.timezone}
-            </span>
+            <ul className="stock-expiry-counts">
+              {counts.data.buckets
+                .filter((bucket) => bucket.count > 0)
+                .map((bucket) => (
+                  <li key={bucket.key}>
+                    <ExpiryChip
+                      expiry={{ bucket: bucket.key, days_left: null }}
+                      showNotApplicable
+                    />
+                    <strong>{formatCount(bucket.count, "donation")}</strong>
+                  </li>
+                ))}
+            </ul>
           )}
-        </div>
-        <ResourceStatus {...counts} />
-        {counts.data && (
-          <ul className="stock-expiry-counts">
-            {counts.data.buckets.map((bucket) => (
-              <li key={bucket.key}>
-                <ExpiryChip expiry={{ bucket: bucket.key, days_left: null }} />
-                <strong>{formatCount(bucket.count, "donation")}</strong>
-                <span className="sr-only">{expiryLabel(bucket.key)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        </section>
+      )}
       <div className="stock-controls">
         <CategorySelect
           value={category}
@@ -171,11 +184,13 @@ export default function Inventory() {
               {
                 id: "remaining",
                 label: "Remaining items",
+                numeric: true,
                 cell: (lot) => lot.remaining_quantity,
               },
               {
                 id: "received",
                 label: "Received items",
+                numeric: true,
                 cell: (lot) => lot.receipt.quantity,
               },
               {
@@ -183,11 +198,17 @@ export default function Inventory() {
                 label: "Expiry",
                 cell: (lot) => <ExpiryChip expiry={lot.expiry} />,
               },
-              {
-                id: "state",
-                label: "Status",
-                cell: (lot) => <StateChip state={lot.inventory_state} />,
-              },
+              ...(view === "distributed"
+                ? [
+                    {
+                      id: "state",
+                      label: "Status",
+                      cell: (lot: StockLot) => (
+                        <StateChip state={lot.inventory_state} />
+                      ),
+                    },
+                  ]
+                : []),
             ]}
             renderDetails={details}
             renderMobileRow={(lot) => (
@@ -198,7 +219,9 @@ export default function Inventory() {
                 </p>
                 <div className="stock-mobile-chips">
                   <ExpiryChip expiry={lot.expiry} />
-                  <StateChip state={lot.inventory_state} />
+                  {view === "distributed" && (
+                    <StateChip state={lot.inventory_state} />
+                  )}
                 </div>
                 {details(lot)}
               </div>

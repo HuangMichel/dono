@@ -14,7 +14,22 @@
   border: 0.5px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--background, #fff);
+  background: var(--background);
+}
+.indicator-filter[aria-pressed="true"] {
+  font-weight: 600;
+}
+.indicator-filter.tone-warning[aria-pressed="true"] {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+.indicator-filter.tone-danger[aria-pressed="true"] {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+.indicator-filter.tone-caution[aria-pressed="true"] {
+  background: var(--caution-bg);
+  color: var(--caution-text);
 }
 .images-tile-photo {
   position: relative;
@@ -63,11 +78,6 @@
 }
 .images-buckets li:last-child {
   border-bottom: none;
-}
-.images-buckets li > span:first-child {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 16px;
 }
 .images-fefo li {
   display: flex;

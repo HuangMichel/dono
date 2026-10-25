@@ -21,7 +21,7 @@ import {
   instant,
 } from "@/components/association/evidence";
 import { ExpiryChip, expiryLabel } from "@/components/association/status";
-import { indicatorLabel, formatCount } from "@/lib/ui-text";
+import { indicatorLabel, indicatorTone, formatCount } from "@/lib/ui-text";
 import { CATEGORY_LABELS } from "@/lib/labels";
 import "./images.css";
 type Gallery = { lot: StockLot; photos: Photo[]; indicators: Indicator[] };
@@ -55,7 +55,7 @@ export default function Images() {
   return (
     <>
       <ConsoleTitle
-        title="Images"
+        title="Photos"
         detail="Photos of received donations still in stock."
       />
       <div className="row wrap">
@@ -86,6 +86,7 @@ export default function Images() {
               key={key}
               type="button"
               variant="soft"
+              className={`indicator-filter tone-${indicatorTone(key, "high")}`}
               aria-pressed={indicator === key}
               onClick={() => setIndicator(indicator === key ? "" : key)}
             >
@@ -144,10 +145,10 @@ export default function Images() {
                   <figcaption>
                     <strong>{itemName(row.lot.offer)}</strong>
                     <p className="meta muted">
-                      {formatCount(row.lot.remaining_quantity)}{" "}
-                      {row.photos.length === 1
-                        ? ""
-                        : `, ${row.photos.length} photos`}
+                      {formatCount(row.lot.remaining_quantity)}
+                      {row.photos.length > 1
+                        ? `, ${row.photos.length} photos`
+                        : ""}
                     </p>
                     {firstIndicator && (
                       <p className="meta muted">
@@ -171,22 +172,27 @@ export default function Images() {
           <section className="card">
             <h2>Expiry buckets</h2>
             <ResourceStatus {...counts} />
-            {counts.data && (
-              <ul className="images-buckets">
-                {counts.data.buckets.map((bucket) => (
-                  <li key={bucket.key}>
-                    <span>{expiryLabel(bucket.key)}</span>
-                    <ExpiryChip
-                      expiry={{ bucket: bucket.key, days_left: null }}
-                    />
-                    <strong className="num">{bucket.count}</strong>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {counts.data &&
+              (counts.data.buckets.some((bucket) => bucket.count > 0) ? (
+                <ul className="images-buckets">
+                  {counts.data.buckets
+                    .filter((bucket) => bucket.count > 0)
+                    .map((bucket) => (
+                      <li key={bucket.key}>
+                        <ExpiryChip
+                          expiry={{ bucket: bucket.key, days_left: null }}
+                          showNotApplicable
+                        />
+                        <strong className="num">{bucket.count}</strong>
+                      </li>
+                    ))}
+                </ul>
+              ) : (
+                <p className="console-meta">No items in stock.</p>
+              ))}
           </section>
           <section className="card">
-            <h2>Distribute first, FEFO</h2>
+            <h2>Distribute first</h2>
             <ResourceStatus {...fefo} />
             <ol className="images-fefo">
               {fefo.data.map((lot, index) => (

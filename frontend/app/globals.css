@@ -31,6 +31,12 @@
   --caution-solid: #ffc53d;
   --danger-text: var(--danger);
   --scrim: #21201c66;
+  --caution-meter: #ab6400;
+  --warning-meter: #cc4e00;
+  --neutral-meter: #82827c;
+  --field-border: #8d8d86;
+  accent-color: var(--primary);
+  caret-color: var(--primary);
 }
 * {
   box-sizing: border-box;
@@ -83,9 +89,20 @@ h1 {
 }
 h2,
 h3 {
-  font-size: 20px;
-  line-height: 28px;
+  font-size: 16px;
+  line-height: 24px;
   font-weight: 600;
+}
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+p,
+li,
+dd,
+figcaption {
+  text-wrap: pretty;
 }
 ul {
   list-style: none;
@@ -118,16 +135,20 @@ ul {
   background: var(--primary);
   color: var(--on-primary);
 }
-.button-primary:not(:disabled):hover {
-  background: var(--primary-hover);
-}
 .button-outline {
   border-color: var(--strong);
   background: var(--background);
 }
-.button-outline:not(:disabled):hover,
 .button-soft {
   background: var(--component);
+}
+@media (hover: hover) {
+  .button-primary:not(:disabled):hover {
+    background: var(--primary-hover);
+  }
+  .button-outline:not(:disabled):hover {
+    background: var(--component);
+  }
 }
 .button-danger {
   background: var(--danger);
@@ -181,7 +202,7 @@ textarea {
   height: 36px;
   min-height: 36px;
   padding: 6px 10px;
-  border: 0.5px solid var(--border-ui);
+  border: 0.5px solid var(--field-border);
   border-radius: 6px;
   background: var(--background);
   color: var(--text);
@@ -369,6 +390,30 @@ textarea {
   margin-top: 2px;
   accent-color: var(--primary);
 }
+progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin: 0;
+  appearance: none;
+  border: 0;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: var(--component);
+  color: var(--meter-fill, var(--primary));
+}
+progress::-webkit-progress-bar {
+  background: var(--component);
+  border-radius: 9999px;
+}
+progress::-webkit-progress-value {
+  background: var(--meter-fill, var(--primary));
+  border-radius: 9999px;
+}
+progress::-moz-progress-bar {
+  background: var(--meter-fill, var(--primary));
+  border-radius: 9999px;
+}
 .qr {
   width: 200px;
   height: 200px;
@@ -383,7 +428,7 @@ textarea {
   align-items: center;
 }
 .choice:has(input:checked) {
-  background: var(--success-bg);
+  background: var(--success-bg-subtle);
   border-color: var(--focus);
 }
 details summary {
@@ -490,6 +535,27 @@ textarea.field {
   max-width: 880px;
   min-height: 56px;
   border-bottom: 0;
+}
+.demo-workspace-entry {
+  position: relative;
+}
+.demo-workspace-entry .button {
+  white-space: nowrap;
+}
+.demo-workspace-error {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(320px, 80vw);
+  z-index: 10;
+}
+@media (max-width: 767px) {
+  .public-header.landing-header {
+    flex-wrap: wrap;
+  }
+  .public-header.landing-header nav {
+    flex-wrap: wrap;
+  }
 }
 .demo-disclosure {
   max-width: 1120px;
@@ -694,17 +760,19 @@ textarea.field {
   border-radius: 6px;
   background: transparent;
   color: var(--muted);
+  font-weight: 400;
   white-space: nowrap;
 }
 .segmented .button[aria-pressed="true"] {
   background: var(--background);
   color: var(--text);
   border-color: var(--border-ui);
+  font-weight: 500;
 }
 .needs-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 12px;
 }
 .location-search {
@@ -715,13 +783,13 @@ textarea.field {
   max-width: 420px;
 }
 .needs-toolbar .button {
-  height: 40px;
-  min-height: 40px;
-}
-.needs-toolbar .category-filter {
-  padding: 0;
+  height: 36px;
+  min-height: 36px;
 }
 .needs-toolbar .category-filter .button {
+  height: 32px;
+  min-height: 32px;
+  padding-block: 0;
   padding-inline: 10px;
 }
 .location-input {
@@ -732,7 +800,7 @@ textarea.field {
   flex: 1;
   height: 36px;
   padding: 0 12px;
-  border: 0.5px solid var(--border-ui);
+  border: 0.5px solid var(--field-border);
   border-radius: 6px;
   color: var(--muted);
   background: var(--background);
@@ -1282,7 +1350,7 @@ textarea.field {
   border-bottom: 0;
 }
 .match-list .choice:has(input:checked) {
-  background: var(--success-bg);
+  background: var(--success-bg-subtle);
 }
 .expiry-summary {
   display: flex;
@@ -1320,7 +1388,8 @@ textarea.field {
     padding: 24px 20px;
   }
   .public-header nav > a {
-    font-size: 12px;
+    font-size: 14px;
+    padding-block: 12px;
   }
   .public-header nav .button {
     padding: 4px 12px;
@@ -1577,7 +1646,7 @@ textarea.field {
   display: flex;
   gap: 8px;
   align-items: center;
-  border: 0.5px solid var(--border-ui);
+  border: 0.5px solid var(--field-border);
   border-radius: 24px;
   height: 48px;
   padding: 6px 6px 6px 16px;
@@ -1878,11 +1947,70 @@ textarea.field {
   min-height: 40px;
   flex: none;
   padding-left: 40px;
-  border: 0.5px solid var(--border-ui);
+  border: 0.5px solid var(--field-border);
   border-radius: 6px;
   background: var(--background);
 }
 .location-field input.field[aria-invalid="true"] {
   border-color: var(--danger);
   background: var(--danger-bg);
+}
+
+@media (max-width: 767px) {
+  .public-shell .field,
+  .public-shell select,
+  .public-shell textarea,
+  .public-shell input.field {
+    font-size: 16px;
+    line-height: 24px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .public-shell textarea,
+  .public-shell textarea.field {
+    height: auto;
+    min-height: 96px;
+  }
+  .segmented {
+    flex-wrap: wrap;
+  }
+  .needs-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .needs-layout > .need-detail {
+    order: -1;
+  }
+}
+.hero-example {
+  margin: 24px 0 0;
+  max-width: 420px;
+}
+.hero-example-card {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  background: var(--background);
+}
+.hero-example-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hero-example-photo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--component);
+  color: var(--muted);
+}
+/* Preserve donor-authored paragraphs while containing long item text. */
+.item-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

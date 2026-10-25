@@ -53,13 +53,14 @@ export default function Slots() {
     <>
       <ConsoleTitle
         title="Site and appointments"
-        detail="Times use Europe/Paris. Set daily item limits separately in Capacity and intake."
+        detail="Times are in Paris time. Set daily item limits in Storage and intake."
       />
       {admin && (
         <section className="card">
           <h2>Drop-off site</h2>
-          <p>{association.display_address ?? "No address configured."}</p>
-          <p>Timezone: {association.timezone}</p>
+          {association.timezone !== "Europe/Paris" && (
+            <p>Timezone: {association.timezone}</p>
+          )}
           <CommandForm
             key={association.revision}
             submit="Save site"
@@ -122,8 +123,8 @@ export default function Slots() {
             }
           />
           <p className="console-meta">
-            Green open, orange busy, red full, grey closed. Select a date to
-            inspect its appointments.
+            Green dot: open. Orange bar: busy. Red square: full. Grey dash:
+            closed. Select a date to see its appointments.
           </p>
           <ResourceStatus {...resource} />
           <More {...resource} />
@@ -156,13 +157,13 @@ export default function Slots() {
             }}
           >
             <Field
-              label="Starts (Europe/Paris)"
+              label="Starts (Paris time)"
               name="start"
               type="datetime-local"
               required
             />
             <Field
-              label="Ends (Europe/Paris)"
+              label="Ends (Paris time)"
               name="end"
               type="datetime-local"
               required
@@ -254,6 +255,7 @@ function DayDetails({
             <CommandForm
               key={slot.revision}
               submit="Update appointment time"
+              submitVariant="outline"
               successMessage="Appointment time updated."
               onSubmit={async (data) => {
                 await command(
@@ -268,20 +270,22 @@ function DayDetails({
                 await refreshSlots();
               }}
             >
-              <NumberInput
-                label="Appointment places"
-                name="places"
-                min={1}
-                value={slot.max_bookings}
-              />
-              <SelectField
-                label="Status"
-                name="active"
-                defaultValue={String(slot.active)}
-              >
-                <option value="true">Active</option>
-                <option value="false">Paused</option>
-              </SelectField>
+              <div className="console-form-grid">
+                <NumberInput
+                  label="Appointment places"
+                  name="places"
+                  min={1}
+                  value={slot.max_bookings}
+                />
+                <SelectField
+                  label="Status"
+                  name="active"
+                  defaultValue={String(slot.active)}
+                >
+                  <option value="true">Active</option>
+                  <option value="false">Paused</option>
+                </SelectField>
+              </div>
             </CommandForm>
           )}
         </div>

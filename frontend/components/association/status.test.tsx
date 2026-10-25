@@ -15,6 +15,13 @@ it("shows expiry urgency in words and color without exposing bucket codes", () =
     ),
   ).toContain("Date unknown");
 });
+it("omits the expiry chip for undated items unless a count needs the label", () => {
+  const expiry = { bucket: "not_applicable" as const, days_left: null };
+  expect(renderToStaticMarkup(<ExpiryChip expiry={expiry} />)).toBe("");
+  expect(
+    renderToStaticMarkup(<ExpiryChip expiry={expiry} showNotApplicable />),
+  ).toContain("Expiry not applicable");
+});
 it("identifies approval as a staff decision", () => {
   expect(renderToStaticMarkup(<StateChip state="approved" />)).toContain(
     "Approved by staff",

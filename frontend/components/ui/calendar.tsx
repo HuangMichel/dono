@@ -41,6 +41,7 @@ export function Calendar({
   const [view, setView] = useState("");
   const [focusDay, setFocusDay] = useState("");
   const heading = useId();
+  const help = useId();
   const root = useRef<HTMLDivElement>(null);
   const month = view || selected.slice(0, 7) || today.slice(0, 7);
   if (!month) return <p aria-busy="true">Loading calendar…</p>;
@@ -134,6 +135,7 @@ export function Calendar({
         className="shared-calendar-grid"
         role="group"
         aria-labelledby={heading}
+        aria-describedby={help}
       >
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
           <span
@@ -171,7 +173,7 @@ export function Calendar({
           ),
         )}
       </div>
-      <p className="meta muted shared-calendar-help">
+      <p id={help} className="sr-only">
         Use arrow keys to move between dates. Press Enter to select.
       </p>
     </section>

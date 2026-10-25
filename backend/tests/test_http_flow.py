@@ -141,6 +141,7 @@ def test_http_donation_review_booking_receipt_stock(postgres: str) -> None:
                 headers=headers(donor),
                 json={
                     "facts": {
+                        "name": "Winter coat",
                         "category": "clothes",
                         "attributes": {"type": "coat"},
                         "quantity": "1",

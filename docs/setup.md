@@ -61,16 +61,46 @@ Use the CLI after inspecting migration history, or execute the exact file in the
 
 `supabase/config.toml` and ordered imperative migrations exist. The CLI was initialized and migration files were generated; the Docker-based Supabase stack was not started. Embedded PostgreSQL tests apply the actual migrations, but do not substitute for managed Supabase deployment validation.
 
-The location filter was applied to the Dono project through SQL Editor on 2026-10-25. Its reviewed payload is [public_needs_location.sql](../supabase/changes/public_needs_location.sql). The installed CLI currently exits without output, so the timestamped migration and CLI history entry remain pending. The preparation script below generates the filename through the CLI once it works. Reconcile the already-applied hosted change before a later push. For another target, execute the payload as `postgres` inside `BEGIN;` and `COMMIT;`, then run `NOTIFY pgrst, 'reload schema';`, or use the reviewed migration workflow.
+The repository now contains 21 ordered migration files, including the generated location filter and photo policy. No further generation is needed for these changes. See the migration status and cleanup notes below. Local files do not prove hosted application or recorded migration history.
 
 1. Choose a development project or local CLI stack. Inspect your installed `supabase --help` and subcommand help. Local stack startup requires Docker access. Review migration contents and target identity before any push/reset; this work did not execute either against a hosted project.
-2. Run `bash scripts/prepare-public-needs-migration.sh` from the repository root to generate the public directory migration with the installed CLI. Run `bash scripts/prepare-public-needs-migration.sh public_needs_location` for the location filter. Review the [directory SQL](../supabase/changes/public_needs.sql) and [location-filter SQL](../supabase/changes/public_needs_location.sql). Then apply the ordered [migrations](../supabase/migrations/) to that development target using the selected Supabase migration workflow. Apply the location function before starting the updated backend, which calls `dono_public_needs_in_location`. Verify PostgreSQL 17 compatibility, role ownership privileges, public-schema exposure and grants. Public app tables have scoped RLS; `private` is not exposed. Storage, mail testing, Realtime and Edge runtime are disabled in the supplied local config.
+2. Review and apply the ordered [migrations](../supabase/migrations/) to the selected development target. Verify PostgreSQL 17 compatibility, role ownership privileges, public-schema exposure and grants. Public app tables have scoped RLS; `private` is not exposed. Storage, mail testing, Realtime and Edge runtime are disabled in the supplied local config.
 3. Configure email/password signup and sign-in as described above. Disable Google and choose whether the hosted project requires email confirmation. FastAPI verifies access tokens via Supabase Auth `/user`; it ignores user-supplied role metadata and checks current profile/membership. A publishable key alone is not a user identity. Credentials go directly to Supabase Auth, never to FastAPI business endpoints.
 4. Create the initial platform administrator through a trusted database operator after Auth registration/profile bootstrap. Public bootstrap only creates donor capability. Do not introduce a public role-elevation endpoint. Association registration creates an inactive applicant administrator; platform approval activates that original applicant atomically.
 5. Confirm server command privileges: `dono_command_owner` is a dedicated non-login owner without global BYPASSRLS. Ordinary callers cannot mutate app tables, invoke business commands or read private photo content. The server role executes guarded commands; it has no direct app-table write grant. Verify these controls through the real Data API and current Supabase advisors before launch.
 6. Select a compatible OpenAI model, run one live strict-schema request per category, and evaluate the required 25–35 photo set. No real photo accuracy result is available yet. Configure real redirect points and association needs/capacity/quotas/slots using trusted setup or authenticated APIs; no automatic production seed is provided.
 
-The current FastAPI service calls `dono_public_needs_in_location`. The timestamped migration provides `dono_public_needs`; it does not install the location-filter function. Generate and apply a migration for `public_needs_location.sql` before running this backend on another target. The preparation script creates a local migration only; it does not connect to or deploy to a database. The installed CLI currently exits before creating the migration in this environment. Reconcile the manually applied hosted function with migration history before the next `db push`.
+The current FastAPI service calls `dono_public_needs_in_location`, installed by `20261025165344_public_needs_location.sql`. Include that migration when provisioning another target.
+
+### Migration status and cleanup
+
+Snapshot: 2026-10-25. The user supplied a migration list with the first 15 versions matching remotely, through `20261025004750`. The following status combines that output, current local files and prior recorded deployment evidence. No fresh hosted schema check was performed for this documentation update.
+
+| Version | Change | Next action on existing Dono project |
+|---|---|---|
+| `20261025115658` | Managed Auth bridges | Prior report records manual application; verify definitions and repair history only if missing. |
+| `20261025121635` | Public needs | Prior report records manual application; verify definitions and repair history only if missing. |
+| `20261025140000` | Posted donations | Local migration exists; runtime validation and hosted application remain unconfirmed. Do not mark applied without evidence. |
+| `20261025165344` | Public needs location | Generated migration exists. Prior report records manual application of its identical payload; verify definitions and repair history only if missing. |
+| `20261025165345` | Photo limit, 4 MiB | Generated migration exists; hosted application remains unconfirmed. |
+| `20261025170000` | Donation item details | Appeared during this review; adds name/description and backfills existing names. Validation and hosted application are unverified. |
+
+Run `supabase migration list` again because the supplied list predates the two generated files. For each manually applied change, compare its database definitions and grants with the migration before recording it. Only for a verified applied version missing from history, run:
+
+```sh
+supabase migration repair VERIFIED_VERSION --status applied
+```
+
+Replace `VERIFIED_VERSION` with one verified version from the table. Repair changes migration tracking, not the schema. After reconciling all three manual changes, the expected pending files are posted donations, the photo limit and donation item details, unless a newer deployment has applied them. A new empty target needs the full chain without history repair. [Supabase migration workflow](https://supabase.com/docs/guides/deployment/database-migrations).
+
+Cleanup assessment:
+
+- Keep all versioned migrations and their filenames. Do not rewrite or remove historical migrations to resolve tracking differences.
+- `supabase/changes/public_needs.sql`, `public_needs_location.sql` and `vercel/photo_upload_limit_4mib.sql` are byte-identical to their versioned migrations at this snapshot. They are cleanup candidates, but scripts and regression tests still read them.
+- Before removing those copies, update `backend/tests/test_public_needs_database.py` and `test_photo_upload_limit.py` to read the corresponding migrations. Remove the obsolete fallback payload application in `backend/tests/conftest.py`, retire the preparation scripts together with their documentation references, then run the backend checks. This is proposed cleanup, not implemented work.
+- Keep `supabase/manual/dummy_workflow.sql` separate from migrations and automatic seeds. It records an explicitly requested prior demo insertion; do not rerun it or treat its deletion as database cleanup. See [manual data notes](../supabase/manual/README.md).
+
+The preparation scripts remain available for recovery and detect identical existing files. They do not deploy SQL. Do not generate another copy of these migrations.
 
 No provider HTTP request holds a database transaction open. Use user-JWT scoped reads and guarded commands as implemented; do not replace them with blanket privileged reads.
 
@@ -89,20 +119,19 @@ New photos are limited to **4 MiB each**, leaving room for multipart framing bel
 
 ### 1. Prepare and apply the database update
 
-Run these commands from the repository root. The Supabase CLI installation requires Homebrew on macOS. The preparation script creates one migration using the CLI and copies the reviewed SQL from `supabase/changes/vercel/`. It does not contact a database. Repeating it keeps an identical migration and refuses to overwrite a differing one.
+The migration files already exist. From the repository root, inspect the target and reconcile history as described [above](#migration-status-and-cleanup) before previewing deployment. Install the Supabase CLI only if it is absent.
 
 ```sh
-brew install supabase/tap/supabase
 supabase --help
 supabase login
-bash scripts/prepare-vercel-migrations.sh
 supabase link --project-ref YOUR_PROJECT_REF
 supabase migration list
+# Reconcile verified manual changes before continuing.
 supabase db push --help
 supabase db push --dry-run
 ```
 
-Replace `YOUR_PROJECT_REF` with the selected target's project reference. Verify the selected project and migration history before continuing. For an existing database with all 15 baseline migrations recorded, the dry run should list the new `managed_auth_bridges` migration and the generated `vercel_setup` photo-policy migration. A repair already applied and recorded should not appear again. A new empty project needs the full migration chain. If the database was created through the SQL editor but its migration history is missing, reconcile the history against the actual schema first. Do not replay existing table-creation migrations or reset the hosted database. [Migration workflow](https://supabase.com/docs/guides/deployment/database-migrations).
+Replace `YOUR_PROJECT_REF` with the selected project reference. Existing Dono is documented as `wivxerqtkeiflfoyanpp`; verify that it is the intended target. After verified manual changes are recorded, expect posted donations, the photo policy and donation item details unless newer history proves otherwise. Stop if the preview proposes replaying baseline table creation. Do not reset the hosted database.
 
 Run the backend checks below in a terminal that permits the PostgreSQL test fixture. The SQL boundary, legacy-preservation and grant-repair tests could not run in the preparation sandbox. After those checks and the dry-run review, apply the update:
 
@@ -206,3 +235,7 @@ uv run pytest -q --cov=app --cov-report=term-missing
 Tests launch disposable embedded PostgreSQL using `pgserver`, create test-only Auth primitives and apply every migration. They require local process/socket permissions, not Docker or live credentials. Auth HTTP, the Supabase HTTP gateway and OpenAI responses are simulated; SQL constraints, commands, grants, RLS and concurrent connections execute in real PostgreSQL. Only synthetic tiny images are included. Tests must never use a production database.
 
 Formatting is configured with Black; Ruff and strict mypy are the required static checks. Test evidence and remaining gates are recorded in [readiness](readiness.md) and [handoff](handoff.md). No claim is made that connected frontend behavior, hosted email/password authentication, target-mobile camera/QR rendering, the full Supabase stack or live model evaluation have passed.
+
+## Plan de validation pas à pas
+
+Voir le [plan de test du backend](test-plan.md) pour les essais automatisés, les sessions Auth réelles, le parcours Swagger et les critères de passage en préproduction. Ce plan ne constitue pas une exécution des tests.

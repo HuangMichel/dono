@@ -118,7 +118,6 @@ export default function Needs() {
               label="Town or postcode (optional)"
               name="location"
               maxLength={200}
-              placeholder="Town or postcode"
               error={locationError}
               aria-describedby="location-hint"
               onChange={() => setLocationError("")}
@@ -128,7 +127,7 @@ export default function Needs() {
             </Button>
           </form>
           <div
-            className="row category-filter"
+            className="segmented category-filter"
             role="group"
             aria-label="Category"
           >
@@ -136,7 +135,7 @@ export default function Needs() {
               ([category, label]) => (
                 <Button
                   key={category}
-                  variant={query.category === category ? "soft" : "outline"}
+                  variant="soft"
                   aria-pressed={query.category === category}
                   onClick={() => {
                     setQuery((old) => ({
@@ -155,12 +154,7 @@ export default function Needs() {
           </div>
         </div>
         <p id="location-hint" className="meta muted needs-note">
-          Enter a town with at least 3 characters or a full 5-digit postcode,
-          such as 68100. Search shows only that town or postcode. Leave blank to
-          browse all needs.
-        </p>
-        <p className="meta muted needs-note">
-          Browse needs without an account. Sign in to offer an item.
+          Use a town or a 5-digit postcode, or leave it blank to see all needs.
         </p>
         {loading ? (
           <p role="status">Loading needs…</p>
@@ -222,38 +216,40 @@ export default function Needs() {
                   </li>
                 ))}
               </ul>
-              <nav className="row" aria-label="Results pages">
-                <Button
-                  variant="outline"
-                  disabled={!query.cursors.length}
-                  onClick={() =>
-                    setQuery((old) => ({
-                      ...old,
-                      cursors: old.cursors.slice(0, -1),
-                    }))
-                  }
-                >
-                  Previous
-                </Button>
-                <span className="meta">Page {query.cursors.length + 1}</span>
-                <Button
-                  variant="outline"
-                  disabled={
-                    !current.page?.page.has_more ||
-                    !current.page.page.next_cursor
-                  }
-                  onClick={() => {
-                    const cursor = current.page?.page.next_cursor;
-                    if (cursor)
+              {(query.cursors.length > 0 || current.page?.page.has_more) && (
+                <nav className="row" aria-label="Results pages">
+                  <Button
+                    variant="outline"
+                    disabled={!query.cursors.length}
+                    onClick={() =>
                       setQuery((old) => ({
                         ...old,
-                        cursors: [...old.cursors, cursor],
-                      }));
-                  }}
-                >
-                  Next
-                </Button>
-              </nav>
+                        cursors: old.cursors.slice(0, -1),
+                      }))
+                    }
+                  >
+                    Previous
+                  </Button>
+                  <span className="meta">Page {query.cursors.length + 1}</span>
+                  <Button
+                    variant="outline"
+                    disabled={
+                      !current.page?.page.has_more ||
+                      !current.page.page.next_cursor
+                    }
+                    onClick={() => {
+                      const cursor = current.page?.page.next_cursor;
+                      if (cursor)
+                        setQuery((old) => ({
+                          ...old,
+                          cursors: [...old.cursors, cursor],
+                        }));
+                    }}
+                  >
+                    Next
+                  </Button>
+                </nav>
+              )}
             </div>
             {selected && (
               <aside

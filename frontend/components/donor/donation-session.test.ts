@@ -262,6 +262,236 @@ it("moves from analysis to matching and a staff-review offer without an AI decis
   session.setAddress("Lyon");
   expect(session.getSnapshot()).toMatchObject({ selected: "", matches: [] });
 });
+it("persists authored text before analysis without suppressing extracted category details", async () => {
+  session.setFacts((f) => ({
+    ...f,
+    name: "  Blue winter coat  ",
+    description: "  Small tear inside the pocket.  ",
+  }));
+  const identity = {
+    name: "Blue winter coat",
+    description: "Small tear inside the pocket.",
+  };
+  const created = { ...item(), facts: { ...item().facts, ...identity } };
+  const analysed = {
+    ...item("3"),
+    facts: { ...created.facts, attributes: { type: "coat", size: "M" } },
+  };
+  api
+    .mockResolvedValueOnce(created)
+    .mockResolvedValueOnce({ id: "photo" })
+    .mockResolvedValueOnce({ analysis: { id: "analysis" } })
+    .mockResolvedValueOnce(analysed);
+  await session.run(session.analyse);
+  expect(api.mock.calls[0][1].body).toEqual({ facts: identity });
+  expect(session.getSnapshot().facts).toMatchObject({
+    ...identity,
+    attributes: { type: "coat", size: "M" },
+  });
+  expect(session.getSnapshot().step).toBe(1);
+});
+it("retries a lost identity save with the same command before reanalysis and restores saved text", async () => {
+  const original = {
+    ...item(),
+    facts: { ...item().facts, name: "Old coat", description: null },
+  };
+  const saved = {
+    ...item("2"),
+    facts: {
+      ...original.facts,
+      name: "Blue coat",
+      description: "Pocket torn.",
+    },
+  };
+  api.mockResolvedValueOnce(original);
+  apiPage.mockResolvedValue({ data: [{ id: "photo" }] });
+  const restored = new DonationSession({ api, apiPage }, "donor", "item");
+  await restored.start();
+  restored.setFacts((f) => ({
+    ...f,
+    name: "Blue coat",
+    description: "Pocket torn.",
+  }));
+  api.mockRejectedValueOnce(Error("Connection lost"));
+  await restored.run(restored.analyse);
+  expect(restored.getSnapshot()).toMatchObject({
+    facts: { name: "Blue coat", description: "Pocket torn." },
+    step: 0,
+  });
+  const first = api.mock.calls.at(-1)![1];
+  api
+    .mockResolvedValueOnce(saved)
+    .mockResolvedValueOnce({ analysis: { id: "analysis" } })
+    .mockResolvedValueOnce(saved);
+  await restored.run(restored.analyse);
+  const retries = api.mock.calls.filter(
+    ([, options]) => options?.method === "PATCH",
+  );
+  expect(retries).toHaveLength(2);
+  expect(retries[1][1].idempotencyKey).toBe(first.idempotencyKey);
+  expect(restored.getSnapshot()).toMatchObject({
+    facts: { name: "Blue coat", description: "Pocket torn." },
+    step: 1,
+  });
+  api.mockResolvedValueOnce(saved);
+  const resumed = new DonationSession({ api, apiPage }, "donor", "item");
+  await resumed.start();
+  expect(resumed.getSnapshot().facts).toMatchObject({
+    name: "Blue coat",
+    description: "Pocket torn.",
+  });
+});
+it("recovers the original identity command before saving newer text after a lost response", async () => {
+  const original = {
+    ...item(),
+    facts: { ...item().facts, name: "Original", description: null },
+  };
+  const firstSaved = {
+    ...item("2"),
+    facts: { ...original.facts, name: "First edit" },
+  };
+  const latestSaved = {
+    ...item("3"),
+    facts: { ...original.facts, name: "Latest edit" },
+  };
+  api.mockResolvedValueOnce(original);
+  apiPage.mockResolvedValue({ data: [{ id: "photo" }] });
+  const restored = new DonationSession({ api, apiPage }, "donor", "item");
+  await restored.start();
+  restored.setFacts((f) => ({ ...f, name: "First edit" }));
+  api.mockRejectedValueOnce(Error("Connection lost"));
+  await restored.run(restored.analyse);
+  restored.setFacts((f) => ({ ...f, name: "Latest edit" }));
+  api
+    .mockResolvedValueOnce(firstSaved)
+    .mockResolvedValueOnce(latestSaved)
+    .mockResolvedValueOnce({ analysis: { id: "analysis" } })
+    .mockResolvedValueOnce(latestSaved);
+  await restored.run(restored.analyse);
+  const writes = api.mock.calls.filter(
+    ([, options]) => options?.method === "PATCH",
+  );
+  expect(writes).toHaveLength(3);
+  expect(writes[1][1].idempotencyKey).toBe(writes[0][1].idempotencyKey);
+  expect(writes[1][1].body.facts.name).toBe("First edit");
+  expect(writes[2][1].body).toMatchObject({
+    expected_revision: "2",
+    facts: { name: "Latest edit" },
+  });
+  expect(restored.getSnapshot()).toMatchObject({
+    step: 1,
+    facts: { name: "Latest edit" },
+  });
+});
+it("preserves newer local text and blocks if another editor changed a recovered identity save", async () => {
+  const original = { ...item(), facts: { ...item().facts, name: "Original" } };
+  api.mockResolvedValueOnce(original);
+  apiPage.mockResolvedValue({ data: [{ id: "photo" }] });
+  const restored = new DonationSession({ api, apiPage }, "donor", "item");
+  await restored.start();
+  restored.setFacts((f) => ({ ...f, name: "First edit" }));
+  api.mockRejectedValueOnce(Error("Connection lost"));
+  await restored.run(restored.analyse);
+  restored.setFacts((f) => ({ ...f, name: "Latest local edit" }));
+  api.mockResolvedValueOnce({
+    ...item("3"),
+    facts: { ...original.facts, name: "External edit" },
+  });
+  await restored.run(restored.analyse);
+  expect(restored.getSnapshot()).toMatchObject({
+    step: 0,
+    facts: { name: "Latest local edit" },
+    error: expect.stringContaining("saved item details changed"),
+  });
+  expect(
+    api.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(2);
+  expect(api.mock.calls.some(([path]) => path.endsWith("/analyses"))).toBe(
+    false,
+  );
+});
+it("accounts for its uploaded photos when editing identity after analysis failures", async () => {
+  session.setFacts((f) => ({ ...f, name: "First edit", description: null }));
+  const original = {
+    ...item(),
+    facts: { ...item().facts, name: "First edit", description: null },
+  };
+  api
+    .mockResolvedValueOnce(original)
+    .mockResolvedValueOnce({ id: "photo" })
+    .mockRejectedValueOnce(Error("Analysis unavailable"));
+  await session.run(session.analyse);
+  session.setFacts((f) => ({ ...f, name: "Second edit" }));
+  const second = {
+    ...item("3"),
+    facts: { ...original.facts, name: "Second edit" },
+  };
+  api
+    .mockResolvedValueOnce(second)
+    .mockRejectedValueOnce(Error("Analysis unavailable"));
+  await session.run(session.analyse);
+  session.setFacts((f) => ({ ...f, name: "Latest edit" }));
+  const latest = {
+    ...item("4"),
+    facts: { ...original.facts, name: "Latest edit" },
+  };
+  api
+    .mockResolvedValueOnce(latest)
+    .mockResolvedValueOnce({ analysis: { id: "analysis" } })
+    .mockResolvedValueOnce(latest);
+  await session.run(session.analyse);
+  const writes = api.mock.calls.filter(
+    ([, options]) => options?.method === "PATCH",
+  );
+  expect(writes.map(([, options]) => options.body.expected_revision)).toEqual([
+    "2",
+    "3",
+  ]);
+  expect(session.getSnapshot()).toMatchObject({
+    step: 1,
+    facts: { name: "Latest edit" },
+    error: "",
+  });
+  expect(
+    api.mock.calls.filter(([path]) => path.endsWith("/photos")),
+  ).toHaveLength(1);
+});
+it("recovers a lost upload response in a partial batch before saving changed identity", async () => {
+  session.setFiles([photo(), photo("back.jpg")]);
+  session.setFacts((f) => ({ ...f, name: "First edit", description: null }));
+  const original = {
+    ...item(),
+    facts: { ...item().facts, name: "First edit", description: null },
+  };
+  api
+    .mockResolvedValueOnce(original)
+    .mockResolvedValueOnce({ id: "front" })
+    .mockRejectedValueOnce(Error("Upload response lost"));
+  await session.run(session.analyse);
+  const lostUpload = api.mock.calls.at(-1)![1];
+  session.setFacts((f) => ({ ...f, name: "Latest edit" }));
+  const latest = {
+    ...item("4"),
+    facts: { ...original.facts, name: "Latest edit" },
+  };
+  api
+    .mockResolvedValueOnce({ id: "back" })
+    .mockResolvedValueOnce(latest)
+    .mockResolvedValueOnce({ analysis: { id: "analysis" } })
+    .mockResolvedValueOnce(latest);
+  await session.run(session.analyse);
+  const uploads = api.mock.calls.filter(([path]) => path.endsWith("/photos"));
+  expect(uploads).toHaveLength(3);
+  expect(uploads[2][1].idempotencyKey).toBe(lostUpload.idempotencyKey);
+  expect(
+    api.mock.calls.find(([, options]) => options?.method === "PATCH")?.[1].body,
+  ).toMatchObject({ expected_revision: "3", facts: { name: "Latest edit" } });
+  expect(session.getSnapshot()).toMatchObject({
+    step: 1,
+    facts: { name: "Latest edit" },
+    error: "",
+  });
+});
 it("carries public intent into preparation and only selects a validated intended match", async () => {
   const intent = {
     need: "wanted",

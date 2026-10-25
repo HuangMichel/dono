@@ -14,6 +14,8 @@ Revision = Annotated[str, Field(pattern=r"^[1-9][0-9]*$")]
 
 
 class Facts(ClosedModel):
+    name: Annotated[str, Field(max_length=120)] | None = None
+    description: Annotated[str, Field(max_length=2000)] | None = None
     category: Category | None = None
     attributes: dict[str, object] = Field(default_factory=dict)
     quantity: str | None = None

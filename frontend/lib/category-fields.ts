@@ -1,4 +1,11 @@
 import type { Category } from "./api-contracts";
+export const requiredDonationAttributes: Record<Category, readonly string[]> = {
+  clothes: ["type"],
+  shoes: ["type"],
+  food: ["product", "storage_condition", "non_perishable", "packaging_state"],
+  para: ["product"],
+  furniture: ["type"],
+};
 export const categoryFields: Record<
   Category,
   Record<string, readonly string[] | null>

@@ -15,6 +15,7 @@ type FileUploadProps = {
   optional?: boolean;
   disabled?: boolean;
   primaryId?: string;
+  limitsId?: string;
   onFilesChange: (files: File[]) => void;
   onReplace: (id: string, file: File) => void;
   onRemove: (id: string) => void;
@@ -30,6 +31,7 @@ export function FileUpload({
   optional = false,
   disabled = false,
   primaryId,
+  limitsId,
   onFilesChange,
   onReplace,
   onRemove,
@@ -156,7 +158,7 @@ export function FileUpload({
         className="sr-only"
         tabIndex={-1}
         aria-label={label}
-        aria-describedby={`${id}-limits`}
+        aria-describedby={limitsId ?? `${id}-limits`}
         accept="image/jpeg,image/png,image/webp"
         multiple={multiple}
         disabled={disabled}
@@ -234,9 +236,11 @@ export function FileUpload({
           }}
         />
       )}
-      <p id={`${id}-limits`} className="meta muted">
-        JPEG, PNG or WebP, up to {MAX_PHOTO_SIZE_LABEL} each.
-      </p>
+      {!limitsId && (
+        <p id={`${id}-limits`} className="meta muted">
+          JPEG, PNG or WebP, up to {MAX_PHOTO_SIZE_LABEL} each.
+        </p>
+      )}
       {optional ? (
         <p className="meta muted">
           Leave this empty if the item has no printed date.

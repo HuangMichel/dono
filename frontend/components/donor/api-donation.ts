@@ -31,6 +31,7 @@ export function changeCategory(facts: Facts, category: Category): Facts {
   return { ...facts, category, attributes: {}, expiry: {} };
 }
 export function itemName(facts: Facts) {
+  if (facts.name?.trim()) return facts.name;
   return String(
     facts.attributes.product ??
       (typeof facts.attributes.type === "string"

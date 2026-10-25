@@ -6,19 +6,22 @@ import { CHECK_LABELS } from "./review-policy";
 export function DateChecks({ expiry }: { expiry: ExpiryView }) {
   return (
     <>
-      <p>
-        Date status: <ExpiryChip expiry={expiry} />
-        {expiry.distribution_restriction
-          ? `, ${enumLabel(expiry.distribution_restriction)}`
-          : ""}
-        .
-      </p>
+      {(expiry.bucket !== "not_applicable" ||
+        expiry.distribution_restriction) && (
+        <p className="row wrap">
+          <span>Date status:</span>
+          <ExpiryChip expiry={expiry} />
+          {expiry.distribution_restriction && (
+            <span>{enumLabel(expiry.distribution_restriction)}</span>
+          )}
+        </p>
+      )}
       {expiry.required_date_checks.map((key) => (
-        <label key={key}>
+        <label key={key} className="check">
           <input type="checkbox" name={key} required /> {CHECK_LABELS[key]}
         </label>
       ))}
-      <label>
+      <label className="check">
         <input type="checkbox" name="date_label_correction_confirmed" />{" "}
         {CHECK_LABELS.date_label_correction_confirmed}
       </label>

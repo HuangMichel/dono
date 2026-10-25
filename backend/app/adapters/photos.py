@@ -71,3 +71,21 @@ def decode_photo(encoded: str, expected_size: int, expected_hash: str) -> bytes:
     ):
         raise DomainError("photo_integrity_error", 500)
     return content
+
+
+def discovery_photo(content: bytes) -> bytes:
+    """Share only rendered pixels; originals retain their immutable evidence bytes."""
+    from PIL import ImageOps
+
+    try:
+        with Image.open(BytesIO(content)) as source:
+            oriented = ImageOps.exif_transpose(source)
+            oriented.thumbnail((1600, 1600))
+            rendered = oriented.convert("RGBA")
+            clean = Image.new("RGBA", rendered.size)
+            clean.paste(rendered)
+            output = BytesIO()
+            clean.save(output, format="PNG")
+            return output.getvalue()
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise DomainError("photo_integrity_error", 500) from exc

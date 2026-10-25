@@ -1,0 +1,55 @@
+{
+  "category": "clothes",
+  "extracted": {
+    "schema_version": "analysis-v1",
+    "classification": {
+      "clothes": 1,
+      "shoes": 0,
+      "food": 0,
+      "para": 0,
+      "furniture": 0
+    },
+    "attributes": {
+      "type": "tshirt",
+      "size": null,
+      "audience": null,
+      "seasons": null
+    },
+    "dates": {
+      "expiry_date": null,
+      "date_type": null,
+      "pao_months": null,
+      "date_precision": "unknown",
+      "raw_label": null,
+      "readability": "unknown"
+    }
+  },
+  "confidence": 1,
+  "indicators": [
+    {
+      "key": "looks_like_medicine",
+      "probability": 0,
+      "value": "false"
+    },
+    {
+      "key": "wear_visible",
+      "probability": 0,
+      "value": "false"
+    },
+    {
+      "key": "stains_visible",
+      "probability": 0,
+      "value": "false"
+    },
+    {
+      "key": "holes_visible",
+      "probability": 0,
+      "value": "false"
+    },
+    {
+      "key": "pilling_visible",
+      "probability": 0,
+      "value": "false"
+    }
+  ]
+}

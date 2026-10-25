@@ -29,6 +29,7 @@ def test_late_original_never_overwrites_human_or_escapes_offer_scope(
             (data["donor"], uuid4(), data["item"], Jsonb({"photo_ids": [str(photo)]})),
         )
         facts = Facts(
+            name="Winter coat",
             category="clothes",
             attributes={"type": "coat", "size": "L"},
             quantity="1",

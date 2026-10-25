@@ -6,7 +6,7 @@ export function OpeningHours({ initial }: { initial: HoursInterval[] }) {
   const [hours, setHours] = useState(initial);
   return (
     <fieldset>
-      <legend>Weekly opening hours (Europe/Paris)</legend>
+      <legend>Weekly opening hours (Paris time)</legend>
       <input type="hidden" name="hours" value={JSON.stringify(hours)} />
       {hours.map((h, i) => (
         <div className="row wrap" key={i}>

@@ -72,7 +72,33 @@ vi.mock("@/lib/api-hooks", () => ({
     },
   }),
 }));
-import { Evidence } from "./evidence";
+import { Evidence, itemName } from "./evidence";
+it("shows the frozen donor name and description as offered evidence", () => {
+  const offer = {
+    id: "offer",
+    category: "clothes",
+    quantity: "1",
+    facts_snapshot: {
+      name: "Blue winter coat",
+      description: "Pocket torn.\n<script>private text</script>",
+      attributes: { type: "coat" },
+      expiry: {},
+    },
+    computed: { expiry: { bucket: "not_applicable" } },
+  } as unknown as Offer;
+  expect(itemName(offer)).toBe("Blue winter coat");
+  const html = renderToStaticMarkup(<Evidence offer={offer} />);
+  expect(html).toContain("Blue winter coat");
+  expect(html).toContain("Pocket torn.");
+  expect(html).toContain("&lt;script&gt;private text&lt;/script&gt;");
+  expect(html).not.toContain("<script>");
+  expect(
+    itemName({
+      ...offer,
+      facts_snapshot: { ...offer.facts_snapshot, name: undefined },
+    }),
+  ).toBe("Coat");
+});
 it("labels risk indicators and keeps AI output separate from approval colors", () => {
   const offer = {
     id: "offer",

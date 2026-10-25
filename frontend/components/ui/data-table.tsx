@@ -26,6 +26,7 @@ export type DataColumn<T> = {
   cell: (row: T) => ReactNode;
   sortValue?: (row: T) => SortValue;
   width?: string;
+  numeric?: boolean;
 };
 export function DataTable<T>({
   rows,
@@ -146,12 +147,13 @@ export function DataTable<T>({
         Select a row by clicking its background or pressing Enter or Space while
         the row has focus. Item details and actions work separately.
       </p>
-      <div className="data-table-toolbar">
-        <div className="data-table-selection">
-          <span className="meta muted" role="status">
-            {currentSelection ? 1 : 0} selected
-          </span>
-          {currentSelection !== null && (
+      <p className="sr-only" role="status">
+        {currentSelection ? "1 selected" : ""}
+      </p>
+      {currentSelection !== null && (
+        <div className="data-table-toolbar">
+          <div className="data-table-selection">
+            <span className="meta muted">1 selected</span>
             <Button
               type="button"
               variant="outline"
@@ -160,9 +162,9 @@ export function DataTable<T>({
             >
               Clear selection
             </Button>
-          )}
+          </div>
         </div>
-      </div>
+      )}
       {renderMobileRow && (
         <div className="data-table-mobile-controls">
           <label className="field-label">
@@ -221,6 +223,7 @@ export function DataTable<T>({
                 <th
                   key={column.id}
                   scope="col"
+                  className={column.numeric ? "data-table-numeric" : undefined}
                   aria-sort={
                     column.sortValue
                       ? sort?.id === column.id
@@ -282,7 +285,12 @@ export function DataTable<T>({
                     onKeyDown={(event) => selectFromKeyboard(event, id)}
                   >
                     {columns.map((column, index) => (
-                      <td key={column.id}>
+                      <td
+                        key={column.id}
+                        className={
+                          column.numeric ? "data-table-numeric" : undefined
+                        }
+                      >
                         {index === 0 ? (
                           <div className="data-table-primary-cell">
                             <span
@@ -356,6 +364,7 @@ export function DataTable<T>({
         pageSize={pageSize}
         onPageChange={setRequestedPage}
         label={`${searchLabel.replace(/^Search /, "")} pagination`}
+        hideSinglePage
       />
       {!visible.length && renderMobileRow && (
         <div className="console-empty data-table-empty">

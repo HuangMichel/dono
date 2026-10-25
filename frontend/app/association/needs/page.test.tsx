@@ -85,3 +85,27 @@ it("shows actual scoped demand balances to staff without edit controls", () => {
   expect(html).toContain("5.000");
   expect(html).not.toContain("Edit need");
 });
+it("names each need in the phone list, not only its category", () => {
+  state.data = [
+    {
+      id: "need-real",
+      category: "food",
+      attributes: { product: "Rice" },
+      target_quantity: "12.000",
+      storage_units_per_item: 2,
+      active: true,
+      computed: {
+        held_quantity: "3.000",
+        fulfilled_quantity: "4.000",
+        available_quantity: "5.000",
+      },
+    },
+  ];
+  const html = renderToStaticMarkup(
+    <NotificationProvider>
+      <Needs />
+    </NotificationProvider>,
+  );
+  const phoneList = html.split('class="data-table-mobile-list"')[1] ?? "";
+  expect(phoneList).toContain("Product: Rice");
+});
