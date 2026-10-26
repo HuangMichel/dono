@@ -97,14 +97,14 @@
 .data-table-mobile-list > li {
   cursor: pointer;
 }
-.data-table tbody > tr[tabindex]:hover,
-.data-table-mobile-list > li:hover {
-  background: var(--subtle);
+@media (hover: hover) and (pointer: fine) {
+  .data-table tbody > tr[tabindex]:not([data-selected]):hover,
+  .data-table-mobile-list > li:not([data-selected]):hover {
+    background: var(--subtle);
+  }
 }
 .data-table tr[data-selected],
-.data-table-mobile-list > li[data-selected],
-.data-table tbody > tr[data-selected]:hover,
-.data-table-mobile-list > li[data-selected]:hover {
+.data-table-mobile-list > li[data-selected] {
   background: var(--success-bg-subtle);
 }
 .data-table tbody > tr[tabindex]:focus-visible,

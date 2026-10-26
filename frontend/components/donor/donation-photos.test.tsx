@@ -3,6 +3,8 @@ import React, { act } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { render } from "@/test/render";
 import { DonationPhotos } from "./donation-photos";
+import { DonationSession } from "./donation-session";
+import { useSyncExternalStore } from "react";
 const { camera } = vi.hoisted(() => ({
   camera: { current: null as null | { onCapture: (file: File) => void } },
 }));
@@ -20,8 +22,8 @@ function photos(savedCount = 0, locked = false) {
     <DonationPhotos
       files={[]}
       savedCount={savedCount}
-      locked={locked}
-      disabled={false}
+      lockedFiles={[]}
+      disabled={locked}
       onChange={change}
       getKind={() => "item"}
       onKind={kind}
@@ -72,4 +74,56 @@ it("keeps camera actions unavailable when donor editing is locked", async () => 
   expect(trigger.disabled).toBe(true);
   await act(async () => trigger.click());
   expect(camera.current).toBeNull();
+});
+it("allows removing a rejected photo after an earlier photo was stored", async () => {
+  const stored = new File(["jpeg"], "stored.jpg", { type: "image/jpeg" });
+  const rejected = new File(["invalid"], "rejected.jpg", {
+    type: "image/jpeg",
+  });
+  const api = vi
+    .fn()
+    .mockResolvedValueOnce({
+      id: "item",
+      revision: "1",
+      facts_revision: "1",
+      facts: {},
+      computed: { active_offer_id: null },
+    })
+    .mockResolvedValueOnce({ id: "stored" })
+    .mockRejectedValueOnce(
+      Object.assign(Error("Choose another photo"), { status: 415 }),
+    );
+  const session = new DonationSession({ api, apiPage: vi.fn() }, "donor");
+  await session.start();
+  session.setFiles([stored, rejected]);
+  await session.run(session.analyse);
+  function Photos() {
+    const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
+    return (
+      <DonationPhotos
+        files={state.files}
+        savedCount={0}
+        lockedFiles={state.lockedFiles}
+        disabled={state.busy}
+        onChange={session.setFiles}
+        getKind={session.getPhotoKind}
+        onKind={session.setPhotoKind}
+        onError={session.setError}
+      />
+    );
+  }
+  const view = await render(<Photos />);
+  const remove = view.container.querySelector<HTMLButtonElement>(
+    '[aria-label="Remove rejected.jpg, photo 2"]',
+  )!;
+  expect(remove.disabled).toBe(false);
+  expect(
+    view.container.querySelector<HTMLButtonElement>(
+      '[aria-label="Remove stored.jpg, photo 1"]',
+    )!.disabled,
+  ).toBe(true);
+  await act(async () => remove.click());
+  expect(session.getSnapshot().files).toEqual([stored]);
+  expect(session.getSnapshot().lockedFiles).toEqual([stored]);
+  session.stop();
 });

@@ -140,7 +140,17 @@ it("counts only booked appointments as expected drop-offs", async () => {
   const screen = await render(<Dashboard />);
   const dropOffs = countCell(screen.container, "/association/reception");
   expect(dropOffs.querySelector(".dashboard-count-value")!.textContent).toBe("2");
-  expect(dropOffs.textContent).toContain("Next at 16:00, 4 appointments today");
+  expect(dropOffs.textContent).toContain("Next at 16:00");
+});
+
+it("does not describe cancelled appointments as active bookings", async () => {
+  state.pages["/arrivals"] = {
+    data: [arrival("cancelled", "cancelled", "2026-10-25T10:00:00Z")],
+  };
+  const screen = await render(<Dashboard />);
+  const dropOffs = countCell(screen.container, "/association/reception");
+  expect(dropOffs.querySelector(".dashboard-count-value")!.textContent).toBe("0");
+  expect(dropOffs.textContent).toContain("No active bookings");
 });
 
 it("uses the expiry buckets for the 30-day count and the singular", async () => {
@@ -148,9 +158,9 @@ it("uses the expiry buckets for the 30-day count and the singular", async () => 
   const screen = await render(<Dashboard />);
   const expiring = countCell(screen.container, "/association/inventory");
   expect(expiring.querySelector(".dashboard-count-value")!.textContent).toBe("1");
-  expect(expiring.textContent).toContain("donation expiring within 30 days");
+  expect(expiring.textContent).toContain("donation expiring in under 30 days");
   expect(expiring.textContent).not.toContain("donations");
-  expect(expiring.textContent).toContain("1 under 7 days");
+  expect(expiring.textContent).toContain("1 expires in under 7 days");
 });
 
 it("shows one calm line when nothing crosses a threshold", async () => {

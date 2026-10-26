@@ -43,6 +43,7 @@ export function DataTable<T>({
   selectedRowId,
   onSelectionChange,
   pageSize = 10,
+  clearSelectionOnSearch = false,
 }: {
   rows: T[];
   columns: DataColumn<T>[];
@@ -58,6 +59,7 @@ export function DataTable<T>({
   selectedRowId?: string | null;
   onSelectionChange?: (id: string | null) => void;
   pageSize?: number;
+  clearSelectionOnSearch?: boolean;
 }) {
   const [requestedPage, setRequestedPage] = useState(1);
   const [query, setQuery] = useState("");
@@ -136,8 +138,17 @@ export function DataTable<T>({
               placeholder={searchLabel}
               value={query}
               onChange={(event) => {
-                setQuery(event.target.value);
+                const nextQuery = event.target.value;
+                setQuery(nextQuery);
                 setRequestedPage(1);
+                if (
+                  clearSelectionOnSearch &&
+                  selected !== null &&
+                  !filterAndSortRows(rows, nextQuery, searchText).some(
+                    (row) => getRowId(row) === selected,
+                  )
+                )
+                  changeSelection(null);
               }}
             />
           </span>

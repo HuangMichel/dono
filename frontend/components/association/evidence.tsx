@@ -1,21 +1,21 @@
 "use client";
 import type {
   Offer,
-  Category,
   Analysis,
   Evidence as EvidenceDTO,
 } from "@/lib/api-contracts";
 import { useApiResource } from "@/lib/api-hooks";
-import { Chip } from "@/components/ui";
+import { AnalysisDetails } from "./evidence-details";
+import { ItemHistory } from "./evidence-history";
+import { dateLabel, probabilityLabel } from "./evidence-format";
+export { dateLabel, instant, probabilityLabel } from "./evidence-format";
+import "./evidence-details.css";
 import { CATEGORY_LABELS } from "@/lib/labels";
 import { categoryFields } from "@/lib/category-fields";
 import {
   factLabel,
-  indicatorLabel,
-  indicatorTone,
   enumLabel,
   formatCount,
-  rankIndicators,
   safetyWarnings,
 } from "@/lib/ui-text";
 import { ExpiryChip } from "./status";
@@ -34,41 +34,6 @@ export function itemName(offer: Offer) {
   return String(
     a.type ?? a.product ?? a.name ?? CATEGORY_LABELS[offer.category],
   );
-}
-export function instant(value: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Paris",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-export function dateLabel(value: string | null | undefined) {
-  if (!value) return "Unknown";
-  const parsed = new Date(`${value}T12:00:00Z`);
-  return Number.isNaN(parsed.getTime())
-    ? value
-    : new Intl.DateTimeFormat("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(parsed);
-}
-export function probabilityLabel(value: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "percent",
-    maximumFractionDigits: 1,
-  }).format(value);
-}
-function dateStatus(date: string) {
-  const days = Math.floor(
-    (Date.parse(`${date}T00:00:00Z`) - Date.now()) / 86400000,
-  );
-  if (days < 0) return <Chip variant="danger">Expired</Chip>;
-  if (days === 0) return <Chip variant="warning">Expires today</Chip>;
-  return <Chip variant="success">{days} days left</Chip>;
 }
 /** The donor may correct a date the AI misread; staff verify against the label photo. */
 function DateCorrection({
@@ -95,18 +60,17 @@ function DateCorrection({
       <dl className="console-evidence-facts">
         <div>
           <dt>Detected</dt>
-          <dd>
-            {dateLabel(detected)} {dateStatus(detected)}
-          </dd>
+          <dd>{dateLabel(detected)}</dd>
         </div>
         <div>
           <dt>Donor set</dt>
-          <dd>
-            {dateLabel(donorSet)} {dateStatus(donorSet)}
-          </dd>
+          <dd>{dateLabel(donorSet)}</dd>
         </div>
       </dl>
-      <p className="console-meta">Verify against the label photo.</p>
+      <p className="console-meta">
+        Verify against the label photo. See Expiry priority for the offer’s date
+        status.
+      </p>
     </section>
   );
 }
@@ -133,18 +97,15 @@ export function labelCorrectionApplies(offer: Offer, analyses: Analysis[]) {
     );
   });
 }
-const PROVIDER_LABELS: Record<string, string> = {
-  openai: "OpenAI",
-  jev: "Jev",
-  hybrid: "OpenAI and Jev",
-};
 type EvidenceResource = ReturnType<typeof useApiResource<EvidenceDTO>>;
 export function Evidence({
   offer,
   resource: shared,
+  layout = "default",
 }: {
   offer: Offer;
   resource?: EvidenceResource;
+  layout?: "default" | "review";
 }) {
   const own = useApiResource<EvidenceDTO>(
     shared ? null : `/offers/${offer.id}/evidence`,
@@ -161,7 +122,8 @@ export function Evidence({
             {warning.key === "looks_like_medicine"
               ? "Looks like a medicine"
               : "Chilled or frozen food likely"}
-            , {probabilityLabel(warning.probability ?? 0)}
+            {warning.probability != null &&
+              `, ${probabilityLabel(warning.probability)}`}
           </strong>
           <p>
             {warning.key === "looks_like_medicine"
@@ -171,80 +133,93 @@ export function Evidence({
         </div>
       ))}
       <ResourceStatus {...resource} />
-      {resource.data && resource.data.photos.length > 0 && (
-        <div className="console-photos">
-          {resource.data.photos.map((p) => (
-            <AuthPhoto
-              key={p.id}
-              photo={p}
-              alt={`${p.kind === "label" ? "Printed label" : "Item"} photo of ${itemName(offer)}`}
-            />
-          ))}
-        </div>
-      )}
-      <section className="console-evidence-section">
-        <h2>Offered item</h2>
-        <dl className="console-evidence-facts">
-          <div>
-            <dt>Item name</dt>
-            <dd>{itemName(offer)}</dd>
-          </div>
-          {offer.facts_snapshot.description && (
-            <div>
-              <dt>Description</dt>
-              <dd className="item-description">
-                {offer.facts_snapshot.description}
-              </dd>
-            </div>
-          )}
-          {Object.entries(offer.facts_snapshot.attributes)
-            .filter(([, value]) => value !== null && value !== "")
-            .map(([key, value]) => (
-              <div key={key}>
-                <dt>{factLabel(key)}</dt>
-                <dd>
-                  {typeof value === "boolean"
-                    ? value
-                      ? "Yes"
-                      : "No"
-                    : typeof value === "string" &&
-                        categoryFields[offer.category][key]?.includes(value)
-                      ? enumLabel(value)
-                      : Array.isArray(value)
-                        ? value
-                            .map((part) => enumLabel(String(part)))
-                            .join(", ")
-                        : String(value)}
-                </dd>
-              </div>
+      <div
+        className={
+          layout === "review" ? "review-evidence-overview" : "console-stack"
+        }
+      >
+        {resource.data && resource.data.photos.length > 0 && (
+          <div className="console-photos">
+            {resource.data.photos.map((p) => (
+              <AuthPhoto
+                key={p.id}
+                photo={p}
+                size={layout === "review" ? 320 : 160}
+                alt={`${p.kind === "label" ? "Printed label" : "Item"} photo of ${itemName(offer)}`}
+              />
             ))}
-          <div>
-            <dt>Quantity</dt>
-            <dd>{formatCount(offer.quantity)}</dd>
           </div>
-          {offer.computed.expiry.bucket !== "not_applicable" && (
-            <>
+        )}
+        <section className="console-evidence-section">
+          <h2>Offered item</h2>
+          <dl className="console-evidence-facts">
+            <div>
+              <dt>Item name</dt>
+              <dd>{itemName(offer)}</dd>
+            </div>
+            {layout === "review" && (
               <div>
-                <dt>Printed date</dt>
-                <dd>
-                  {dateLabel(offer.facts_snapshot.expiry.expiry_date)}
-                  {offer.facts_snapshot.expiry.date_type &&
-                    ` (${enumLabel(offer.facts_snapshot.expiry.date_type)})`}
+                <dt>Selected category</dt>
+                <dd>{CATEGORY_LABELS[offer.category]}</dd>
+              </div>
+            )}
+            {offer.facts_snapshot.description && (
+              <div>
+                <dt>Description</dt>
+                <dd className="item-description">
+                  {offer.facts_snapshot.description}
                 </dd>
               </div>
-              <div>
-                <dt>Expiry priority</dt>
-                <dd>
-                  <ExpiryChip expiry={offer.computed.expiry} />
-                </dd>
-              </div>
-            </>
-          )}
-        </dl>
-      </section>
+            )}
+            {Object.entries(offer.facts_snapshot.attributes)
+              .filter(([, value]) => value !== null && value !== "")
+              .map(([key, value]) => (
+                <div key={key}>
+                  <dt>{factLabel(key)}</dt>
+                  <dd>
+                    {typeof value === "boolean"
+                      ? value
+                        ? "Yes"
+                        : "No"
+                      : typeof value === "string" &&
+                          categoryFields[offer.category][key]?.includes(value)
+                        ? enumLabel(value)
+                        : Array.isArray(value)
+                          ? value
+                              .map((part) => enumLabel(String(part)))
+                              .join(", ")
+                          : String(value)}
+                  </dd>
+                </div>
+              ))}
+            <div>
+              <dt>Quantity</dt>
+              <dd>{formatCount(offer.quantity)}</dd>
+            </div>
+            {offer.computed.expiry.bucket !== "not_applicable" && (
+              <>
+                <div>
+                  <dt>Printed date</dt>
+                  <dd>
+                    {dateLabel(offer.facts_snapshot.expiry.expiry_date)}
+                    {offer.facts_snapshot.expiry.date_type &&
+                      ` (${enumLabel(offer.facts_snapshot.expiry.date_type)})`}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Expiry priority</dt>
+                  <dd>
+                    <ExpiryChip expiry={offer.computed.expiry} />
+                  </dd>
+                </div>
+              </>
+            )}
+          </dl>
+        </section>
+      </div>
       {resource.data && (
         <>
-          {resource.data.category_mismatch && (
+          {layout !== "review" && resource.data.category_mismatch && (
             <p className="notice warning">
               The AI identified a different category from the one in this offer.
             </p>
@@ -266,150 +241,31 @@ export function Evidence({
                 </p>
               ))}
             {resource.data.analyses.map((a) => (
-              <section key={a.id}>
+              <section key={a.id} className="evidence-analysis">
                 <p className="console-meta">
-                  {CATEGORY_LABELS[a.category]},{" "}
-                  {PROVIDER_LABELS[a.provider] ?? a.provider}, category
+                  Suggested category: {CATEGORY_LABELS[a.category]} · Category
                   confidence {probabilityLabel(a.confidence)}
                 </p>
                 <DateCorrection analysis={a} offer={offer} />
-                <ul className="console-evidence-indicators">
-                  {rankIndicators(a.indicators).map((i, index) => (
-                    <li key={index}>
-                      <span>{indicatorLabel(i.key)}</span>
-                      <Chip variant={indicatorTone(i.key, i.level)}>
-                        {[
-                          i.value,
-                          i.probability == null
-                            ? null
-                            : probabilityLabel(i.probability),
-                          i.level ? `${enumLabel(i.level)} indicator` : null,
-                        ]
-                          .filter(Boolean)
-                          .join(", ") || "Not assessed"}
-                      </Chip>
-                    </li>
-                  ))}
-                </ul>
-                <details>
-                  <summary>Details read by the AI</summary>
-                  <p className="console-meta">Model: {a.model}</p>
-                  <SourceFacts category={a.category} facts={a.extracted} />
-                </details>
+                <AnalysisDetails
+                  analysis={a}
+                  dateRelevant={
+                    offer.computed.expiry.bucket !== "not_applicable" ||
+                    (offer.computed.expiry.required_date_checks?.length ?? 0) >
+                      0
+                  }
+                />
               </section>
             ))}
           </section>
           {resource.data.edits.length > 0 && (
-            <details>
-              <summary>Item changes before this offer</summary>
-              {resource.data.edits.map((e) => (
-                <section key={e.id}>
-                  <p>
-                    {enumLabel(e.change_kind)}, {instant(e.created_at)}
-                  </p>
-                  {Object.keys(e.before_snapshot).length > 0 && (
-                    <section>
-                      <h3>Before change</h3>
-                      <SourceFacts
-                        category={offer.category}
-                        facts={e.before_snapshot}
-                      />
-                    </section>
-                  )}
-                  <section>
-                    <h3>After change</h3>
-                    <SourceFacts
-                      category={offer.category}
-                      facts={e.after_snapshot}
-                    />
-                  </section>
-                  {e.from_state !== e.to_state && e.to_state && (
-                    <p>
-                      Item status:{" "}
-                      {e.from_state ? `${enumLabel(e.from_state)} to ` : ""}
-                      {enumLabel(e.to_state)}
-                    </p>
-                  )}
-                </section>
-              ))}
-            </details>
+            <ItemHistory
+              edits={resource.data.edits}
+              category={offer.category}
+            />
           )}
         </>
       )}
     </div>
-  );
-}
-
-function SourceFacts({
-  category,
-  facts,
-}: {
-  category: Category;
-  facts: Record<string, unknown>;
-}) {
-  const attributes = (facts.attributes ?? {}) as Record<string, unknown>;
-  const dates = (facts.dates ?? facts.expiry ?? {}) as Record<string, unknown>;
-  const sourceCategory =
-    typeof facts.category === "string" && facts.category in CATEGORY_LABELS
-      ? (facts.category as Category)
-      : category;
-  return (
-    <dl className="console-evidence-facts">
-      {["name", "description"].map((key) =>
-        typeof facts[key] === "string" && facts[key] ? (
-          <div key={key}>
-            <dt>{key === "name" ? "Item name" : "Description"}</dt>
-            <dd className="item-description">{String(facts[key])}</dd>
-          </div>
-        ) : null,
-      )}
-      {typeof facts.category === "string" && (
-        <div>
-          <dt>Category</dt>
-          <dd>{CATEGORY_LABELS[sourceCategory]}</dd>
-        </div>
-      )}
-      {Object.entries(attributes).map(([key, value]) => {
-        let display =
-          value == null || value === "" ? "Not provided" : String(value);
-        if (typeof value === "boolean") display = value ? "Yes" : "No";
-        else if (Array.isArray(value))
-          display = value.map(String).map(enumLabel).join(", ");
-        else if (
-          typeof value === "string" &&
-          categoryFields[sourceCategory][key]?.includes(value)
-        ) {
-          display = enumLabel(value);
-        }
-        return (
-          <div key={key}>
-            <dt>{factLabel(key)}</dt>
-            <dd>{display}</dd>
-          </div>
-        );
-      })}
-      {facts.quantity != null && (
-        <div>
-          <dt>Quantity</dt>
-          <dd>{formatCount(String(facts.quantity))}</dd>
-        </div>
-      )}
-      {Object.entries(dates).map(([key, value]) => {
-        let display =
-          value == null || value === "" ? "Not provided" : String(value);
-        if (typeof value === "string") {
-          if (["expiry_date", "opened_on"].includes(key))
-            display = dateLabel(value);
-          else if (["date_type", "date_precision", "readability"].includes(key))
-            display = enumLabel(value);
-        }
-        return (
-          <div key={key}>
-            <dt>{factLabel(key)}</dt>
-            <dd>{display}</dd>
-          </div>
-        );
-      })}
-    </dl>
   );
 }

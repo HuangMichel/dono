@@ -22,6 +22,12 @@ import { DemoWorkspace } from "./demo-workspace";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  HTMLDialogElement.prototype.showModal = function () {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.open = false;
+  };
   Object.assign(mock.auth, {
     sessionUser: null,
     user: null,
@@ -33,15 +39,32 @@ beforeEach(() => {
 });
 
 async function click(container: HTMLElement) {
-  await act(async () => container.querySelector("button")!.click());
+  if (!container.querySelector("dialog")?.open) {
+    await act(async () => container.querySelector("button")!.click());
+  }
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>("dialog button")!.click(),
+  );
 }
 
 it("opens the demo only after a click and loaded demo account access", async () => {
   const { container, rerender } = await render(<DemoWorkspace />);
+  expect(container.querySelector("button")?.textContent).toContain(
+    "Demo workspace",
+  );
+  expect(container.querySelector("dialog")?.open).toBe(false);
   expect(mock.auth.signIn).not.toHaveBeenCalled();
   expect(mock.push).not.toHaveBeenCalled();
-  await click(container);
-  expect(mock.auth.signIn).toHaveBeenCalledWith("demo@example.com", "demoabcde");
+  await act(async () => container.querySelector("button")!.click());
+  expect(container.querySelector("dialog")?.open).toBe(true);
+  expect(mock.auth.signIn).not.toHaveBeenCalled();
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>("dialog button")!.click(),
+  );
+  expect(mock.auth.signIn).toHaveBeenCalledWith(
+    "demo@example.com",
+    "demoabcde",
+  );
   expect(mock.push).not.toHaveBeenCalled();
   mock.auth.sessionUser = { email: "demo@example.com" };
   mock.auth.loading = true;
@@ -67,8 +90,8 @@ it("makes switching accounts explicit and does not enter the previous user's wor
   mock.auth.sessionUser = { email: "staff@example.com" };
   mock.auth.user = { email: "staff@example.com" };
   const { container } = await render(<DemoWorkspace />);
-  expect(container.querySelector("button")?.textContent).toContain(
-    "Switch to demo workspace",
+  expect(container.querySelector("dialog button")?.textContent).toContain(
+    "Switch to demo",
   );
   expect(container.textContent).toContain("switches your signed-in account");
   await click(container);
@@ -85,9 +108,10 @@ it("blocks repeated clicks during sign-in and while access is loading", async ()
       }),
   );
   const { container } = await render(<DemoWorkspace />);
+  await act(async () => container.querySelector("button")!.click());
   await act(async () => {
-    container.querySelector("button")!.click();
-    container.querySelector("button")!.click();
+    container.querySelector<HTMLButtonElement>("dialog button")!.click();
+    container.querySelector<HTMLButtonElement>("dialog button")!.click();
   });
   expect(mock.auth.signIn).toHaveBeenCalledOnce();
   expect(container.querySelector("button")!.disabled).toBe(true);
@@ -137,4 +161,17 @@ it("waits for initial account restoration before allowing a switch", async () =>
   await click(container);
   expect(container.querySelector("button")!.disabled).toBe(true);
   expect(mock.auth.signIn).not.toHaveBeenCalled();
+});
+
+it("cancels the disclosure without changing accounts", async () => {
+  const { container } = await render(<DemoWorkspace />);
+  await act(async () => container.querySelector("button")!.click());
+  expect(container.querySelector("dialog")!.open).toBe(true);
+  const cancel = [...container.querySelectorAll("dialog button")].find(
+    (button) => button.textContent === "Cancel",
+  ) as HTMLButtonElement;
+  await act(async () => cancel.click());
+  expect(container.querySelector("dialog")!.open).toBe(false);
+  expect(mock.auth.signIn).not.toHaveBeenCalled();
+  expect(mock.push).not.toHaveBeenCalled();
 });

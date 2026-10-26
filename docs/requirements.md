@@ -10,9 +10,9 @@ Read this document with the [feature specification and traceability matrix](feat
 |---|---|
 | [AGENTS.md](../AGENTS.md) | Authoritative product rules, security constraints, provider contract, priorities and verification gates. Overrides every other source. |
 | [README.md](../README.md) | Product problem, categories, users, journeys, proposed features and roadmap. |
-| [Architecture candidate](architecture/candidate.json) | Planned components, trust boundaries and responsibilities. |
+| [Architecture guide](architecture.md) | Components, trust boundaries, responsibilities, and limits of the historical diagrams. The original `architecture/candidate.json` source is absent from this checkout. |
 | [Rendered architecture](architecture/dono-architecture.html) | Planned donor/dashboard/platform → FastAPI → analysis, geocoding and Supabase flows. |
-| Architecture receipts in `docs/architecture/` | Existing generation/browser-check evidence for the diagram only; not evidence that the application exists or meets requirements. |
+| Historical architecture captures | Diagram previews only. Machine-readable validation receipts are absent from this checkout. Captures do not verify application behavior. |
 | Current domain review | Six structural corrections: reusable offers, independent budgets, finite reservations, separate lifecycles, secure memberships and delayed evidence/corrections. |
 | [Domain model](domain-model.md) | Working DEC defaults under AGENTS authority; backend evidence in readiness.md. |
 
@@ -58,7 +58,7 @@ Camera access requests video only. Closing the screen or reviewing a capture sto
 
 The user confirmed donor posting and association browsing only. Claiming is excluded. This replaces the earlier connected-frontend posting gap; historical demo notes below remain historical.
 
-- A donor explicitly chooses **Post offer** after a no-match search. Ordinary ready donations remain private. The posting form names the shared item photos, facts and town/postcode before submission.
+- A donor can explicitly post an item from the final donation step without searching for or selecting an association, including when matching associations exist. Selecting an association and sending an addressed offer remains optional. Ordinary ready donations remain private. The posting form names the shared item photos, facts and town/postcode before submission.
 - Posting is separate from `/publication`, which only makes an item ready for matching. Posting creates no addressed offer, staff decision, hold, booking, QR or stock movement.
 - The donor supplies a town or postcode. Municipality-only geocoding stores its centroid and locality. The association sees the locality and approximate straight-line distance from its configured site, never the donor identity, contact details, private address or coordinates.
 - Active staff of approved associations can browse by category and radius. The default radius is 25 km; the interface offers 5, 10, 25, 50 and 100 km. An association without coordinates must configure its site first.

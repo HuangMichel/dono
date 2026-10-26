@@ -1,109 +1,39 @@
 # Dono
 
-**Scan before you donate.** Dono helps individuals offer usable goods to associations that need them and have space. AI supplies indicators; association personnel make the donation decision.
+Dono helps donors offer usable goods to associations that need them and have space. AI extracts facts and supplies indicators. Association staff approve or refuse each offer.
 
-This repository includes a Next.js frontend connected to FastAPI, Supabase Auth/PostgreSQL and OpenAI Structured Outputs. Runtime demo records and simulated actions have been removed. Visitors browse nearby needs without an account. Donors sign up or sign in with email and password when they choose to offer an item; business records come from the API. See [setup](docs/setup.md) for local and Vercel configuration and [readiness](docs/readiness.md) for the remaining validation gates.
+The application uses a Next.js frontend, a FastAPI backend, and Supabase Auth and PostgreSQL. See [setup](docs/setup.md) for local and Vercel configuration. The [readiness report](docs/readiness.md) records completed checks and remaining integration work. Source implementation does not establish deployment readiness.
 
-## Product and scope
+## Donation workflow
 
-Associations spend time sorting unsuitable donations and managing limited storage. Dono supports a complete intake flow: validated donor photos + editable human facts → attributable AI evidence when available → deterministic matching → recipient offer → staff review → drop-off booking/QR → reception → stock/distribution. An item can be re-offered after refusal/cancellation/expiry; each attempt preserves its own history.
+1. Browse nearby association needs without an account.
+2. Sign up or sign in with email and password to offer an item.
+3. Upload photos, review the analysis indicators, and confirm or correct the item facts. Manual entry remains available when analysis fails.
+4. Find eligible associations and send an offer. Donors can also explicitly post an item for authenticated association browsing.
+5. After staff approval, book a drop-off appointment and retrieve its QR pass.
+6. Association staff record full-lot reception and distribution.
 
-The five categories are clothes, shoes, non-perishable room-temperature food, parapharmacy/hygiene and small furniture brought by the donor. Medicines cannot be donated; a high medicine indicator warns and points to a pharmacy. Chilled/frozen individual food is outside eligible scope.
+Each recipient offer has its own decision and history. An item can be offered again after refusal, cancellation, or expiry. Posting does not create an addressed offer, approval, reservation, or booking. Association claiming is outside the current contract.
 
-[AGENTS.md](AGENTS.md) is authoritative. Its rules apply to every specification and future implementation:
+The five categories are clothes, shoes, non-perishable food stored at room temperature, parapharmacy and hygiene products, and small furniture brought by the donor. Medicines cannot be donated. Chilled or frozen food from individuals is outside scope.
 
-- Only authorized association personnel approve or refuse a donation. AI returns extracted facts, indicators and confidence; its cards use indicator language.
-- Donor category/attribute corrections remain separate from immutable original AI extraction and indicators. Display their provenance and any category mismatch.
-- Code computes expiry, counts and distance. Days left, expired flags, buckets and FEFO are computed at read time and never stored.
-- Matching uses need, capacity, season and Haversine distance deterministically, without a model.
-- All donation status stays in the app. The MVP contains no transport, pickups, route optimization, donation notification emails or messaging channels. Supabase account confirmation emails are allowed when enabled.
+## Product rules
 
-| Actor | Responsibility |
-|---|---|
-| Donor | Own photos, working facts/category, matching, offer, status and booking/QR. |
-| Association admin | Own association configuration, review, reception and stock. |
-| Association staff | Review, reception and stock within active membership; admins alone configure intake/members. |
-| Platform admin | Manual association approval and constrained orphan-admin recovery; no general donation access or donation decisions. |
+[AGENTS.md](AGENTS.md) defines the binding rules and verification requirements.
 
-Roles can coexist through a protected platform capability and association memberships under the proposed schema. Email/password authentication and profile bootstrap, atomic applicant-admin activation, membership grants/transfer/revocation, last-admin protection and restricted recovery are defined in [domain-model.md](docs/domain-model.md).
+- Only authorized association staff approve or refuse donations. AI results use indicator language and show their provenance.
+- Donor corrections remain separate from original AI extraction and indicators.
+- Code computes expiry, counts, and distance. Derived expiry values are calculated at read time.
+- Matching uses need, capacity, season, and Haversine distance. It makes no model call.
+- Donation status stays in the app. The MVP has no transport, pickups, routing, messaging, or donation notification emails. Account confirmation emails are allowed.
 
-## MVP priorities
+The [domain model](docs/domain-model.md) defines roles, independent resource budgets, offer deadlines, booking, and recovery. The [requirements](docs/requirements.md) and [feature specification](docs/features.md) define scope and acceptance criteria.
 
-Required: auth/RLS and manual association approval; needs form and editable free-text parsing; independent storage/daily intake quotas/hours/slots; validated photos and five analysis schemas; indicators and corrections; deterministic matching and offers; human review; booking/QR reception; light inventory/distribution; basic image gallery, expiry buckets/counts and distribute-first list.
+## Run locally
 
-Optional work is removed in this exact order: **Jev → OpenAI/Jev comparison → expiry timeline → AI/human agreement metric**. None is included in the base effort allocation. Advanced impact/financial/weight reporting and average shelf-life metrics are proposed for post-MVP in FR-030; any request to restore a measured counter needs the scope decision in AMB-020. Automated registration verification, maps and partnerships are later candidates. External channels and logistics require a separately authorized future scope.
+Configure the environment and database prerequisites in [Development setup](docs/setup.md) first. Use Node.js 24 LTS and the pnpm version pinned in `frontend/package.json`.
 
-The [working defaults](docs/domain-model.md#working-defaults) separate need demand, storage places, daily intake quantities and appointment places. Review lasts 72 hours, approval allows 24 hours to book, and reception ends 30 minutes after a slot; expired/cancelled unreceived holds are released even without a scheduler. Four distinct lifecycles avoid permanently refusing the reusable item. Full lots only, one active offer and one site per association keep the MVP bounded.
-
-Human facts never depend on successful AI: valid manual facts/photos may proceed with explicit pending/unavailable evidence and staff review. Late results preserve originals and cannot overwrite corrections or a decision. Each association sees its own frozen offer evidence, not future corrections for another recipient. Analysis/indicator contracts and shelf-life boundaries/PAO/FEFO now have explicit [analysis-v1](docs/analysis-rules.md) and [expiry-v1](docs/expiry-rules.md) defaults with [rule test cases](docs/rules-test-cases.md). Approved upload limits and remaining retention/operational budget decisions are listed in the [handoff](docs/handoff.md).
-
-## Planned stack
-
-| Layer | Technology / responsibility |
-|---|---|
-| Web application | Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui; donor, association and approval views in one application. |
-| REST backend | FastAPI (Python), Pydantic schemas and routers under `/api/v1`; Python services for analysis, matching, expiry and transactions. |
-| Identity and data | Supabase Auth, Postgres with RLS; base64 photo content in a private table. No Supabase Storage. |
-| Analysis | OpenAI vision and structured outputs; free-text needs produce a staff-confirmed draft. |
-| Optional indicators | TypeSafe Jev / hybrid behind `ANALYSIS_PROVIDER`; Jev does no OCR/date/number extraction. |
-| Geocoding | Government BAN address data through IGN Géoplateforme, `https://data.geopf.fr/geocodage/`. Backend geocoding only; no routing service. |
-
-Backend dependencies are pinned in backend/pyproject.toml and backend/uv.lock with a 2026-10-18 release cutoff. Frontend dependencies are pinned in frontend/package.json and frontend/pnpm-lock.yaml. Check both manifests before adding dependencies; prefer releases at least seven days old.
-
-## Documentation
-
-| Document | Contents |
-|---|---|
-| [AGENTS.md](AGENTS.md) | Binding product/security rules, provider contract and delivery gates. |
-| [Requirements](docs/requirements.md) | Scope, actors, BR/FR/NFR IDs and open AMB decisions. |
-| [Domain model](docs/domain-model.md) | Corrected entities, independent budgets, lifecycles, working defaults and recovery. |
-| [Analysis rules](docs/analysis-rules.md) | Five closed extraction/indicator contracts, probabilities, uncertainty and immutable provenance. |
-| [Expiry rules](docs/expiry-rules.md) | Exclusive buckets, source dates/PAO, Python date checks and deterministic FEFO. |
-| [Rule test cases](docs/rules-test-cases.md) | Analysis/date/FEFO acceptance scenarios; backend evidence is in readiness. |
-| [Features and use cases](docs/features.md) | Acceptance criteria, traceability and illustrative 40-hour allocation. |
-| [Architecture](docs/architecture.md) | Components, interaction design and current Archify validation evidence. |
-| [Database design](docs/databases.md) | Columns, constraints, RLS, locks, accounting and working domain constraints. |
-| [REST API](docs/api.md) | Implemented FastAPI route contracts, DTOs, permissions, errors and examples. |
-| [Setup](docs/setup.md) | Backend setup, environment, executable checks and remaining Supabase deployment configuration. |
-| [Handoff and audit](docs/handoff.md) | Decisions, contradictions, assumptions, blockers, milestones and risks. |
-| [Readiness report](docs/readiness.md) | Actual backend checks, implementation invariants and pending release gates. |
-
-## Interactive diagrams
-
-Open the standalone HTML files in a browser. Sources and current receipts/captures are linked in [architecture.md](docs/architecture.md#interactive-diagrams).
-
-| Diagram | HTML | Editable source |
-|---|---|---|
-| System | [Architecture](docs/architecture/dono-architecture.html) | [JSON](docs/architecture/candidate.json) |
-| Actors / use cases | [Use cases](docs/architecture/use-cases.html) | [JSON](docs/architecture/use-cases.json) |
-| Donation creation | [Photo, analysis and corrections](docs/architecture/donation-creation.html) | [JSON](docs/architecture/donation-creation.json) |
-| Matching / review | [Matching and human decision](docs/architecture/matching-review.html) | [JSON](docs/architecture/matching-review.json) |
-| Booking / reception | [Booking and QR](docs/architecture/booking-reception.html) | [JSON](docs/architecture/booking-reception.json) |
-| Donation item | [Reusable item](docs/architecture/donation-lifecycle.html) | [JSON](docs/architecture/donation-lifecycle.json) |
-| Offer attempt | [Review, refusal and recovery](docs/architecture/offer-lifecycle.html) | [JSON](docs/architecture/offer-lifecycle.json) |
-| Booking | [Appointment states](docs/architecture/booking-lifecycle.html) | [JSON](docs/architecture/booking-lifecycle.json) |
-| Inventory | [Receipt and distribution](docs/architecture/inventory-lifecycle.html) | [JSON](docs/architecture/inventory-lifecycle.json) |
-| Database | [Full ERD](docs/architecture/database-erd.html) | [JSON](docs/architecture/database-erd.json) |
-
-The complete ERD uses a dense schema view; current validation/capture results and any layout advisories are recorded in architecture.md. Editable JSON sources and current evidence are preserved alongside HTML. The existing broad architecture JSON ignore rule remains; explicitly review source tracking before staging new diagram JSON. Historical captures do not prove revised artifacts.
-
-## Design choices clarified
-
-Closed vocabularies such as roles, unit, category and state use named PostgreSQL enums, with allowed values shown at each table column. Unit item, storage unit item_slot and calendar-season semantics form the proposed working MVP profile; new units require an explicit later design change. `attributes` holds validated item facts and need criteria, so it retains that name; technical provenance is separate. By the user's revised choice, Postgres stores base64 image text in private.photo_contents; donation_photos holds metadata/digests. Supabase Storage and bucket configuration are removed. Authenticated content routes decode and serve bytes; list DTOs contain no base64 payload. See the [database explanations](docs/databases.md).
-
-The API uses `/api/v1/account/profile` and `/api/v1/account/memberships` for the signed-in user. All business routes belong to FastAPI; Next.js renders the frontend.
-
-## Run the frontend
-
-```sh
-cd frontend
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-Open `http://127.0.0.1:3000`. Configure the public Supabase URL/key and FastAPI base URL first, then open `/needs` to browse without an account. Choose **Offer an item** to create an account or sign in with email and password. The app starts without seeded business records. See [frontend setup](frontend/README.md) and the [deployment commands](docs/setup.md#vercel) for Next.js and FastAPI as two Vercel projects, with Supabase for Auth and PostgreSQL.
-
-## Run the backend
+Start the backend from the repository root:
 
 ```sh
 cd backend
@@ -111,13 +41,39 @@ uv sync --locked
 uv run uvicorn app.main:app --reload
 ```
 
-Configure the backend-only values described in [setup](docs/setup.md). The interactive API reference is served at `/docs`, with OpenAPI at `/openapi.json`. Protected operations require a Supabase bearer token; missing provider credentials produce explicit unavailable errors, with manual donation entry preserved. No development auth bypass is installed.
+In a separate terminal, start the frontend from the repository root:
 
 ```sh
-# From backend/
+cd frontend
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open [the application](http://127.0.0.1:3000) or [the API reference](http://127.0.0.1:8000/docs). Protected API operations require a Supabase user access token. See [frontend setup](frontend/README.md) for public configuration and browser workflows.
+
+## Checks
+
+Run frontend checks from `frontend/`:
+
+```sh
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Run backend checks from `backend/`:
+
+```sh
 uv run ruff check .
 uv run mypy app
 uv run pytest
 ```
 
-The [handoff](docs/handoff.md) records decisions, implementation boundaries and the next verification work. Existing [interactive diagrams](docs/architecture.md#interactive-diagrams) are preserved; their artifact validation is separate from backend test evidence.
+These commands do not replace hosted Auth, database, photo-analysis, or complete donor-to-staff acceptance checks. See [readiness](docs/readiness.md) for the recorded evidence and limits.
+
+## Documentation
+
+The [documentation index](docs/README.md) links to setup, product rules, API and database contracts, design references, test plans, and historical reports.
+
+The [architecture guide](docs/architecture.md#interactive-diagrams) links to ten standalone diagrams. Some exports retain historical labels. Their editable JSON sources and machine-readable validation receipts are absent from this checkout.

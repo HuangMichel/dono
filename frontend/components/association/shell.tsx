@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   createContext,
+  Fragment,
   useContext,
   useEffect,
   useState,
@@ -49,6 +50,7 @@ export function ConsoleShell({
   const path = usePathname();
   const [selected, setSelected] = useState("");
   const [menu, setMenu] = useState(false);
+  const [navHidden, setNavHidden] = useState(false);
   const { notify } = useNotifications();
   const memberships = auth.memberships.filter((m) => m.active);
   const membership =
@@ -131,13 +133,24 @@ export function ConsoleShell({
     );
   const content = <>{children}</>;
   return (
-    <div className="console">
+    <div className={`console${navHidden ? " is-nav-hidden" : ""}`}>
       <header className="console-header">
         <div className="console-header-start">
           <Button
             variant="soft"
+            className="console-sidebar-toggle"
+            aria-label={navHidden ? "Show sidebar" : "Hide sidebar"}
+            title={navHidden ? "Show sidebar" : "Hide sidebar"}
+            aria-expanded={!navHidden}
+            aria-controls="console-sidebar"
+            onClick={() => setNavHidden(!navHidden)}
+          >
+            <Icon name={navHidden ? "chevron-right" : "chevron-left"} />
+          </Button>
+          <Button
+            variant="soft"
             className="console-menu-toggle"
-            aria-label="Toggle navigation"
+            aria-label={menu ? "Hide navigation" : "Show navigation"}
             aria-expanded={menu}
             aria-controls="console-sidebar"
             onClick={() => setMenu(!menu)}
@@ -152,9 +165,6 @@ export function ConsoleShell({
           </span>
         </div>
         <div className="console-header-end">
-          <span className="console-meta">
-            {auth.profile?.display_name ?? auth.user.email ?? "Your account"}
-          </span>
           <Button
             variant="soft"
             onClick={() => {
@@ -177,6 +187,17 @@ export function ConsoleShell({
         id="console-sidebar"
         className={`console-sidebar ${menu ? "is-open" : ""}`}
       >
+        {!admin && memberships.length === 1 && (
+          <div className="console-workspace-label">
+            <span className="console-meta">Association</span>
+            <strong>{resource.data?.name}</strong>
+            {resource.data?.display_address && (
+              <span className="console-meta">
+                {resource.data.display_address}
+              </span>
+            )}
+          </div>
+        )}
         {!admin && memberships.length > 1 && (
           <SelectField
             label="Association"
@@ -195,22 +216,45 @@ export function ConsoleShell({
         >
           {(admin ? [["", "Approvals", "review"]] : routes).map(
             ([route, label, icon]) => (
-              <Link
-                key={route}
-                href={admin ? "/admin" : `/association${route}`}
-                aria-current={
-                  path === (admin ? "/admin" : `/association${route}`)
-                    ? "page"
-                    : undefined
-                }
-                onClick={() => setMenu(false)}
-              >
-                <Icon name={icon} />
-                <span className="console-nav-text">{label}</span>
-              </Link>
+              <Fragment key={route}>
+                {!admin && route === "/capacity" && (
+                  <p className="console-nav-group">Configuration</p>
+                )}
+                <Link
+                  href={admin ? "/admin" : `/association${route}`}
+                  aria-current={
+                    path === (admin ? "/admin" : `/association${route}`)
+                      ? "page"
+                      : undefined
+                  }
+                  onClick={() => setMenu(false)}
+                >
+                  <Icon name={icon} />
+                  <span className="console-nav-text">{label}</span>
+                </Link>
+              </Fragment>
             ),
           )}
         </nav>
+        <div className="console-sidebar-account">
+          <span className="console-sidebar-avatar" aria-hidden="true">
+            {(auth.profile?.display_name ?? auth.user.email ?? "A")
+              .slice(0, 1)
+              .toUpperCase()}
+          </span>
+          <div>
+            <span>
+              {auth.profile?.display_name ?? auth.user.email ?? "Your account"}
+            </span>
+            <span className="console-meta">
+              {admin
+                ? "Platform administrator"
+                : membership?.role === "assoc_admin"
+                  ? "Association administrator"
+                  : "Association staff"}
+            </span>
+          </div>
+        </div>
       </aside>
       <main id="main" className="console-main">
         {admin ? (

@@ -142,7 +142,7 @@ ul {
 .button-soft {
   background: var(--component);
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .button-primary:not(:disabled):hover {
     background: var(--primary-hover);
   }
@@ -153,6 +153,29 @@ ul {
 .button-danger {
   background: var(--danger);
   color: var(--on-primary);
+}
+.button:not(:disabled):not([aria-disabled="true"]):active {
+  background: var(--border);
+  transition: none;
+}
+.button-primary:not(:disabled):not([aria-disabled="true"]):active {
+  background: var(--primary-hover);
+}
+.button-danger:not(:disabled):not([aria-disabled="true"]):active {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+.button-warning:not(:disabled):not([aria-disabled="true"]):active {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+.button-caution:not(:disabled):not([aria-disabled="true"]):active {
+  background: var(--caution-bg);
+  color: var(--caution-text);
+}
+button:focus-visible,
+a:focus-visible {
+  transition: none;
 }
 .button.full {
   width: 100%;
@@ -542,12 +565,16 @@ textarea.field {
 .demo-workspace-entry .button {
   white-space: nowrap;
 }
-.demo-workspace-error {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  width: min(320px, 80vw);
-  z-index: 10;
+.demo-workspace-dialog h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  line-height: 28px;
+}
+.demo-workspace-dialog p + p {
+  margin-top: 12px;
+}
+.demo-workspace-actions {
+  margin-top: 24px;
 }
 @media (max-width: 767px) {
   .public-header.landing-header {
@@ -688,22 +715,14 @@ textarea.field {
   gap: 12px 32px;
   margin: 0;
   padding: 0;
+  list-style: none;
 }
 .impact-chain li {
   position: relative;
   display: grid;
-  grid-row: span 4;
+  grid-row: span 3;
   grid-template-rows: subgrid;
   row-gap: 12px;
-}
-.impact-chain li:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: 13.75px;
-  left: 36px;
-  right: -24px;
-  height: 0.5px;
-  background: var(--border);
 }
 .impact-chain h3 {
   font-size: 16px;
@@ -748,6 +767,11 @@ textarea.field {
 }
 .category-strip p {
   margin-top: 12px;
+}
+.category-strip h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 24px;
 }
 .segmented {
   display: flex;
@@ -1419,8 +1443,8 @@ textarea.field {
     padding: 32px 20px;
   }
   .hero h1 {
-    font-size: 44px;
-    line-height: 48px;
+    font-size: 32px;
+    line-height: 36px;
   }
   .process {
     grid-template-columns: 1fr 1fr;
@@ -1432,40 +1456,25 @@ textarea.field {
   }
   .impact-chain {
     grid-template-columns: 1fr;
-    gap: 0;
+    gap: 32px;
   }
   .impact-chain li {
     display: flex;
     flex-direction: column;
     gap: 12px;
     grid-row: auto;
-    padding: 0 0 28px 40px;
-  }
-  .impact-chain li:last-child {
-    padding-bottom: 0;
-  }
-  .impact-chain .step-number {
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-  .impact-chain li:not(:last-child)::after {
-    top: 28px;
-    bottom: 0;
-    left: 13.75px;
-    right: auto;
-    width: 0.5px;
-    height: auto;
+    padding: 0;
   }
   .public-header {
     padding: 16px 20px;
     gap: 16px;
     min-height: 56px;
     align-items: center;
+    flex-wrap: wrap;
   }
   .public-header nav {
     justify-content: flex-end;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 12px;
   }
   .public-header nav > .button {
@@ -2000,14 +2009,12 @@ textarea.field {
   gap: 12px;
 }
 .hero-example-photo {
-  display: grid;
-  place-items: center;
   flex: none;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 80px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
   background: var(--component);
-  color: var(--muted);
 }
 /* Preserve donor-authored paragraphs while containing long item text. */
 .item-description {

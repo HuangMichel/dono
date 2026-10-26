@@ -29,8 +29,7 @@ export default function Approvals() {
     `/admin/associations?approval_status=${status}&limit=100`,
   );
   const command = useCommand();
-  const association =
-    resource.data.find((a) => a.id === selected) ?? resource.data[0] ?? null;
+  const association = resource.data.find((a) => a.id === selected) ?? null;
   const statusFilters = (
     <div className="segmented" role="group" aria-label="Approval status">
       {[
@@ -71,6 +70,7 @@ export default function Approvals() {
             }
             filters={statusFilters}
             emptyMessage="No associations in this view."
+            clearSelectionOnSearch
             selectedRowId={selected}
             onSelectionChange={setSelected}
             columns={[

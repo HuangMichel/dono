@@ -1,4 +1,5 @@
 import { PublicShell } from "@/components/public-shell";
+import Image from "next/image";
 import { Chip, Icon, LinkButton } from "@/components/ui";
 import { IndicatorRow } from "@/components/donor/indicator-row";
 const impact = [
@@ -33,7 +34,7 @@ export default function Home() {
       <main id="main">
         <div className="landing-split">
           <section className="hero">
-            <h1>Give what associations actually need.</h1>
+            <h1>Give where it is needed.</h1>
             <p>
               Find what nearby associations need, prepare your item and send an
               offer for staff to review.
@@ -46,19 +47,23 @@ export default function Home() {
             </p>
             <figure className="hero-example">
               <figcaption className="sr-only">
-                Example: photos of a coat show visible stains as likely, 61%,
-                and a medicine as unlikely, 2%. The offer then waits for
-                association staff to review it.
+                Illustrative example: a child&apos;s coat shows visible stains
+                as likely, 61%, and visible holes as unlikely, 2%. The offer
+                then waits for association staff to review it.
               </figcaption>
               <div className="hero-example-card" aria-hidden="true">
-                <div className="row between">
-                  <Chip>Example</Chip>
+                <div className="row between wrap">
+                  <Chip>Illustrative example</Chip>
                   <Chip variant="caution">Waiting for review</Chip>
                 </div>
                 <div className="hero-example-item">
-                  <span className="hero-example-photo">
-                    <Icon name="package" size={24} />
-                  </span>
+                  <Image
+                    className="hero-example-photo"
+                    src="/images/example-coat.png"
+                    alt=""
+                    width={80}
+                    height={96}
+                  />
                   <span>
                     <strong>Coat, 8 years</strong>
                     <span className="meta muted block">
@@ -75,7 +80,7 @@ export default function Home() {
                 />
                 <IndicatorRow
                   indicator={{
-                    key: "looks_like_medicine",
+                    key: "holes_visible",
                     probability: 0.02,
                     level: "low",
                   }}
@@ -115,10 +120,9 @@ export default function Home() {
         </div>
         <section className="impact" aria-labelledby="impact-title">
           <h2 id="impact-title">Why it matters</h2>
-          <ol className="impact-chain">
-            {impact.map((item, i) => (
+          <ul className="impact-chain" role="list">
+            {impact.map((item) => (
               <li key={item.step}>
-                <span className="step-number">{i + 1}</span>
                 <h3>{item.step}</h3>
                 <p>{item.dono}</p>
                 <figure className="impact-evidence">
@@ -131,11 +135,11 @@ export default function Home() {
                 </figure>
               </li>
             ))}
-          </ol>
+          </ul>
         </section>
-        <section className="category-strip">
+        <section className="category-strip" aria-labelledby="categories-title">
+          <h2 id="categories-title">Donation categories</h2>
           <div className="row wrap">
-            <span className="muted">Donation categories</span>
             {[
               "Clothes",
               "Shoes",

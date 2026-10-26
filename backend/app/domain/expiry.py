@@ -4,7 +4,7 @@ import re
 from calendar import monthrange
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 from app.domain.errors import DomainError
@@ -31,6 +31,15 @@ BUCKETS: tuple[Bucket, ...] = (
     "unknown",
     "not_applicable",
 )
+
+
+def has_strict_date_evidence(extracted: dict[str, Any]) -> bool:
+    """Missing analysis dates carry no strict evidence; current facts still apply."""
+    dates = extracted.get("dates") or {}
+    return (
+        dates.get("date_type") in ("DLC", "expiry", "PAO")
+        or dates.get("pao_months") is not None
+    )
 
 
 @dataclass(frozen=True, slots=True)

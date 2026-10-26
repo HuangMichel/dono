@@ -6,6 +6,7 @@ import type {
   Photo,
   Indicator,
   ExpiryBucket,
+  Offer,
 } from "@/lib/api-contracts";
 import { Button, Chip, SelectField } from "@/components/ui";
 import {
@@ -19,6 +20,7 @@ import {
   itemName,
   probabilityLabel,
   instant,
+  Evidence,
 } from "@/components/association/evidence";
 import { ExpiryChip, expiryLabel } from "@/components/association/status";
 import { indicatorLabel, indicatorTone, formatCount } from "@/lib/ui-text";
@@ -59,7 +61,11 @@ export default function Images() {
         detail="Photos of received donations still in stock."
       />
       <div className="row wrap">
-        <div className="segmented" role="group" aria-label="Category">
+        <div
+          className="segmented images-category-filter"
+          role="group"
+          aria-label="Category"
+        >
           <Button
             type="button"
             variant="soft"
@@ -161,6 +167,7 @@ export default function Images() {
                     <p className="meta muted">
                       Received {instant(row.lot.receipt.created_at)}
                     </p>
+                    <GalleryEvidence offer={row.lot.offer} />
                   </figcaption>
                 </figure>
               );
@@ -207,5 +214,18 @@ export default function Images() {
         </aside>
       </div>
     </>
+  );
+}
+
+function GalleryEvidence({ offer }: { offer: Offer }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details
+      className="images-evidence"
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary>View item evidence</summary>
+      {open && <Evidence offer={offer} />}
+    </details>
   );
 }

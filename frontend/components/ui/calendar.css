@@ -43,8 +43,10 @@
   gap: 4px;
   font-variant-numeric: tabular-nums;
 }
-.shared-calendar-day:hover {
-  background: var(--subtle);
+@media (hover: hover) and (pointer: fine) {
+  .shared-calendar-day:hover {
+    background: var(--subtle);
+  }
 }
 .shared-calendar-day[aria-current="date"] > span:first-child {
   font-weight: 600;

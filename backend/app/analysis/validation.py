@@ -2,7 +2,11 @@
 
 import re
 from datetime import date
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from pydantic import ValidationError
+
+from app.analysis.schemas.models import Extracted
 
 if TYPE_CHECKING:
     from app.analysis.schemas.models import Category, WireAnalysis
@@ -38,6 +42,32 @@ def evidence_conflict(result: "WireAnalysis") -> bool:
     )
     return (attributes.get("pair_complete") is True and opposite) or " | " in (
         result.extracted.dates.raw_label or ""
+    )
+
+
+def extraction_is_complete(extracted: object) -> bool:
+    """Read legacy evidence without inventing missing model output."""
+    try:
+        Extracted.model_validate(extracted)
+    except ValidationError:
+        return False
+    return True
+
+
+def stored_evidence_conflict(
+    extracted: dict[str, Any], indicators: list[dict[str, Any]]
+) -> bool:
+    """Keep conflicts detectable even when other extraction fields are absent."""
+    attributes = extracted.get("attributes") or {}
+    dates = extracted.get("dates") or {}
+    opposite = any(
+        i["key"] == "pair_incomplete"
+        and i.get("probability") is not None
+        and i["probability"] >= 0.8
+        for i in indicators
+    )
+    return (attributes.get("pair_complete") is True and opposite) or " | " in (
+        dates.get("raw_label") or ""
     )
 
 

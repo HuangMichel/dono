@@ -1,23 +1,23 @@
 # Dono architecture
 
-Status: **corrected design specification, not a running application**. [AGENTS.md](../AGENTS.md) retains authority. The [domain model](domain-model.md) defines the working DEC profile used by [requirements](requirements.md), [features/use cases](features.md), [database/RLS](databases.md) and the [FastAPI contract](api.md). The six domain review findings are addressed structurally; [handoff](handoff.md) records remaining product decisions.
+This document describes the system design. The frontend and backend are implemented in this checkout; [readiness](readiness.md) records verification and deployment limits. [AGENTS.md](../AGENTS.md) retains authority. The [domain model](domain-model.md) defines the working DEC profile used by [requirements](requirements.md), [features/use cases](features.md), [database/RLS](databases.md) and the [FastAPI contract](api.md). The six domain review findings are addressed structurally; [handoff](handoff.md) records remaining product decisions.
 
 ## Interactive diagrams
 
-Each standalone HTML has themes, focus/search and export controls. JSON is the editable native source. Diagram labels are English and visually follow the existing Archify example. Ten diagrams separate the four aggregates instead of presenting one combined donation/offer/booking/stock status.
+Each standalone HTML has themes, focus/search and export controls. The original editable JSON sources are absent from this checkout. Diagram labels are English and visually follow the existing Archify example. Ten diagrams separate the four aggregates instead of presenting one combined donation/offer/booking/stock status.
 
 | Diagram | Interactive HTML | Source | Trace |
 |---|---|---|---|
-| System | [System architecture](architecture/dono-architecture.html) | [candidate.json](architecture/candidate.json) | BR-001–BR-006; NFR-001/002 |
-| Actors and boundary | [UML-style use cases](architecture/use-cases.html) | [use-cases.json](architecture/use-cases.json) | UC-001–UC-012, UC-015/016; optional UC-013/014 in notes |
-| Creation and delayed evidence | [Photo / human facts / AI](architecture/donation-creation.html) | [donation-creation.json](architecture/donation-creation.json) | FR-007–FR-011, FR-038; UC-003–UC-005 |
-| Match and human decision | [Matching / review](architecture/matching-review.html) | [matching-review.json](architecture/matching-review.json) | FR-013–FR-017, FR-033/034; UC-006–UC-008 |
-| Booking, QR and recovery | [Booking / reception](architecture/booking-reception.html) | [booking-reception.json](architecture/booking-reception.json) | FR-023/024/035/036; UC-010/011/015 |
-| Reusable item | [Donation lifecycle](architecture/donation-lifecycle.html) | [donation-lifecycle.json](architecture/donation-lifecycle.json) | FR-033/036; UC-007/015 |
-| Recipient attempt | [Offer lifecycle](architecture/offer-lifecycle.html) | [offer-lifecycle.json](architecture/offer-lifecycle.json) | FR-017/033/035/036; UC-008/015 |
-| Appointment | [Booking lifecycle](architecture/booking-lifecycle.html) | [booking-lifecycle.json](architecture/booking-lifecycle.json) | FR-023/024/035/036; UC-010/011/015 |
-| Physical stock | [Inventory lifecycle](architecture/inventory-lifecycle.html) | [inventory-lifecycle.json](architecture/inventory-lifecycle.json) | FR-022/034/036; UC-011/012 |
-| Relational data | [Full database ERD](architecture/database-erd.html) | [database-erd.json](architecture/database-erd.json) | All 21 application tables; FR-033–FR-038; NFR-001/004/005 |
+| System | [System architecture](architecture/dono-architecture.html) | `candidate.json` (unavailable) | BR-001–BR-006; NFR-001/002 |
+| Actors and boundary | [UML-style use cases](architecture/use-cases.html) | `use-cases.json` (unavailable) | UC-001–UC-012, UC-015/016; optional UC-013/014 in notes |
+| Creation and delayed evidence | [Photo / human facts / AI](architecture/donation-creation.html) | `donation-creation.json` (unavailable) | FR-007–FR-011, FR-038; UC-003–UC-005 |
+| Match and human decision | [Matching / review](architecture/matching-review.html) | `matching-review.json` (unavailable) | FR-013–FR-017, FR-033/034; UC-006–UC-008 |
+| Booking, QR and recovery | [Booking / reception](architecture/booking-reception.html) | `booking-reception.json` (unavailable) | FR-023/024/035/036; UC-010/011/015 |
+| Reusable item | [Donation lifecycle](architecture/donation-lifecycle.html) | `donation-lifecycle.json` (unavailable) | FR-033/036; UC-007/015 |
+| Recipient attempt | [Offer lifecycle](architecture/offer-lifecycle.html) | `offer-lifecycle.json` (unavailable) | FR-017/033/035/036; UC-008/015 |
+| Appointment | [Booking lifecycle](architecture/booking-lifecycle.html) | `booking-lifecycle.json` (unavailable) | FR-023/024/035/036; UC-010/011/015 |
+| Physical stock | [Inventory lifecycle](architecture/inventory-lifecycle.html) | `inventory-lifecycle.json` (unavailable) | FR-022/034/036; UC-011/012 |
+| Relational data | [Full database ERD](architecture/database-erd.html) | `database-erd.json` (unavailable) | All 21 application tables; FR-033–FR-038; NFR-001/004/005 |
 
 Use-case boxes are UML-style responsibilities inside a system boundary, not native UML ellipses or deployable services. Repeated actor appearances denote the same role. Sequences show alternatives explicitly: cancellation/no-show is an alternative **before** reception, never a later cancellation of received stock. Lifecycle diagrams use native Archify v3 states; inventory states are derived labels, not a stored enum/table column.
 
@@ -29,7 +29,7 @@ Next.js renders donor, association and platform views, establishes Supabase sess
 
 Supabase Auth uses email/password signup and sign-in. Account confirmation is optional in hosted settings; donation notification emails and invitations remain outside scope. Postgres owns typed source data, history, scoped RLS and concurrency constraints. Postgres persists validated image base64 in private.photo_contents and immutable metadata/digests in donation_photos, atomically. There is no Supabase Storage service or bucket. The two database nodes in the system diagram show logical data groups in the same Postgres database. Photo content is fetched through an authenticated endpoint with fresh owner/offer-evidence scope checks, decoded to binary, and verified against size/digest. Lists never join private payloads. BAN address search uses IGN Géoplateforme, https://data.geopf.fr/geocodage/; Haversine calculation remains Python code. Jev probabilities are optional and never replace OpenAI extraction.
 
-Ordinary database reads carry the user JWT and RLS. Business commands use restricted server-only capabilities with current actor/tenant/state checks inside the transaction. Merely using a service credential does not enforce permissions. RLS helper recursion, grants, fixed search paths and exposure of command wrappers are specified in [databases.md](databases.md#rls-grants-and-write-capabilities). No runtime permission has been verified because no policies/code exist yet.
+Ordinary database reads carry the user JWT and RLS. Business commands use restricted server-only capabilities with current actor/tenant/state checks inside the transaction. Merely using a service credential does not enforce permissions. RLS helper recursion, grants, fixed search paths and exposure of command wrappers are specified in [databases.md](databases.md#rls-grants-and-write-capabilities). Policies and guarded commands exist in [the migrations](../supabase/migrations/). See [readiness](readiness.md) for database checks and remaining hosted permission checks.
 
 ## Domain ownership and history
 
@@ -67,36 +67,32 @@ Only active association admins configure intake/members; admin/staff both review
 
 Store source expiry_date/date_type/pao_months, raw label/precision/readability and optional human opened_on. Python computes effective PAO date, days left, expired, buckets and FEFO at read time from current owner or frozen offered facts. No derivatives in database rows, audit snapshots or retry responses. [Expiry-v1](expiry-rules.md) fixes exclusive boundaries (including today/exactly 90), partial/ambiguous dates, calendar PAO, DLC/DDM checks and total FEFO order. [Analysis-v1](analysis-rules.md) fixes all five category contracts and uncertainty semantics. These policies are separate from operational lease defaults.
 
-Basic gallery/counts/FEFO use received undistributed lots only. Review offers remain separate. Reuse one item/evidence view and simple forms/lists; all five category schemas remain required. Cut Jev → comparison → timeline → agreement if needed. Never cut indicators, expiry buckets/distribute-first, review queue, QR reception or auth/RLS. No transport, routing, email or messaging paths exist.
+Basic gallery/counts/FEFO use received undistributed lots only. Review offers remain separate. Reuse one item/evidence view and simple forms/lists; all five category schemas remain required. Cut Jev → comparison → timeline → agreement if needed. Never cut indicators, expiry buckets/distribute-first, review queue, QR reception or auth/RLS. Transport, routing, donation notification emails, and messaging are outside scope. Account confirmation emails are allowed.
 
 ## Validation evidence
 
-The [current rules audit](architecture/validation/rules-consistency.json) records cross-document counts and unchanged current diagram hashes. The [base64 audit](architecture/validation/base64-consistency.json) retains the preceding diagram-delivery context.
+Earlier delivery notes reported successful Archify and browser checks for ten diagrams. The machine-readable validation receipts and editable JSON sources are absent from this checkout, so those results cannot be verified from the available files.
 
-All **ten current diagrams pass** Archify validation, delivery, strict artifact checks and real Chrome browser checks. Each passing receipt includes all nine artifact checks; sources, current HTML/delivery pairs and current finalize/browser evidence are byte-bound. There is no claim that these gates execute RLS, API behavior or capacity transactions.
+The retained capture pages are historical evidence for their original diagram versions:
 
-| Diagram | Current automated receipt | Current browser proof | Current capture evidence | Structural errors / composition warnings |
-|---|---|---|---|---|
-| dono-architecture | [Finalize](architecture/validation/base64-v1/dono-architecture.finalize-summary.json) · [full](architecture/validation/base64-v1/dono-architecture.finalize.json) | [Browser](architecture/validation/base64-v1/dono-architecture.browser-check.json) | [Captures](architecture/validation/base64-visual/dono-architecture.visual-check.html) · [receipt](architecture/validation/base64-visual/dono-architecture.visual-check.json) | 0 / 0 |
-| use-cases | [Finalize](architecture/validation/base64-v1/use-cases.finalize-summary.json) · [full](architecture/validation/base64-v1/use-cases.finalize.json) | [Browser](architecture/validation/base64-v1/use-cases.browser-check.json) | [Captures](architecture/validation/base64-visual/use-cases.visual-check.html) · [receipt](architecture/validation/base64-visual/use-cases.visual-check.json) | 0 / 0 |
-| donation-creation | [Finalize](architecture/validation/base64-v1/donation-creation.finalize-summary.json) · [full](architecture/validation/base64-v1/donation-creation.finalize.json) | [Browser](architecture/validation/base64-v1/donation-creation.browser-check.json) | [Captures](architecture/validation/base64-visual/donation-creation.visual-check.html) · [receipt](architecture/validation/base64-visual/donation-creation.visual-check.json) | 0 / 0 |
-| matching-review | [Finalize](architecture/validation/domain-v1/matching-review.finalize-summary.json) · [full](architecture/validation/domain-v1/matching-review.finalize.json) | [Browser](architecture/validation/domain-v1/matching-review.browser-check.json) | [Captures](architecture/validation/domain-visual/matching-review.visual-check.html) · [receipt](architecture/validation/domain-visual/matching-review.visual-check.json) | 0 / 0 |
-| booking-reception | [Finalize](architecture/validation/domain-v1/booking-reception.finalize-summary.json) · [full](architecture/validation/domain-v1/booking-reception.finalize.json) | [Browser](architecture/validation/domain-v1/booking-reception.browser-check.json) | [Captures](architecture/validation/domain-visual/booking-reception.visual-check.html) · [receipt](architecture/validation/domain-visual/booking-reception.visual-check.json) | 0 / 0 |
-| donation-lifecycle | [Finalize](architecture/validation/domain-v1/donation-lifecycle.finalize-summary.json) · [full](architecture/validation/domain-v1/donation-lifecycle.finalize.json) | [Browser](architecture/validation/domain-v1/donation-lifecycle.browser-check.json) | [Captures](architecture/validation/domain-visual/donation-lifecycle.visual-check.html) · [receipt](architecture/validation/domain-visual/donation-lifecycle.visual-check.json) | 0 / 0 |
-| offer-lifecycle | [Finalize](architecture/validation/domain-v1/offer-lifecycle.finalize-summary.json) · [full](architecture/validation/domain-v1/offer-lifecycle.finalize.json) | [Browser](architecture/validation/domain-v1/offer-lifecycle.browser-check.json) | [Captures](architecture/validation/domain-visual/offer-lifecycle.visual-check.html) · [receipt](architecture/validation/domain-visual/offer-lifecycle.visual-check.json) | 0 / 0 |
-| booking-lifecycle | [Finalize](architecture/validation/domain-v1/booking-lifecycle.finalize-summary.json) · [full](architecture/validation/domain-v1/booking-lifecycle.finalize.json) | [Browser](architecture/validation/domain-v1/booking-lifecycle.browser-check.json) | [Captures](architecture/validation/domain-visual/booking-lifecycle.visual-check.html) · [receipt](architecture/validation/domain-visual/booking-lifecycle.visual-check.json) | 0 / 0 |
-| inventory-lifecycle | [Finalize](architecture/validation/domain-v1/inventory-lifecycle.finalize-summary.json) · [full](architecture/validation/domain-v1/inventory-lifecycle.finalize.json) | [Browser](architecture/validation/domain-v1/inventory-lifecycle.browser-check.json) | [Captures](architecture/validation/domain-visual/inventory-lifecycle.visual-check.html) · [receipt](architecture/validation/domain-visual/inventory-lifecycle.visual-check.json) | 0 / 0 |
-| database-erd | [Finalize](architecture/validation/base64-v1/database-erd.finalize-summary.json) · [full](architecture/validation/base64-v1/database-erd.finalize.json) | [Browser](architecture/validation/base64-v1/database-erd.browser-check.json) | [Captures](architecture/validation/base64-visual/database-erd.visual-check.html) · [receipt](architecture/validation/base64-visual/database-erd.visual-check.json) | 0 / 61 |
+| Diagram | Capture page |
+|---|---|
+| System | [Captures](architecture/validation/base64-visual/dono-architecture.visual-check.html) |
+| Use cases | [Captures](architecture/validation/base64-visual/use-cases.visual-check.html) |
+| Donation creation | [Captures](architecture/validation/base64-visual/donation-creation.visual-check.html) |
+| Matching and review | [Captures](architecture/validation/domain-visual/matching-review.visual-check.html) |
+| Booking and reception | [Captures](architecture/validation/domain-visual/booking-reception.visual-check.html) |
+| Donation lifecycle | [Captures](architecture/validation/domain-visual/donation-lifecycle.visual-check.html) |
+| Offer lifecycle | [Captures](architecture/validation/domain-visual/offer-lifecycle.visual-check.html) |
+| Booking lifecycle | [Captures](architecture/validation/domain-visual/booking-lifecycle.visual-check.html) |
+| Inventory lifecycle | [Captures](architecture/validation/domain-visual/inventory-lifecycle.visual-check.html) |
+| Database ERD | [Captures](architecture/validation/base64-visual/database-erd.visual-check.html) |
 
-Nine diagrams use showcase with zero composition warnings. The complete standard-quality ERD retains **61 composition warnings: 60 relationship crossings and one static desktop-readability warning**, with zero structural/edge-through-node errors and passing browser readability/containment. It includes every application column/key/FK role plus the managed Auth stub; no fields/relations were removed to conceal density. Four domain columns, focus views, search and vertical page scrolling support inspection. The dictionary supplies enum labels and composite/conditional constraints that individual FK edges cannot fully express.
-
-Advisories remain: one routed detour in the system and use-case diagrams; one automatically routed crossover in the offer lifecycle; and ERD detours. They are preserved and visible, not erased by removing behavior. Current captures were inspected for all ten diagrams (a selected 1440 desktop image per diagram; ERD at 2048), checking readable labels, state separation and relationship routes. Both themes at 1440 and 2048 were captured automatically; not every capture pixel or every below-fold row received perceptual inspection. Long sequences/use cases/ERD intentionally scroll vertically. Capture JSON reports visualReview=pending because it records capture automation; this paragraph records the separate inspection.
-
-The four photo-persistence diagrams were regenerated for base64; the six unaffected diagrams retain their matching domain-v1 proofs/captures. Older root/fastapi/domain-v2 and superseded domain-v1 photo-diagram receipts/captures remain historical evidence for their own bytes. Keep sources and current evidence alongside HTML; avoid broad JSON ignore rules. No historical artifacts were deleted during this correction.
+The earlier ERD report recorded 61 composition warnings, including 60 relationship crossings and one desktop-readability warning. Other recorded advisories concerned routed detours and an offer-lifecycle crossover. Long diagrams scroll vertically. Diagram checks do not establish API, RLS, transaction, or deployment correctness.
 
 ## Regeneration
 
-Use the installed Archify skill and exact type from each source. The available local Node binary may differ from PATH; no project package scripts exist. From the repository root, the command form is:
+Restore the editable JSON sources and confirm the local Archify installation before regeneration. The command below cannot run with the files currently available. Use the exact diagram type from each restored source. The available local Node binary may differ from PATH; no project package scripts exist. From the repository root, the command form is:
 
 ```sh
 node .agents/skills/archify/bin/archify.mjs finalize lifecycle docs/architecture/offer-lifecycle.json docs/architecture/offer-lifecycle.html --quality showcase --out-dir docs/architecture/validation/domain-next --json
@@ -104,16 +100,16 @@ node .agents/skills/archify/bin/archify.mjs finalize lifecycle docs/architecture
 
 Use architecture for candidate/use-cases, sequence for the three sequences, lifecycle for the four state graphs and erd with standard quality for the full-schema ERD. Run each delivery sequentially in a shared output directory. A revision after browser evidence requires a fresh evidence directory; never hand-edit generated HTML. Retain native source/current delivery/finalize/browser receipts; screenshots are additional evidence and require inspection before claiming visual review.
 
-## Analysis and expiry refinement — workflow unchanged
+## Analysis and expiry rules
 
-The two remaining blockers are specified in [analysis-v1](analysis-rules.md), [expiry-v1](expiry-rules.md) and [49 future fixture scenarios](rules-test-cases.md). Schemas are closed JSON contracts within existing extracted/attributes/provenance fields. Category confidence is not global OCR/acceptability confidence; nulls, conflicts and original provenance are explicit. Manual fallback remains the same donor/staff workflow.
+The analysis and expiry contracts are specified in [analysis-v1](analysis-rules.md), [expiry-v1](expiry-rules.md) and [rule test cases](rules-test-cases.md). Schemas are closed JSON contracts within existing extracted/attributes/provenance fields. Category confidence is not global OCR/acceptability confidence; nulls, conflicts and original provenance are explicit. Manual fallback remains the same donor/staff workflow.
 
 FastAPI calculates item-expiry views/guards in Python. The existing restricted atomic command rechecks unchanged sources/evidence and the reference-day UTC clock fence, so a calculation made before midnight cannot commit afterward. It does not compute item expiry in SQL or persist the result. Physical commands retain the same actors/routes/states; date-specific acknowledgements/reason refine their existing guards.
 
-No native diagram source or HTML was regenerated: topology, workflow messages, lifecycle transitions and physical schema are unchanged. Existing diagrams already show code expiry, immutable originals, corrections and explicit human review; their current byte-bound validation remains valid. The [rules consistency receipt](architecture/validation/rules-consistency.json) records the scoped documentation review. Application/provider/RLS/date tests remain unimplemented.
+The diagrams were not regenerated for the analysis and expiry refinement. Current application test evidence is recorded in [readiness](readiness.md).
 
 ## Backend implementation status
 
 The architecture is now backed by [FastAPI composition](../backend/app/main.py), explicit [REST response contracts](../backend/app/api/responses.py), pure [expiry](../backend/app/domain/expiry.py) and [matching](../backend/app/domain/matching.py), [OpenAI](../backend/app/adapters/openai.py)/[BAN](../backend/app/adapters/geocoding.py) adapters, and [PostgreSQL migrations](../supabase/migrations/). Ordinary reads use bearer-scoped RLS; privileged projections and commands reauthorize inside restricted functions owned by a dedicated application role.
 
-No frontend, Storage bucket, transport, messaging, queue or worker was added. All ten native diagram sources/HTML artifacts remain unchanged because component boundaries, table columns and workflows are unchanged. Historical statements above about missing application tests describe the earlier diagram delivery; current runtime evidence is in [readiness](readiness.md).
+The [Next.js frontend](../frontend/README.md) calls FastAPI for business operations. Supabase Storage, transport, messaging, queues, and workers remain outside the architecture. Current runtime evidence is in [readiness](readiness.md).

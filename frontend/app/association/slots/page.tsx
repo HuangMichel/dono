@@ -21,32 +21,51 @@ import {
   parisInputToInstant,
   instantToParisInput,
 } from "@/components/association/interaction";
-import { parisDay } from "@/lib/booking-availability";
+import { shiftMonth } from "@/components/ui/calendar-model";
 import { instant, itemName } from "@/components/association/evidence";
 import { StateChip } from "@/components/association/status";
 import { formatCount } from "@/lib/ui-text";
 
-function dayWindow(now: number) {
+// Split the local month so October's 31 days plus the DST hour still fit
+// the API's maximum 31 elapsed days. End bounds are inclusive on the API.
+function monthWindow(month: string, half: 0 | 1) {
+  const start = `${month}-${half === 0 ? "01" : "16"}T00:00`;
+  const end =
+    half === 0 ? `${month}-16T00:00` : `${shiftMonth(month, 1)}-01T00:00`;
   return {
-    from: parisDay(new Date(now - 35 * 86400000)),
-    to: parisDay(new Date(now + 65 * 86400000)),
+    from: parisInputToInstant(start),
+    to: new Date(Date.parse(parisInputToInstant(end)) - 1).toISOString(),
   };
 }
 export default function Slots() {
   const { id, membership, association, refresh } = useAssociation();
-  const { now, today } = useParisClock();
-  const window = now === null ? null : dayWindow(now);
-  const resource = useApiPage<Slot>(
-    window
-      ? `/associations/${id}/slots?from=${encodeURIComponent(window.from + "T00:00:00Z")}&to=${encodeURIComponent(window.to + "T23:59:59Z")}&limit=100`
-      : null,
-  );
+  const { today } = useParisClock();
+  const [viewMonth, setViewMonth] = useState("");
+  const month = viewMonth || today.slice(0, 7);
+  const path = (half: 0 | 1) => {
+    if (!month) return null;
+    const window = monthWindow(month, half);
+    return `/associations/${id}/slots?from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}&limit=100`;
+  };
+  const firstHalf = useApiPage<Slot>(path(0));
+  const secondHalf = useApiPage<Slot>(path(1));
+  const complete =
+    !!month &&
+    !firstHalf.loading &&
+    !secondHalf.loading &&
+    !firstHalf.error &&
+    !secondHalf.error &&
+    !firstHalf.hasMore &&
+    !secondHalf.hasMore;
+  const refreshSlots = async () => {
+    await Promise.all([firstHalf.refresh(), secondHalf.refresh()]);
+  };
   const [selectedDay, setSelectedDay] = useState("");
   const day = selectedDay || today;
   const command = useCommand();
   const admin = membership.role === "assoc_admin";
   const slotsByDay = (date: string) =>
-    resource.data.filter((slot) =>
+    [...firstHalf.data, ...secondHalf.data].filter((slot) =>
       instantToParisInput(slot.starts_at).startsWith(date),
     );
   return (
@@ -91,11 +110,20 @@ export default function Slots() {
       <div className="console-calendar-layout">
         <section className="card console-panel">
           <Calendar
+            month={month}
+            onMonthChange={(next) => {
+              setViewMonth(next);
+              setSelectedDay(next === today.slice(0, 7) ? today : `${next}-01`);
+            }}
             selected={day}
             today={today}
-            onSelect={setSelectedDay}
+            onSelect={(date) => {
+              setSelectedDay(date);
+              setViewMonth(date.slice(0, 7));
+            }}
             label="Manage drop-off dates"
             dayDescription={(date) => {
+              if (!complete) return "Appointment availability incomplete";
               const daySlots = slotsByDay(date);
               const counts = daySlots.reduce(
                 (result, slot) => {
@@ -126,15 +154,29 @@ export default function Slots() {
             Green dot: open. Orange bar: busy. Red square: full. Grey dash:
             closed. Select a date to see its appointments.
           </p>
-          <ResourceStatus {...resource} />
-          <More {...resource} />
+          {!complete && (
+            <p role="status">
+              Appointment availability is incomplete. Load all appointment times
+              before checking a date.
+            </p>
+          )}
+          <ResourceStatus {...firstHalf} />
+          <ResourceStatus {...secondHalf} />
+          <More
+            hasMore={firstHalf.hasMore || secondHalf.hasMore}
+            loading={firstHalf.loading || secondHalf.loading}
+            loadMore={async () => {
+              await Promise.all([firstHalf.loadMore(), secondHalf.loadMore()]);
+            }}
+          />
         </section>
         <DayDetails
           associationId={id}
           day={day}
           slots={slotsByDay(day)}
           admin={admin}
-          refreshSlots={resource.refresh}
+          complete={complete}
+          refreshSlots={refreshSlots}
         />
       </div>
       {admin && (
@@ -153,7 +195,7 @@ export default function Slots() {
                 ends_at: parisInputToInstant(text(data, "end")),
                 max_bookings: Number(text(data, "places")),
               });
-              await resource.refresh();
+              await refreshSlots();
             }}
           >
             <Field
@@ -181,12 +223,14 @@ function DayDetails({
   slots,
   admin,
   refreshSlots,
+  complete,
 }: {
   associationId: string;
   day: string;
   slots: Slot[];
   admin: boolean;
   refreshSlots: () => Promise<void>;
+  complete: boolean;
 }) {
   const arrivals = useApiPage<{ booking: Booking; offer: Offer }>(
     day
@@ -209,9 +253,10 @@ function DayDetails({
     <section className="card console-panel console-stack">
       <h2>
         {dayLabel}
-        {day && (
+        {day && !arrivals.loading && !arrivals.error && (
           <span className="console-meta">
             {" "}
+            {arrivals.hasMore ? "At least " : ""}
             {formatCount(booked, "expected drop-off")}
           </span>
         )}
@@ -238,7 +283,17 @@ function DayDetails({
           <StateChip state={booking.computed.effective_state} />
         </div>
       ))}
-      {slots.length > 0 && <h3>Appointment times</h3>}
+      <More {...arrivals} />
+      <h3>Appointment times</h3>
+      {!complete && (
+        <p className="console-meta">
+          Appointment times shown may be incomplete. Check the calendar loading
+          status.
+        </p>
+      )}
+      {complete && slots.length === 0 && (
+        <p className="console-meta">No appointment times on this date.</p>
+      )}
       {slots.map((slot) => (
         <div className="console-stack" key={slot.id}>
           <div>

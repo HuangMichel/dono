@@ -3,19 +3,20 @@ import { NotificationProvider } from "@/components/ui/notifications";
 import React, { act } from "react";
 import { render } from "@/test/render";
 import { expect, it, vi } from "vitest";
-const { page, command } = vi.hoisted(() => ({
+const { page, command, evidence } = vi.hoisted(() => ({
   page: vi.fn(),
   command: vi.fn(),
-}));
-vi.mock("@/lib/api", () => ({ api: command }));
-vi.mock("@/lib/api-hooks", () => ({
-  useApiPage: page,
-  useApiResource: () => ({
+  evidence: vi.fn(() => ({
     data: null,
     loading: false,
     error: null,
     refresh: vi.fn(),
-  }),
+  })),
+}));
+vi.mock("@/lib/api", () => ({ api: command }));
+vi.mock("@/lib/api-hooks", () => ({
+  useApiPage: page,
+  useApiResource: evidence,
 }));
 vi.mock("@/components/association/shell", () => ({
   ConsoleTitle: ({ title }: { title: string }) => <h1>{title}</h1>,
@@ -28,6 +29,11 @@ vi.mock("@/components/association/evidence", () => ({
   Evidence: () => <p>Frozen item evidence</p>,
   itemName: (o: { id: string }) => o.id,
   labelCorrectionApplies: () => false,
+  probabilityLabel: (value: number) =>
+    new Intl.NumberFormat("en-GB", {
+      style: "percent",
+      maximumFractionDigits: 1,
+    }).format(value),
 }));
 vi.mock("@/components/association/auth-photo", () => ({
   AuthPhoto: ({
@@ -88,24 +94,35 @@ it("opens the first offer and lets staff switch while preserving approval checks
   expect(
     view.container.querySelectorAll('a[data-thumbnail-size="40"]').length,
   ).toBe(1);
-  const food = Array.from(
-    view.container.querySelectorAll<HTMLButtonElement>(
-      '[aria-label="Review category"] button',
-    ),
-  ).find((b) => b.textContent === "Food")!;
-  await act(async () => food.click());
-  expect(food.getAttribute("aria-pressed")).toBe("true");
+  const category = view.container.querySelector<HTMLSelectElement>("select")!;
+  await act(async () => {
+    category.value = "food";
+    category.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  expect(category.value).toBe("food");
   expect(page.mock.lastCall?.[0]).toContain("&category=food");
   const coat = Array.from(view.container.querySelectorAll("button")).find((b) =>
     b.textContent?.includes("Coat"),
   )!;
   await act(async () => coat.click());
   expect(coat.getAttribute("aria-pressed")).toBe("true");
+  expect(view.container.querySelector<HTMLSelectElement>("select")?.value).toBe(
+    "food",
+  );
   expect(
-    view.container.querySelector(
-      '[aria-label="Review category"] button[aria-pressed="true"]',
-    ),
-  ).not.toBeNull();
+    view.container
+      .querySelector(".review-workspace")
+      ?.classList.contains("review-detail-visible"),
+  ).toBe(true);
+  const back = view.container.querySelector<HTMLButtonElement>(
+    ".review-back-button",
+  )!;
+  await act(async () => back.click());
+  expect(
+    view.container
+      .querySelector(".review-workspace")
+      ?.classList.contains("review-detail-visible"),
+  ).toBe(false);
   const approve = () =>
     view.container.querySelector<HTMLButtonElement>(
       'button[value="approved"]',
@@ -180,4 +197,162 @@ it("requires every manual and date check before approval", async () => {
     reason.dispatchEvent(new Event("input", { bubbles: true }));
   });
   expect(approve().disabled).toBe(false);
+});
+
+it("keeps approval blocked by evidence errors and expiry restrictions", async () => {
+  const offer = {
+    id: "Restricted food",
+    revision: "1",
+    category: "food",
+    quantity: "1",
+    evidence_snapshot: { photos: [] },
+    computed: {
+      effective_state: "pending_review",
+      manual_review_required: false,
+      expiry: {
+        bucket: "expired",
+        days_left: -1,
+        required_date_checks: [],
+        distribution_restriction: "expired_use_by",
+      },
+    },
+  };
+  page.mockReturnValue({
+    data: [offer],
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  });
+  const view = await render(
+    <NotificationProvider>
+      <Review />
+    </NotificationProvider>,
+  );
+  for (const check of view.container.querySelectorAll<HTMLInputElement>(
+    'input[type="checkbox"]',
+  ))
+    await act(async () => check.click());
+  expect(
+    view.container.querySelector<HTMLButtonElement>('button[value="approved"]')
+      ?.disabled,
+  ).toBe(true);
+  expect(
+    view.container.querySelector<HTMLButtonElement>('button[value="refused"]')
+      ?.disabled,
+  ).toBe(false);
+  expect(view.container.textContent).toContain("Approval is unavailable");
+  evidence.mockReturnValue({
+    data: null,
+    loading: false,
+    error: "Evidence unavailable" as never,
+    refresh: vi.fn(),
+  });
+  await view.rerender(
+    <NotificationProvider>
+      <Review />
+    </NotificationProvider>,
+  );
+  expect(view.container.textContent).toContain(
+    "Load the evidence before approving",
+  );
+  expect(
+    view.container.querySelector<HTMLButtonElement>('button[value="approved"]')
+      ?.disabled,
+  ).toBe(true);
+});
+
+it("keeps the queue reachable when the selected offer disappears during refresh", async () => {
+  page.mockReturnValue({
+    data: [
+      {
+        id: "Coat",
+        revision: "1",
+        category: "clothes",
+        quantity: "1",
+        evidence_snapshot: { photos: [] },
+        computed: {
+          effective_state: "pending_review",
+          manual_review_required: false,
+          expiry: { bucket: "not_applicable", required_date_checks: [] },
+        },
+      },
+    ],
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  });
+  const view = await render(
+    <NotificationProvider>
+      <Review />
+    </NotificationProvider>,
+  );
+  await act(async () =>
+    view.container
+      .querySelector<HTMLButtonElement>(".console-review-list button")!
+      .click(),
+  );
+  page.mockReturnValue({
+    data: [],
+    loading: false,
+    error: "Could not refresh",
+    refresh: vi.fn(),
+  });
+  await view.rerender(
+    <NotificationProvider>
+      <Review />
+    </NotificationProvider>,
+  );
+  expect(view.container.textContent).toContain("Offers could not be loaded.");
+  const back = view.container.querySelector<HTMLButtonElement>(
+    ".review-back-button",
+  );
+  expect(back).not.toBeNull();
+  await act(async () => back!.click());
+  expect(
+    view.container
+      .querySelector(".review-workspace")
+      ?.classList.contains("review-detail-visible"),
+  ).toBe(false);
+});
+
+it("puts returned category confidence beside the mismatch warning", async () => {
+  page.mockReturnValue({
+    data: [
+      {
+        id: "Remote",
+        revision: "1",
+        category: "clothes",
+        quantity: "1",
+        evidence_snapshot: { photos: [] },
+        computed: {
+          effective_state: "pending_review",
+          manual_review_required: true,
+          category_mismatch: true,
+          expiry: { bucket: "not_applicable", required_date_checks: [] },
+        },
+      },
+    ],
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  });
+  evidence.mockReturnValue({
+    data: {
+      category_mismatch: true,
+      analyses: [{ category: "furniture", confidence: 0.28, indicators: [] }],
+    } as never,
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  });
+  const { container } = await render(
+    <NotificationProvider>
+      <Review />
+    </NotificationProvider>,
+  );
+  const warning = container.querySelector(
+    '[aria-label="Category needs checking"]',
+  );
+  expect(warning?.textContent).toContain("Small furniture (28% confidence)");
+  expect(warning?.textContent).toContain("The donor selected Clothes");
 });

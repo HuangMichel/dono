@@ -8,7 +8,7 @@ type Kind = "item" | "label";
 export function DonationPhotos({
   files,
   savedCount,
-  locked,
+  lockedFiles,
   disabled,
   showLabel = true,
   onChange,
@@ -18,7 +18,7 @@ export function DonationPhotos({
 }: {
   files: File[];
   savedCount: number;
-  locked: boolean;
+  lockedFiles: readonly File[];
   disabled: boolean;
   showLabel?: boolean;
   onChange: (files: File[]) => void;
@@ -99,7 +99,7 @@ export function DonationPhotos({
               }
               optional={kind === "label"}
               multiple={kind === "item"}
-              disabled={disabled || locked}
+              disabled={disabled}
               photos={files.flatMap((file, index) =>
                 getKind(file) === kind
                   ? [
@@ -108,6 +108,7 @@ export function DonationPhotos({
                         name: file.name,
                         src: previews.get(file) ?? "",
                         loading: !previews.has(file),
+                        locked: lockedFiles.includes(file),
                       },
                     ]
                   : [],

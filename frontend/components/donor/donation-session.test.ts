@@ -124,6 +124,29 @@ it("reuses an upload command after a lost response and counts the photo only onc
   expect(api.mock.calls[4][1].body.expected_revision).toBe("2");
   expect(session.getSnapshot().step).toBe(2);
 });
+it.each([413, 415])(
+  "allows replacement after a confirmed %s upload rejection",
+  async (status) => {
+    const rejected = session.getSnapshot().files[0];
+    api
+      .mockResolvedValueOnce(item())
+      .mockRejectedValueOnce(
+        Object.assign(Error("Choose another photo"), { status }),
+      );
+    await session.run(session.save);
+    expect(session.getSnapshot().lockedFiles).not.toContain(rejected);
+    const replacement = photo("replacement.jpg");
+    session.setFiles([replacement]);
+    api
+      .mockResolvedValueOnce({ id: "replacement" })
+      .mockResolvedValueOnce(item("2"))
+      .mockResolvedValueOnce(item("3"))
+      .mockResolvedValueOnce(item("4", "3", "ready"));
+    await session.run(session.save);
+    expect(session.getSnapshot()).toMatchObject({ step: 2, error: "" });
+    expect(api.mock.calls[2][1].body.get("file")).toBe(replacement);
+  },
+);
 it.each(["PATCH", "publication"] as const)(
   "replays a committed %s using the same body/key before any other request",
   async (stage) => {

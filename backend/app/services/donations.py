@@ -9,7 +9,7 @@ from app.adapters.supabase import Supabase
 from app.api.dependencies import Actor
 from app.api.models import Facts
 from app.domain.errors import DomainError
-from app.domain.expiry import SourceDates, calculate_expiry
+from app.domain.expiry import SourceDates, calculate_expiry, has_strict_date_evidence
 
 
 async def donation_view(db: Supabase, actor: Actor, item: UUID) -> dict[str, object]:
@@ -57,9 +57,7 @@ async def donation_view(db: Supabase, actor: Actor, item: UUID) -> dict[str, obj
         {"select": "extracted", "donation_id": f"eq.{item}"},
     )
     strict = any(
-        cast(dict[str, Any], record["extracted"])["dates"]["date_type"]
-        in ("DLC", "expiry", "PAO")
-        or cast(dict[str, Any], record["extracted"])["dates"]["pao_months"] is not None
+        has_strict_date_evidence(cast(dict[str, Any], record["extracted"]))
         for record in originals
     )
     view = calculate_expiry(

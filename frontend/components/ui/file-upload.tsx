@@ -5,7 +5,13 @@ import { CameraCapture } from "./camera-capture";
 import { Button, Card, Chip, Icon } from "@/components/ui";
 import "./file-upload.css";
 import { MAX_PHOTO_SIZE_LABEL } from "@/lib/photo-limits";
-type UploadPhoto = { id: string; name: string; src: string; loading: boolean };
+type UploadPhoto = {
+  id: string;
+  name: string;
+  src: string;
+  loading: boolean;
+  locked?: boolean;
+};
 type FileUploadProps = {
   id: string;
   label: string;
@@ -98,7 +104,7 @@ export function FileUpload({
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={disabled}
+                  disabled={disabled || photo.locked}
                   aria-label={`Replace ${photo.name}, photo ${index + 1}`}
                   onClick={() => {
                     replacementId.current = photo.id;
@@ -111,7 +117,7 @@ export function FileUpload({
                   type="button"
                   size="sm"
                   variant="soft"
-                  disabled={disabled}
+                  disabled={disabled || photo.locked}
                   aria-label={`Remove ${photo.name}, photo ${index + 1}`}
                   onClick={() => onRemove(photo.id)}
                 >
@@ -121,7 +127,7 @@ export function FileUpload({
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={disabled}
+                  disabled={disabled || photo.locked}
                   aria-label={`Retake ${photo.name}, photo ${index + 1}`}
                   onClick={() => setCamera({ replacementId: photo.id })}
                 >
@@ -132,7 +138,7 @@ export function FileUpload({
                     type="button"
                     size="sm"
                     variant="soft"
-                    disabled={disabled || photo.loading}
+                    disabled={disabled || photo.locked || photo.loading}
                     aria-label={`Use ${photo.name}, photo ${index + 1}, as main photo`}
                     onClick={() => onPrimary(photo.id)}
                   >

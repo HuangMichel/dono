@@ -1,5 +1,13 @@
 # Integration readiness report
 
+## Optional association selection, 2026-10-26
+
+The final donation step exposes the existing nearby-posting form before searching and regardless of matching results. Posting retains explicit consent, a town/postcode and the existing backend eligibility checks. Sending an addressed offer remains available after selecting an association. The requirements now reflect this choice; no backend or migration change was needed.
+
+Node 24 frontend lint, typecheck and all 317 tests pass. New flow tests use mocked API boundaries to cover posting before a search, with matches and without matches, plus sending an addressed offer after posting with the updated revision. The existing localhost browser showed the changed final step and posted-item state; the listening server's working directory was confirmed as this checkout. No live posting was submitted or removed. Live posting writes and mobile rendering remain unverified.
+
+The production build could not complete: the checkout build failed with `EPERM` while removing `.next/server/app/_global-error`; a clean temporary mirror excluding environment files and using synthetic public configuration encountered a blocked package-registry request.
+
 ## Item name and description, 2026-10-25
 
 Status: implemented in source; database acceptance and deployment remain pending. Donors enter a required name and optional description before photos and can edit them in item details. Names appear through shared helpers in My donations, booking, association dashboard, review, reception, stock, images and slots; nearby offers uses its explicit discovery projection. Descriptions appear in expanded donor details, booking and offer detail/evidence views. Category changes and photo analysis preserve donor text. Lost identity-save responses replay their original command before applying newer entries; concurrent changes stop the retry without overwriting them.
@@ -353,3 +361,53 @@ Le nouvel [appel avec entrée/sortie conservées](reports/openai-example-2026-10
 Reception now provides an inline square camera preview. A pinned jsQR 1.4.0 decoder reads live frames locally, stops at the first decoded QR and submits the signed content to the existing authenticated QR resolve endpoint. No camera frames are uploaded. Manual signed-content entry remains available. Receiving the full quantity still requires the existing staff confirmation and reception command; scanning alone changes no donation or inventory state. The backend and API contract are unchanged.
 
 Frontend lint, TypeScript, the production build and all 293 tests across 49 files passed. The build required execution outside the sandbox because the sandbox returned empty output from Next.js’s TypeScript configuration subprocess. Scanner tests mock camera/canvas/decoder APIs and cover continuous polling until detection, one callback per scan, permission denial, manual stopping and late camera permission cleanup. Reception tests cover automatic camera lookup without receipt and preserve the manual signed-payload/full-lot path. Physical camera scanning, mobile browser permissions and a real donor QR against the running backend remain unverified.
+
+## Upload recovery and appointment loading, 2026-10-26
+
+Photo uploads rejected with HTTP 413 or 415 now allow removal or replacement. Locks apply to individual photos, so a stored photo does not prevent correction of another rejected file in the same batch. Stored photos and uploads with uncertain outcomes retain their locks and reusable request keys.
+
+The appointment page requests the displayed Paris month in two halves. Each request fits the backend's 31-day elapsed-time limit, including daylight-saving changes. Regression tests cover month navigation, incomplete pages, failed-page retry, and refreshing both halves after creating or editing an appointment. This month-query implementation was already present in the working tree when this fix started; it was preserved and verified.
+
+ESLint and all 314 tests across 53 files pass. Upload regression tests failed before the recovery changes and pass afterward. An independent source review found no actionable upload defects. Tests use mocked API boundaries and do not establish live service behavior. Type checking and an isolated production build stop at an unrelated existing error in `frontend/app/donate/page.test.tsx:71`: `Element` has no `click` method. Webpack compilation passed before the build's type check. The isolated build excluded environment files and used synthetic public settings. Checks used the available Node 25 runtime; the project declares Node 24. Live browser and backend checks remain unverified.
+
+## Selected frontend review fixes, 2026-10-26
+
+Appointments load the displayed Paris month through two API-valid windows. Month navigation updates both the query and the selected date. Incomplete pages remain explicit. Platform approval actions require a selected association; clearing selection, excluding it through search, or changing status removes the command target. Both new-item actions discard the current UI session without deleting the saved donation. Received donations describe the completed handover.
+
+Raw date corrections show the original and donor-set dates. Their former timestamp-based badges are removed; the API-computed Expiry priority remains authoritative. Public navigation wraps on narrow screens, and Photos category filters wrap within the console. Gallery tiles have a native keyboard-accessible disclosure that loads all frozen offer evidence, including photos, indicators, and corrections.
+
+| Check | Result and boundary |
+| --- | --- |
+| Frontend checks | ESLint, TypeScript, and all 314 tests across 53 files pass on Node 24.22.0. The donation-test DOM typing error noted above is fixed. An intermediate auth hydration test failed once, then passed in isolation and in the final full suite. |
+| Production build | Passed in `/private/tmp/dono-ui-fixes-build.fhrdX8/frontend` with installed dependencies, a clean process environment, synthetic public settings, and no copied environment files. This supersedes the build/type-check blocker above. |
+| Live appointments | The existing server runs this checkout. Existing appointment times load from the configured backend without the former validation error. Next month selects 1 November 2026; Today restores the current month. No configuration or booking was saved. |
+| Live gallery and layout | Keyboard Enter opens frozen evidence from an existing gallery item. Its photo, facts, computed expiry, analysis-unavailable state, and change-history disclosure load. Nearby needs, Photos, and appointments have no horizontal page overflow at 320, 768, 1024, and 1440 px. |
+| Regression coverage | Mocked API boundaries cover explicit admin selection, both fresh-item paths, old-session isolation, received-state copy, complete scoped gallery evidence, raw corrected dates, calendar compatibility, DST, and leap-year boundaries. Independent source review found no actionable defects in the selected fixes. |
+| Remaining limits | Platform commands, completed donor submission/reset, and multi-photo correction evidence were verified with fixtures rather than real writes. No full screen-reader or axe audit ran. No deployment was performed. |
+
+Capacity creation, a console link to Photos, and the unsupported Take offer action remain outside this change.
+
+
+## Review workspace and navigation, 26 October 2026
+
+The live Review page now follows the validated proposal. Its compact queue uses category/search controls and the API's newest-first ordering. A factual category warning precedes larger authenticated photos and left-aligned frozen offer facts. Indicators, original and corrected dates, edit history, restrictions, and staff approval checks remain available. The decision form scrolls normally; only its action row is sticky. Narrow layouts switch between queue and detail, including a Back to queue control after empty/error refreshes.
+
+The header has a desktop sidebar hide/show icon with accessible labels and expanded state. Mobile navigation keeps its separate show/hide control. Hiding the desktop sidebar removes it from layout and keyboard navigation.
+
+Validation: ESLint, TypeScript, 322 tests across 54 files, and the isolated production build pass on Node 24.22.0. Live browser checks against this checkout confirm no horizontal overflow at 320, 768, 1024, and 1440 px, large evidence photos beside facts on desktop, queue/detail focus transfer, mobile navigation, and desktop sidebar hiding/restoration. An independent source review found no remaining actionable defects after the empty-queue escape and sort-caption fixes. Decision submission and empty/error recovery are covered with fixtures; no real decisions were submitted. No deployment or full screen-reader/axe audit was performed.
+
+
+## Analysis and item history, 26 October 2026
+
+Assessed indicators now appear separately from a native Not assessed disclosure. Raw indicator values, provider/model details, and classification metadata remain in Analysis technical details. The category mismatch warning includes the returned category confidence. Known extracted facts appear first; missing fields and irrelevant unknown date defaults use a separate disclosure. Relevant date uncertainty, date corrections, and safety warnings remain visible. A missing warning probability is no longer displayed as zero.
+
+Item history uses compact creation/status entries and changed-field summaries with Previous/New values. Empty defaults and dates/expiry container aliases do not create false changes. Meaningful removed values, false and zero remain supported. Full original snapshots remain accessible through per-event disclosures.
+
+Validation: ESLint, TypeScript, all 331 tests across 54 files, and the isolated production build pass on Node 24.22.0. Live browser checks confirm the corrected metadata placement and compact history against existing frozen offer data, keyboard disclosure operation, and no horizontal overflow at 320, 768, 1024, or 1440 px with all disclosures expanded. Independent source review found no remaining actionable defects. Regression fixtures cover missing probabilities, zero/false, date uncertainty, original/corrected dates, removed values, alias changes, empty defaults, and nested technical metadata. No real staff decisions or other business records were changed. No deployment or full screen-reader/axe audit ran.
+
+
+## Visual category comparison, 26 October 2026
+
+Returned category scores now use neutral horizontal bars, full category names, literal percentages and descending ordering. The chart never normalizes scores or implies a staff decision. Invalid or ambiguous score maps retain the existing text and technical-detail fallback. Raw metadata stays available in the technical disclosure.
+
+ESLint, TypeScript, all 341 tests across 55 files, and the isolated production build pass. The running Review page renders the actual returned 28%, 26%, 16%, 15%, and 15% values with no horizontal overflow at 320, 768, 1024, or 1440 px. Independent source review found no actionable defects. No business records changed and no deployment ran.

@@ -10,6 +10,7 @@ const demoEmail = "demo@example.com";
 export function DemoWorkspace() {
   const auth = useAuth();
   const router = useRouter();
+  const dialog = useRef<HTMLDialogElement>(null);
   const pending = useRef(false);
   const navigated = useRef(false);
   const [requested, setRequested] = useState(false);
@@ -31,6 +32,7 @@ export function DemoWorkspace() {
       !navigated.current
     ) {
       navigated.current = true;
+      dialog.current?.close();
       router.push("/association");
     }
   }, [requested, busy, auth.loading, auth.error, auth.user, error, router]);
@@ -64,38 +66,61 @@ export function DemoWorkspace() {
     <div className="demo-workspace-entry">
       <Button
         type="button"
-        aria-describedby="demo-description"
+        aria-haspopup="dialog"
         disabled={auth.loading || waiting}
-        onClick={() => void openWorkspace()}
+        onClick={() => dialog.current?.showModal()}
       >
-        {waiting
-          ? "Opening demo workspace…"
-          : error || accountError
-            ? "Retry demo workspace"
-            : switching
-              ? "Switch to demo workspace"
-              : "Open workspace"}
+        Demo workspace
         <Icon name="arrow-right" />
       </Button>
-      <p id="demo-description" className="sr-only">
-        Explore the association workspace with shared fictional data. Changes
-        are visible to other visitors. Do not enter personal information.
-      </p>
-      {switching && (
-        <p className="sr-only">
-          Opening the demo switches your signed-in account.
+      <dialog
+        ref={dialog}
+        className="correction-dialog demo-workspace-dialog"
+        aria-labelledby="demo-title"
+        aria-describedby="demo-description"
+        onCancel={(event) => {
+          if (waiting) event.preventDefault();
+        }}
+      >
+        <h2 id="demo-title">Explore the demo workspace</h2>
+        <p id="demo-description">
+          Shared demo data. Changes are visible to other visitors. Do not enter
+          personal information.
         </p>
-      )}
-      {waiting && (
-        <p role="status" className="sr-only">
-          Signing in and loading workspace access…
-        </p>
-      )}
-      {(error || accountError) && (
-        <p role="alert" className="notice danger demo-workspace-error">
-          {error || "Demo access could not load. Please try again."}
-        </p>
-      )}
+        {switching && <p>Opening the demo switches your signed-in account.</p>}
+        {waiting && (
+          <p role="status">Signing in and loading workspace access…</p>
+        )}
+        {(error || accountError) && (
+          <p role="alert" className="notice danger">
+            {error || "Demo access could not load. Please try again."}
+          </p>
+        )}
+        <div className="row wrap demo-workspace-actions">
+          <Button
+            type="button"
+            disabled={auth.loading || waiting}
+            onClick={() => void openWorkspace()}
+          >
+            {waiting
+              ? "Opening demo…"
+              : error || accountError
+                ? "Retry demo"
+                : switching
+                  ? "Switch to demo"
+                  : "Enter demo"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            autoFocus
+            disabled={waiting}
+            onClick={() => dialog.current?.close()}
+          >
+            Cancel
+          </Button>
+        </div>
+      </dialog>
     </div>
   );
 }

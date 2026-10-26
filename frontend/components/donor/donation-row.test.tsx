@@ -139,3 +139,33 @@ it("loads an active offer directly and reconciles its state after a failed withd
   expect(view.container.textContent).not.toContain("Manage drop-off");
   expect(apiPage).not.toHaveBeenCalled();
 });
+
+it.each(["in_stock", "distributed"] as const)(
+  "does not suggest another offer after the donation is %s",
+  async (inventoryState) => {
+    apiPage.mockResolvedValue(
+      page([
+        {
+          ...offer,
+          decision: "approved",
+          computed: { effective_state: "fulfilled" },
+        } as Offer,
+      ]),
+    );
+    const view = await render(
+      <DonationRow
+        donation={{
+          ...donation,
+          computed: { ...donation.computed, inventory_state: inventoryState },
+        }}
+        refresh={async () => {}}
+      />,
+    );
+    await settle();
+    expect(view.container.textContent).toContain(
+      "The association has received your donation.",
+    );
+    expect(view.container.textContent).not.toContain("you can offer it again");
+    expect(view.container.textContent).not.toContain("Book your drop-off");
+  },
+);

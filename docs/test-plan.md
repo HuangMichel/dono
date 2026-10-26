@@ -15,7 +15,7 @@ Utiliser un projet Supabase de développement dédié. Appliquer les migrations 
 Préparer :
 
 - Deux donateurs D1/D2 ; deux associations A/B avec chacune un administrateur et un membre staff ; un administrateur plateforme provisionné par un opérateur de confiance.
-- Des comptes Supabase Auth et leurs access tokens valides. Sans frontend, obtenir une session via un client Auth de développement utilisant le fournisseur configuré. Swagger ne réalise pas la connexion Google : son bouton Authorize reçoit un token déjà obtenu. Ne pas utiliser une clé publishable/secret comme token utilisateur et ne pas forger de JWT.
+- Des comptes Supabase Auth et leurs access tokens valides. Sans frontend, obtenir une session via un client Auth de développement utilisant le fournisseur configuré. Swagger ne réalise pas la connexion par email et mot de passe : son bouton Authorize reçoit un token déjà obtenu. Ne pas utiliser une clé publishable/secret comme token utilisateur et ne pas forger de JWT.
 - Pour A et B : approbation plateforme, adresse géocodée, fuseau, horaires, besoin actif, capacité de stockage, quota journalier et créneau futur compatibles. Les créneaux doivent respecter les horaires et la fenêtre documentée de 168 heures.
 - Des photos de test sans données personnelles : JPEG/PNG/WebP valides, fichier invalide, image dépassant les limites et quatrième photo d'une donation.
 - Pour l'évaluation IA : 25–35 photos annotées couvrant les cinq catégories, médicaments, para, aliments réfrigérés/congelés, étiquettes difficiles et cas ambigus.
@@ -38,7 +38,7 @@ uv run pytest -q --cov=app --cov-report=term-missing
 
 Résultat attendu : aucune erreur Ruff/mypy et tous les tests réussis. Relever le nombre et la couverture réellement obtenus. En cas d'échec, conserver le nom du test et le diagnostic nettoyé avant de poursuivre les essais réels.
 
-Ces tests utilisent PostgreSQL temporaire pour les migrations/RLS/transactions ; les échanges HTTP Auth, Supabase, OpenAI et BAN sont simulés. Ils ne prouvent pas que les identifiants du `.env`, Google OAuth ou le projet hébergé fonctionnent.
+Ces tests utilisent PostgreSQL temporaire pour les migrations/RLS/transactions ; les échanges HTTP Auth, Supabase, OpenAI et BAN sont simulés. Ils ne prouvent pas que les identifiants du `.env`, la connexion par email et mot de passe ou le projet hébergé fonctionnent.
 
 | Groupe | Fichiers dans backend/tests/ | Objet |
 |---|---|---|
@@ -95,7 +95,7 @@ Pour FLOW-08 sans analyse exploitable, utiliser `analysis_unavailable_ack: true`
 
 | ID | Scénario | Résultat attendu |
 |---|---|---|
-| NEG-01 | Faux MIME, fichier non image, image >5 MiB, >20 MP ou quatrième photo | Erreur explicite, aucune nouvelle photo persistée ni appel IA pour l'upload rejeté. |
+| NEG-01 | Faux MIME, fichier non image, image >4 MiB, >20 MP ou quatrième photo | Erreur explicite, aucune nouvelle photo persistée ni appel IA pour l'upload rejeté. |
 | NEG-02 | Révision obsolète ; corps identique rejoué ; même clé avec corps différent | Respectivement 409 ; pas d'effet supplémentaire ; conflit d'idempotence. |
 | NEG-03 | Offre refusée puis nouvelle offre sur la même donation | Donation réutilisable ; nouvel ID d'offre, ancienne décision/historique conservés. |
 | NEG-04 | Annulation/retrait avant réception ; expiration/no-show | Libération des ressources non consommées, historique conservé ; lectures correctes sans scheduler. Tester les longues échéances dans les tests déterministes, pas en modifiant la base partagée. |

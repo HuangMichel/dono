@@ -69,10 +69,24 @@ function NotificationPopup({
 }) {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const remaining = useRef(6000);
-  const paused = hovered || focused;
+  const paused = hovered || focused || hidden;
   useEffect(() => {
-    if (notification.tone === "error" || paused) return;
+    const updateVisibility = () =>
+      setHidden(document.visibilityState === "hidden");
+    updateVisibility();
+    document.addEventListener("visibilitychange", updateVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", updateVisibility);
+  }, []);
+  useEffect(() => {
+    if (
+      notification.tone === "error" ||
+      paused ||
+      document.visibilityState === "hidden"
+    )
+      return;
     const started = Date.now();
     const timeout = window.setTimeout(
       () => dismiss(notification.id),

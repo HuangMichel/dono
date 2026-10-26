@@ -23,6 +23,10 @@ Donor pages (4–8) carry their flow states below the main screen: Home with tex
 
 Static design artifacts: associations, donors, dates, quantities and indicators are fictional; no analysis, matching, auth, storage or reception behavior is claimed.
 
+## Proposed dashboard and review, 2026-10-26
+
+The earlier notes refer to Dashboard and Review proposals at `proposals/2026-10-26-workspace/index.html` and a README in that directory. Those files are absent from this checkout. The proposals do not replace the chosen designs above or establish live application behavior.
+
 ## Capacity reference, 2026-10-25
 
 The user's supplied Capacity screenshot is the current layout reference: a bordered category list with long horizontal bars and right-aligned status/actions, plus a bordered opening-hours panel. The connected screen keeps Storage and Daily intake as separate views. Real units remain storage places and items per selected day; the screenshot's weekly kilograms and pairs are illustrative. Admins edit each limit inline. Pause/resume is not added because the capacity API has no category-active flag. Opening hours come from the association and link to the existing site editor.

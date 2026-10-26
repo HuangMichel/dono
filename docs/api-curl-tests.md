@@ -47,7 +47,8 @@ Les données sont exclusivement des fixtures de développement, pas de vraies in
 - Configuration du site et du matching, photo valide/invalide, analyse optionnelle, correction humaine et original inchangé, publication, matching par coordonnées puis adresse BAN.
 - Offre, refus d'une décision par le donateur, approbation staff, réservation, rejeu identique, conflit de clé, QR valide/falsifié, réception complète et rejeu sans doublon.
 - Inventaire, FEFO, comptes de dates, galerie, distribution complète, rejeu et seconde distribution refusée.
-- Refus puis nouvelle offre sur la même donation, retrait/restauration, annulation de réservation, quatrième photo/plus de 5 MiB/plus de 20 MP refusés, pagination, protection du dernier administrateur, révocation staff avec token encore valide et réconciliation.
+- Refus puis nouvelle offre sur la même donation, retrait/restauration, annulation de réservation, pagination, protection du dernier administrateur, révocation staff avec token encore valide et réconciliation.
+- Rejet de la quatrième photo, d’un fichier de plus de 5 MiB et d’une image de plus de 20 MP. Le fichier de plus de 5 MiB dépasse la limite actuelle de 4 MiB ; ce scénario ne vérifie pas la borne exacte de 4 MiB.
 
 Le script attend le début du créneau réel (environ trois minutes), sans modifier l'heure ou contourner la fenêtre de réception. Une interruption laisse les fixtures et l'historique en place. Une nouvelle exécution crée un autre jeu de données. Il affiche PASS par requête et échoue dès qu'un résultat ne correspond pas ; les groupes non exécutés sont explicitement affichés. Aucun corps de réponse privé ou token n'est affiché.
 
@@ -65,7 +66,7 @@ Des appels curl seuls ne prouvent pas tous les scénarios déterministes et visu
 | Accès direct Data API/private, transfert/récupération administrateur, preuves futures réservées à B | Régressions automatisées existantes et essais ciblés additionnels sur la cible. Non couverts intégralement par ces deux scripts. |
 | Sauvegarde/restauration, HTTPS/CORS, limites de charge/coût | Validation d'exploitation de la cible. |
 
-Le `.env` configuré ne fournit pas de tokens utilisateurs. La connexion Google doit produire des sessions avant ces essais ; Authorize/les scripts ne réalisent pas OAuth. Ne jamais transmettre la clé Supabase secrète comme bearer utilisateur. Ne pas activer `set -x`, `curl -v` ou enregistrer l'environnement dans un rapport partagé.
+Le `.env` configuré ne fournit pas de tokens utilisateurs. La connexion par email et mot de passe doit produire des sessions avant ces essais. Authorize et les scripts utilisent les tokens déjà obtenus. Ne jamais transmettre la clé Supabase secrète comme bearer utilisateur. Ne pas activer `set -x`, `curl -v` ou enregistrer l'environnement dans un rapport partagé.
 
 ## Vérification des scripts
 

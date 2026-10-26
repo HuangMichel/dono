@@ -30,7 +30,11 @@ export function Calendar({
   label = "Choose a date",
   renderDay,
   dayDescription,
+  month: controlledMonth,
+  onMonthChange,
 }: {
+  month?: string;
+  onMonthChange?: (month: string) => void;
   selected: string;
   onSelect: (date: string) => void;
   today: string;
@@ -43,7 +47,12 @@ export function Calendar({
   const heading = useId();
   const help = useId();
   const root = useRef<HTMLDivElement>(null);
-  const month = view || selected.slice(0, 7) || today.slice(0, 7);
+  const month =
+    controlledMonth || view || selected.slice(0, 7) || today.slice(0, 7);
+  function changeMonth(next: string) {
+    setView(next);
+    if (next !== month) onMonthChange?.(next);
+  }
   if (!month) return <p aria-busy="true">Loading calendar…</p>;
   const [year, index] = month.split("-").map(Number);
   const cells = calendarMonth(year, index - 1);
@@ -75,7 +84,7 @@ export function Calendar({
     } else return;
     event.preventDefault();
     setFocusDay(next);
-    setView(next.slice(0, 7));
+    changeMonth(next.slice(0, 7));
     requestAnimationFrame(() =>
       root.current
         ?.querySelector<HTMLButtonElement>(`[data-day="${next}"]`)
@@ -99,7 +108,7 @@ export function Calendar({
             size="sm"
             aria-label="Previous month"
             onClick={() => {
-              setView(shiftMonth(month, -1));
+              changeMonth(shiftMonth(month, -1));
               setFocusDay("");
             }}
           >
@@ -110,7 +119,7 @@ export function Calendar({
             variant="outline"
             size="sm"
             onClick={() => {
-              setView(today.slice(0, 7));
+              changeMonth(today.slice(0, 7));
               setFocusDay(today);
               onSelect(today);
             }}
@@ -123,7 +132,7 @@ export function Calendar({
             size="sm"
             aria-label="Next month"
             onClick={() => {
-              setView(shiftMonth(month, 1));
+              changeMonth(shiftMonth(month, 1));
               setFocusDay("");
             }}
           >

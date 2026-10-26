@@ -1,6 +1,6 @@
 # Dono frontend
 
-Next.js renders donor, association and platform screens. Supabase email/password authentication supplies the user session. Every business read and command goes to the FastAPI API. No fictional records, role selector, sample analysis or browser-local donation database remains.
+Next.js renders donor, association and platform screens. Supabase email/password authentication supplies the user session. Every business read and command goes to the FastAPI API. Business records come from the API. Application roles come from the backend profile and memberships.
 
 ## Run
 
@@ -23,7 +23,7 @@ Allow the exact frontend origin in FastAPI `APP_ORIGIN`. Enable Supabase Email s
 - Staff review frozen facts and original evidence, then approve or refuse with the required checks. Staff resolve signed QR payloads and receive or distribute a full lot.
 - Association admins configure needs, storage, daily intake quotas, hours and slots. Platform admins verify association registrations.
 
-Unmatched offer publication and company attribution have no supported backend contract. Their routes explain that limit instead of simulating records or successful actions. No remote records were deleted. The old `dono-demo-v1` browser key is no longer read or imported into the backend.
+Donors can explicitly post an item from the final donation step without selecting an association. Authenticated association staff browse posted items by category and radius. Posting is separate from addressed offers and creates no approval, hold, booking, or stock movement. Association claiming and company attribution remain outside the current contract. See [posting requirements](../docs/requirements.md#restored-posting-and-nearby-browsing-2026-10-25).
 
 Live camera capture requires HTTPS or localhost and browser camera permission. It requests no microphone access. Confirming a capture adds a local JPEG; the existing donation actions perform the upload. The camera stops during photo review and on dismissal. File selection remains available when camera access fails. See [MDN's camera access requirements](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#privacy_and_security).
 

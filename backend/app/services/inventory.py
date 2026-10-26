@@ -9,7 +9,13 @@ from app.adapters.supabase import Supabase
 from app.api.dependencies import Actor
 from app.api.models import Facts
 from app.domain.errors import DomainError
-from app.domain.expiry import BUCKETS, SourceDates, calculate_expiry, fefo_key
+from app.domain.expiry import (
+    BUCKETS,
+    SourceDates,
+    calculate_expiry,
+    fefo_key,
+    has_strict_date_evidence,
+)
 
 
 async def stock(
@@ -28,8 +34,7 @@ async def stock(
             continue
         facts = Facts.model_validate(offer["facts_snapshot"])
         strict = any(
-            a["extracted"]["dates"]["date_type"] in ("DLC", "expiry", "PAO")
-            or a["extracted"]["dates"]["pao_months"] is not None
+            has_strict_date_evidence(a["extracted"])
             for a in record["analyses"]
         )
         view = calculate_expiry(

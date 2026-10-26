@@ -316,12 +316,25 @@ export class DonationSession {
         const body = new FormData();
         body.append("file", file);
         body.append("kind", this.photoKinds.get(file) ?? "item");
-        const result = await this.request<{ id: string }>(
-          `/donations/${item.id}/photos`,
-          { method: "POST", body, idempotencyKey: this.commandKey(file) },
-        );
-        photoId = result.id;
-        this.uploaded.set(file, photoId);
+        try {
+          const result = await this.request<{ id: string }>(
+            `/donations/${item.id}/photos`,
+            { method: "POST", body, idempotencyKey: this.commandKey(file) },
+          );
+          photoId = result.id;
+          this.uploaded.set(file, photoId);
+        } catch (error) {
+          const status = (error as { status?: number })?.status;
+          // These validation failures confirm that no photo was stored.
+          // Keep the lock for uncertain outcomes so retries cannot duplicate it.
+          if (status === 413 || status === 415)
+            this.update({
+              lockedFiles: this.state.lockedFiles.filter(
+                (locked) => locked !== file,
+              ),
+            });
+          throw error;
+        }
       }
       photoIds.push(photoId);
     }

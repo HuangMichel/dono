@@ -17,7 +17,50 @@ function Journey() {
     </NotificationProvider>
   );
 }
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
+it("preserves the remaining reading time while the tab is hidden, including new notifications", async () => {
+  vi.useFakeTimers();
+  const visibility = vi.spyOn(document, "visibilityState", "get");
+  visibility.mockReturnValue("visible");
+  const view = await render(
+    <NotificationProvider>
+      <Trigger />
+    </NotificationProvider>,
+  );
+  const save = view.container.querySelector<HTMLButtonElement>("button")!;
+  await act(async () => save.click());
+  await act(async () => {
+    vi.advanceTimersByTime(2000);
+  });
+  await act(async () => {
+    visibility.mockReturnValue("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await act(async () => save.click());
+  await act(async () => {
+    vi.advanceTimersByTime(10000);
+  });
+  expect(view.container.querySelectorAll('[role="status"]')).toHaveLength(2);
+  await act(async () => {
+    visibility.mockReturnValue("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await act(async () => {
+    vi.advanceTimersByTime(3999);
+  });
+  expect(view.container.querySelectorAll('[role="status"]')).toHaveLength(2);
+  await act(async () => {
+    vi.advanceTimersByTime(1);
+  });
+  expect(view.container.querySelectorAll('[role="status"]')).toHaveLength(1);
+  await act(async () => {
+    vi.advanceTimersByTime(2000);
+  });
+  expect(view.container.querySelectorAll('[role="status"]')).toHaveLength(0);
+});
 it("keeps notifications after the originating screen unmounts and dismisses repeated results separately", async () => {
   const view = await render(<Journey />);
   const buttons = () =>

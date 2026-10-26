@@ -6,7 +6,12 @@ from uuid import UUID
 from app.adapters.openai import OpenAIAnalyzer
 from app.adapters.photos import decode_photo
 from app.adapters.supabase import Supabase
-from app.analysis.validation import evidence_conflict, indicator_level
+from app.analysis.validation import (
+    evidence_conflict,
+    extraction_is_complete,
+    indicator_level,
+    stored_evidence_conflict,
+)
 from app.api.dependencies import Actor
 from app.api.models import AnalysisInput
 from app.domain.errors import DomainError
@@ -52,14 +57,7 @@ def shape_analysis(
         normalized.append(value)
     result["indicators"] = normalized
     result["input_facts_revision"] = str(result["input_facts_revision"])
-    attrs = result["extracted"]["attributes"]
-    conflict = (
-        attrs.get("pair_complete") is True
-        and any(
-            i["key"] == "pair_incomplete" and i.get("probability", 0) >= 0.8
-            for i in normalized
-        )
-    ) or " | " in (result["extracted"]["dates"]["raw_label"] or "")
+    conflict = stored_evidence_conflict(result["extracted"], normalized)
     medicine = next(
         (i.get("probability") for i in normalized if i["key"] == "looks_like_medicine"),
         None,
@@ -70,6 +68,7 @@ def shape_analysis(
         ),
         "evidence_conflict": conflict,
         "manual_review_required": conflict
+        or not extraction_is_complete(result["extracted"])
         or result["confidence"] < 0.8
         or medicine is None
         or working_category != result["category"],

@@ -374,16 +374,18 @@ export default function Dashboard() {
         )}
       </PageHeading>
 
-      <nav className="card dashboard-status" aria-label="Today's counts">
+      <nav className="dashboard-status" aria-label="Today's counts">
         <StatusCount
           href="/association/review"
           value={pending.length}
           more={offers.hasMore}
-          singular="offer to review"
-          plural="offers to review"
+          singular="offer awaiting review"
+          plural="offers awaiting review"
           detail={
-            pending.length
-              ? `Oldest from ${parisDate.format(new Date(pending[0].created_at))}`
+            pending.length && now !== null
+              ? Date.parse(pending[0].created_at) > now - 60000
+                ? "Just submitted"
+                : `Waiting for ${timeAgo(pending[0].created_at, now).replace(/ ago$/, "")}`
               : "None waiting"
           }
           tone="amber"
@@ -394,18 +396,14 @@ export default function Dashboard() {
           href="/association/reception"
           value={booked.length}
           more={arrivals.hasMore}
-          singular="drop-off expected"
-          plural="drop-offs expected"
+          singular="drop-off expected today"
+          plural="drop-offs expected today"
           detail={
-            arrivals.data.length
-              ? [
-                  nextBooked &&
-                    `Next at ${parisTime.format(new Date(nextBooked.booking.computed.starts_at))}`,
-                  `${formatCount(arrivals.data.length, "appointment")} today`,
-                ]
-                  .filter(Boolean)
-                  .join(", ")
-              : "No appointments today"
+            nextBooked
+              ? `Next at ${parisTime.format(new Date(nextBooked.booking.computed.starts_at))}`
+              : booked.length
+                ? "Awaiting reception"
+                : "No active bookings"
           }
           loading={arrivalsLoading}
           error={arrivals.error}
@@ -413,11 +411,11 @@ export default function Dashboard() {
         <StatusCount
           href="/association/inventory"
           value={counts.data ? bucketTotal(counts.data, EXPIRING_BUCKETS) : 0}
-          singular="donation expiring within 30 days"
-          plural="donations expiring within 30 days"
+          singular="donation expiring in under 30 days"
+          plural="donations expiring in under 30 days"
           detail={
             counts.data && bucketTotal(counts.data, UNDER_SEVEN_BUCKETS)
-              ? `${bucketTotal(counts.data, UNDER_SEVEN_BUCKETS)} under 7 days`
+              ? `${bucketTotal(counts.data, UNDER_SEVEN_BUCKETS)} ${bucketTotal(counts.data, UNDER_SEVEN_BUCKETS) === 1 ? "expires" : "expire"} in under 7 days`
               : "None under 7 days"
           }
           tone="orange"
@@ -428,12 +426,12 @@ export default function Dashboard() {
           href="/association/needs"
           value={openNeeds.length}
           more={needs.hasMore}
-          singular="need still open"
-          plural="needs still open"
+          singular="open need"
+          plural="open needs"
           detail={
-            activeNeeds.length
-              ? `Of ${formatCount(activeNeeds.length, "active need")}`
-              : "No active needs"
+            openNeeds.length
+              ? "Still accepting donations"
+              : "No unmet quantities"
           }
           loading={needs.loading}
           error={needs.error}

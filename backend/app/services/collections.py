@@ -10,7 +10,7 @@ from app.adapters.supabase import Supabase
 from app.api.dependencies import Actor
 from app.api.models import Facts
 from app.domain.errors import DomainError
-from app.domain.expiry import SourceDates, calculate_expiry
+from app.domain.expiry import SourceDates, calculate_expiry, has_strict_date_evidence
 
 
 async def all_rows(
@@ -99,8 +99,7 @@ async def donor_items(db: Supabase, actor: Actor) -> list[dict[str, Any]]:
     strict_items = {
         record["donation_id"]
         for record in originals
-        if record["extracted"]["dates"]["date_type"] in ("DLC", "expiry", "PAO")
-        or record["extracted"]["dates"]["pao_months"] is not None
+        if has_strict_date_evidence(record["extracted"])
     }
     date_map = {
         row["donation_id"]: {

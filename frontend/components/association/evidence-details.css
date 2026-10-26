@@ -1,0 +1,112 @@
+.evidence-analysis + .evidence-analysis {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 0.5px solid var(--border);
+}
+.evidence-disclosure {
+  margin-top: 12px;
+}
+.evidence-disclosure > summary {
+  cursor: pointer;
+  padding-block: 8px;
+  font-weight: 600;
+}
+.evidence-disclosure > summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+.evidence-extracted {
+  margin-top: 16px;
+}
+.evidence-extracted h3 {
+  margin: 0 0 8px;
+}
+.evidence-fact-list > div {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr);
+  gap: 16px;
+  padding: 8px 0;
+}
+.evidence-fact-list dd {
+  text-align: left;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.evidence-unassessed {
+  padding-left: 20px;
+  columns: 2;
+}
+.evidence-unassessed li {
+  padding-block: 4px;
+  break-inside: avoid;
+}
+.evidence-raw-indicators {
+  list-style: none;
+  padding: 0;
+}
+.evidence-raw-indicators li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding-block: 8px;
+  border-bottom: 0.5px solid var(--border);
+}
+.evidence-raw-indicators strong {
+  flex-basis: 100%;
+}
+.evidence-history > ol {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.evidence-history > ol > li {
+  padding-block: 16px;
+  border-top: 0.5px solid var(--border);
+}
+.evidence-history-event {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+.evidence-history-event time {
+  color: var(--muted);
+}
+.evidence-changes {
+  margin: 8px 0;
+}
+.evidence-changes > div {
+  padding-block: 8px;
+}
+.evidence-changes dt {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.evidence-changes dd {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  text-align: left;
+}
+.evidence-changes dd > span {
+  overflow-wrap: anywhere;
+}
+.evidence-changes small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+@media (max-width: 479px) {
+  .evidence-fact-list > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .evidence-unassessed {
+    columns: 1;
+  }
+  .evidence-changes dd {
+    gap: 12px;
+  }
+}

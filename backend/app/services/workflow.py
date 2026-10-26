@@ -9,6 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from app.adapters.supabase import Supabase
+from app.analysis.validation import extraction_is_complete, stored_evidence_conflict
 from app.api.dependencies import Actor
 from app.api.models import Facts
 from app.domain.errors import DomainError
@@ -17,6 +18,7 @@ from app.domain.expiry import (
     calculate_expiry,
     day_fence,
     enforce_date_checks,
+    has_strict_date_evidence,
 )
 from app.domain.matching import Budgets, attributes_match, haversine, season
 
@@ -169,9 +171,7 @@ async def offer_context(db: Supabase, actor: Actor, attempt: UUID) -> OfferConte
 
 def original_strict_concern(context: OfferContext) -> bool:
     return any(
-        record["analysis"]["extracted"]["dates"]["date_type"]
-        in ("DLC", "expiry", "PAO")
-        or record["analysis"]["extracted"]["dates"]["pao_months"] is not None
+        has_strict_date_evidence(record["analysis"]["extracted"])
         for record in context.analyses
     )
 
@@ -190,12 +190,7 @@ def expiry_for(
     context: OfferContext, *, at_time: datetime | None = None
 ) -> dict[str, Any]:
     facts = Facts.model_validate(context.offer["facts_snapshot"])
-    strict = any(
-        record["analysis"]["extracted"]["dates"]["date_type"]
-        in ("DLC", "expiry", "PAO")
-        or record["analysis"]["extracted"]["dates"]["pao_months"] is not None
-        for record in context.analyses
-    )
+    strict = original_strict_concern(context)
     view = calculate_expiry(
         SourceDates(**facts.expiry.model_dump()),
         facts.category,
@@ -217,12 +212,7 @@ def guard_for(
     booking_at: datetime | None = None,
 ) -> dict[str, object]:
     facts = Facts.model_validate(context.offer["facts_snapshot"])
-    strict = any(
-        record["analysis"]["extracted"]["dates"]["date_type"]
-        in ("DLC", "expiry", "PAO")
-        or record["analysis"]["extracted"]["dates"]["pao_months"] is not None
-        for record in context.analyses
-    )
+    strict = original_strict_concern(context)
     correction = checks.get("date_label_correction_confirmed") is True
     if correction and (
         not context.human_facts_confirmed
@@ -278,14 +268,8 @@ def guard_for(
                 and i["probability"] >= 0.5
                 for i in indicators
             )
-            attrs = analysis["extracted"]["attributes"]
-            manual |= attrs.get("pair_complete") is True and any(
-                i["key"] == "pair_incomplete"
-                and i["probability"] is not None
-                and i["probability"] >= 0.8
-                for i in indicators
-            )
-            manual |= " | " in (analysis["extracted"]["dates"]["raw_label"] or "")
+            manual |= not extraction_is_complete(analysis["extracted"])
+            manual |= stored_evidence_conflict(analysis["extracted"], indicators)
         if checks.get("not_medicine") is not True or (
             facts.category == "food"
             and (

@@ -1,6 +1,6 @@
 "use client";
 import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PublicShell } from "@/components/public-shell";
 import {
   Button,
@@ -103,23 +103,33 @@ function DonationRoute() {
   const params = useSearchParams(),
     auth = useAuth();
   const id = params.get("id");
+  const router = useRouter();
+  const [newItem, setNewItem] = useState(0);
   const continuation =
     safeOfferReturn(`/donate?${params}`) ??
     donationHref(offerIntent(new URLSearchParams(params.toString())));
   return (
     <DonationFlow
-      key={`${auth.user?.id ?? "guest"}:${id ?? "new"}`}
+      key={`${auth.user?.id ?? "guest"}:${id ?? "new"}:${newItem}`}
       id={id}
       continuation={continuation}
+      onNewItem={() => {
+        // A saved-item URL remounts when its ID disappears. The plain donation
+        // URL needs an explicit new identity to dispose of its completed draft.
+        if (!id) setNewItem((value) => value + 1);
+        if (params.size) router.push("/donate");
+      }}
     />
   );
 }
 function DonationFlow({
   id,
   continuation,
+  onNewItem,
 }: {
   id: string | null;
   continuation: string;
+  onNewItem: () => void;
 }) {
   const [analysing, setAnalysing] = useState(false);
   const { notify } = useNotifications();
@@ -213,9 +223,7 @@ function DonationFlow({
               : step === 3
                 ? "Your offer is sent"
                 : step === 2
-                  ? matches.length
-                    ? `${matches.length} ${matches.length === 1 ? "association needs" : "associations need"} this`
-                    : "Choose an association"
+                  ? "Post or send your item"
                   : step === 1
                     ? "Check your item details"
                     : "Take photos of your item"
@@ -312,11 +320,7 @@ function DonationFlow({
               <>
                 {step < 3 && (
                   <Stepper
-                    labels={[
-                      "Photos",
-                      "Check details",
-                      "Choose an association",
-                    ]}
+                    labels={["Photos", "Check details", "Post or send"]}
                     currentStep={step}
                     label="Donation progress"
                   />
@@ -367,7 +371,7 @@ function DonationFlow({
                     <DonationPhotos
                       files={files}
                       savedCount={persistedPhotos.length}
-                      locked={lockedFiles.length > 0}
+                      lockedFiles={lockedFiles}
                       disabled={busy}
                       showLabel={
                         dated ||
@@ -786,6 +790,16 @@ function DonationFlow({
                         )}
                       </div>
                     </Card>
+                    {donation && (
+                      <PostingControls
+                        key={donation.id}
+                        donation={donation}
+                        photos={persistedPhotos}
+                        onChanged={session.setDonation}
+                        allowPosting
+                      />
+                    )}
+                    <h2>Send to an association (optional)</h2>
                     <form
                       className="donation-match-search"
                       onSubmit={(e) => {
@@ -826,19 +840,16 @@ function DonationFlow({
                               need and space right now. Try another location or
                               browse nearby needs.
                             </p>
-                            {donation && (
-                              <PostingControls
-                                key={donation.id}
-                                donation={donation}
-                                photos={persistedPhotos}
-                                onChanged={session.setDonation}
-                                allowPosting
-                              />
-                            )}
                             <NoMatchDropoffs category={category} />
-                            <LinkButton href="/donate" size="app">
+                            <Button
+                              size="app"
+                              onClick={() => {
+                                session.stop();
+                                onNewItem();
+                              }}
+                            >
                               Donate another item
-                            </LinkButton>
+                            </Button>
                             <LinkButton href="/needs" variant="outline">
                               Nearby needs
                             </LinkButton>
@@ -909,14 +920,16 @@ function DonationFlow({
                       onBack={() => setStep(1)}
                       backLabel="Edit details"
                     >
-                      <Button
-                        size="app"
-                        disabled={busy || !selected}
-                        onClick={() => run(sendOffer)}
-                      >
-                        Send offer for staff review
-                        <Icon name="arrow-right" />
-                      </Button>
+                      {selected && (
+                        <Button
+                          size="app"
+                          disabled={busy}
+                          onClick={() => run(sendOffer)}
+                        >
+                          Send offer for staff review
+                          <Icon name="arrow-right" />
+                        </Button>
+                      )}
                     </StepActions>
                   </div>
                 )}
@@ -959,9 +972,15 @@ function DonationFlow({
                       Association staff will review your offer. Check its status
                       in My donations.
                     </p>
-                    <LinkButton href="/donate" size="app">
+                    <Button
+                      size="app"
+                      onClick={() => {
+                        session.stop();
+                        onNewItem();
+                      }}
+                    >
                       Donate another item
-                    </LinkButton>
+                    </Button>
                     <LinkButton href="/donations" variant="outline">
                       My donations
                     </LinkButton>

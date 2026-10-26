@@ -58,7 +58,9 @@
   background: transparent;
   color: var(--muted);
 }
-.notification-dismiss:hover {
-  background: var(--component);
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .notification-dismiss:hover {
+    background: var(--component);
+    color: var(--text);
+  }
 }

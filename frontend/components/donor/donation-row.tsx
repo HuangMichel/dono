@@ -226,9 +226,11 @@ export function DonationRow({
               }).format(new Date(latest.decided_at))}`
             : ""}
           .{" "}
-          {latest.computed.effective_state === "approved"
-            ? "Book your drop-off to finish the donation."
-            : "The item stays in your donations, and you can offer it again."}
+          {received
+            ? "The association has received your donation."
+            : latest.computed.effective_state === "approved"
+              ? "Book your drop-off to finish the donation."
+              : "The item stays in your donations, and you can offer it again."}
         </p>
       )}
       {note && <p className="notice">Staff note: {note}</p>}
