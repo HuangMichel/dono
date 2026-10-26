@@ -20,6 +20,7 @@ import { DateChecks, dateCommand } from "@/components/association/date-checks";
 import { StateChip, ExpiryChip } from "@/components/association/status";
 import { formatCount, enumLabel } from "@/lib/ui-text";
 import "@/components/association/reception-stock.css";
+import { QrScanner } from "@/components/association/qr-scanner";
 type Arrival = { booking: Booking; offer: Offer };
 type Resolved = Arrival & { receivable: boolean; blocking_codes: string[] };
 export default function Reception() {
@@ -37,11 +38,24 @@ export default function Reception() {
   const [resolvedPayload, setResolvedPayload] = useState("");
   const command = useCommand();
   const verification = useRef(0);
+  const [scanError, setScanError] = useState("");
+  const [scanningCheck, setScanningCheck] = useState(false);
+  async function verify(value: string) {
+    setResolved(null);
+    const generation = ++verification.current;
+    const result = await api<Resolved>(`/associations/${id}/qr/resolve`, {
+      method: "POST",
+      body: { payload: value },
+    });
+    if (generation !== verification.current) return false;
+    setResolvedPayload(value);
+    setResolved(result);
+  }
   return (
     <>
       <ConsoleTitle
         title="Reception"
-        detail="Use a QR reader on your device, then paste the donor's QR code content below."
+        detail="Scan the donor's QR code, then check the item before confirming reception."
       />
       <div className="reception-workspace">
         <div className="reception-verification console-stack">
@@ -50,36 +64,62 @@ export default function Reception() {
               <Icon name="scan" size={32} />
               <h2>Check donor QR code</h2>
             </div>
-            <p className="console-meta">
-              Paste the donor&apos;s QR code content to check this appointment.
-            </p>
-            <CommandForm
-              submit="Check QR code"
-              successMessage="QR verification complete."
-              onSubmit={async () => {
+            <QrScanner
+              onStart={() => {
+                verification.current++;
                 setResolved(null);
-                const generation = ++verification.current;
-                const result = await api<Resolved>(
-                  `/associations/${id}/qr/resolve`,
-                  { method: "POST", body: { payload } },
-                );
-                if (generation !== verification.current) return false;
-                setResolvedPayload(payload);
-                setResolved(result);
+                setScanError("");
+                setScanningCheck(false);
               }}
-            >
-              <Field
-                label="QR code content"
-                value={payload}
-                maxLength={2048}
-                required
-                onChange={(e) => {
-                  verification.current++;
-                  setPayload(e.target.value);
-                  setResolved(null);
+              onScan={(value) => {
+                setPayload(value);
+                setScanError("");
+                setScanningCheck(true);
+                const pending = verify(value);
+                const generation = verification.current;
+                void pending
+                  .catch((cause) => {
+                    if (generation !== verification.current) return;
+                    setScanError(
+                      cause instanceof Error
+                        ? cause.message
+                        : "Could not check this QR code. Try again.",
+                    );
+                  })
+                  .finally(() => {
+                    if (generation === verification.current)
+                      setScanningCheck(false);
+                  });
+              }}
+            />
+            {scanningCheck && <p role="status">Checking appointment…</p>}
+            {scanError && <p role="alert">{scanError}</p>}
+            <details>
+              <summary>Enter QR code content manually</summary>
+              <CommandForm
+                submit="Check QR code"
+                successMessage="QR verification complete."
+                onSubmit={() => {
+                  setScanError("");
+                  setScanningCheck(false);
+                  return verify(payload);
                 }}
-              />
-            </CommandForm>
+              >
+                <Field
+                  label="QR code content"
+                  value={payload}
+                  maxLength={2048}
+                  required
+                  onChange={(e) => {
+                    verification.current++;
+                    setScanningCheck(false);
+                    setScanError("");
+                    setPayload(e.target.value);
+                    setResolved(null);
+                  }}
+                />
+              </CommandForm>
+            </details>
           </section>
         </div>
         <section

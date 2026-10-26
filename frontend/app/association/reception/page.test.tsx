@@ -29,6 +29,24 @@ vi.mock("@/components/association/date-checks", () => ({
   DateChecks: () => null,
   dateCommand: () => ({}),
 }));
+vi.mock("@/components/association/qr-scanner", () => ({
+  QrScanner: ({
+    onScan,
+    onStart,
+  }: {
+    onScan: (value: string) => void;
+    onStart: () => void;
+  }) => (
+    <button
+      onClick={() => {
+        onStart();
+        onScan("camera-signed-qr");
+      }}
+    >
+      Simulate live scan
+    </button>
+  ),
+}));
 import Reception from "./page";
 it("counts only booked appointments as expected drop-offs", async () => {
   const arrival = (id: string, state: string) => ({
@@ -36,7 +54,10 @@ it("counts only booked appointments as expected drop-offs", async () => {
       id,
       computed: { effective_state: state, starts_at: "2026-10-25T14:00:00Z" },
     },
-    offer: { quantity: "1", computed: { expiry: { bucket: "not_applicable" } } },
+    offer: {
+      quantity: "1",
+      computed: { expiry: { bucket: "not_applicable" } },
+    },
   });
   mocks.arrivals = [
     arrival("a", "booked"),
@@ -162,4 +183,34 @@ it("receives the verified booking with its signed payload and full-lot confirmat
   );
   expect(screen.container.textContent).not.toContain("Verified evidence");
   expect(input.value).toBe("");
+});
+
+it("automatically resolves a camera scan without recording reception", async () => {
+  mocks.api.mockReset().mockResolvedValueOnce({
+    booking: {
+      id: "booking",
+      revision: "revision",
+      computed: {
+        effective_state: "booked",
+        starts_at: "2026-10-25T12:00:00Z",
+      },
+    },
+    offer: { quantity: "3", computed: { expiry: {} } },
+    receivable: true,
+    blocking_codes: [],
+  });
+  const screen = await render(
+    <NotificationProvider>
+      <Reception />
+    </NotificationProvider>,
+  );
+  await act(async () => screen.container.querySelector("button")!.click());
+  expect(mocks.api).toHaveBeenCalledExactlyOnceWith(
+    "/associations/association/qr/resolve",
+    { method: "POST", body: { payload: "camera-signed-qr" } },
+  );
+  expect(screen.container.textContent).toContain("Verified evidence");
+  expect(screen.container.textContent).toContain(
+    "Receive all 3 items into stock",
+  );
 });
